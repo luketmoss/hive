@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+frontend/dist/
+
+# Environment files (contain OAuth client ID and spreadsheet ID)
+.env.local
+.env.*.local
+
+# clasp config (contains script ID specific to your account)
+apps-script/.clasp.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+
+# Claude Code config (local settings)
+.claude/

@@ -1,0 +1,14 @@
+{
+  "name": "hive-apps-script",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/google-apps-script": "^1.0.83",
+    "vitest": "^3.0.0",
+    "typescript": "^5.7.0"
+  }
+}
