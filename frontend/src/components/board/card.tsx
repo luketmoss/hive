@@ -14,7 +14,7 @@ export function Card({ item }: Props) {
     : [];
 
   const isOverdue = item.due_date && item.status !== 'Done' &&
-    new Date(item.due_date) < new Date(new Date().toDateString());
+    parseLocalDate(item.due_date) < new Date(new Date().toDateString());
 
   const handleDragStart = (e: DragEvent) => {
     e.dataTransfer?.setData('text/plain', item.id);
@@ -76,9 +76,19 @@ export function Card({ item }: Props) {
   );
 }
 
+function parseLocalDate(dateStr: string): Date {
+  // Date-only strings (e.g. "2026-03-02") are parsed as UTC by JS,
+  // which shifts the day back in western timezones. Append T00:00:00
+  // so it's treated as local time instead.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return new Date(dateStr + 'T00:00:00');
+  }
+  return new Date(dateStr);
+}
+
 function formatDate(dateStr: string): string {
   try {
-    const d = new Date(dateStr);
+    const d = parseLocalDate(dateStr);
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   } catch {
     return dateStr;

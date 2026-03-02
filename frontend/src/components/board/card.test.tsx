@@ -54,6 +54,14 @@ describe('Card', () => {
       // Scheduled should have a distinguishing prefix/icon
       expect(scheduledEl!.textContent).not.toEqual(dueEl!.textContent);
     });
+
+    it('handles date-only strings without timezone shift', () => {
+      const item = makeItem({ scheduled_date: '2026-03-02' });
+      const { container } = render(<Card item={item} />);
+      const scheduledEl = container.querySelector('.card-scheduled');
+      expect(scheduledEl).not.toBeNull();
+      expect(scheduledEl!.textContent).toContain('Mar 2');
+    });
   });
 
   // AC2: Scheduled date absent when empty
