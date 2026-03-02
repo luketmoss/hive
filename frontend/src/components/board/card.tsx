@@ -40,8 +40,13 @@ export function Card({ item }: Props) {
       <div class="card-title">{item.title}</div>
 
       <div class="card-meta">
-        {item.owner && (
+        {item.owner ? (
           <span class="card-owner">{item.owner}</span>
+        ) : (
+          <span class="card-unassigned">Unassigned</span>
+        )}
+        {item.scheduled_date && (
+          <span class="card-scheduled">{'\u{1F4C5}'} {formatDate(item.scheduled_date)}</span>
         )}
         {item.due_date && (
           <span class={`card-due ${isOverdue ? 'card-due-overdue' : ''}`}>
