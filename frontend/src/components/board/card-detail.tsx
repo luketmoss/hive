@@ -1,8 +1,10 @@
 import { useState } from 'preact/hooks';
+import { useRef, useCallback } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
 import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels as labelsStore } from '../../state/board-store';
 import { updateItem, deleteItem, createItem, moveItem } from '../../state/actions';
 import { LabelBadge } from '../shared/label-badge';
+import { useFocusTrap } from '../../hooks/use-focus-trap';
 import type { ItemStatus } from '../../api/types';
 
 export function CardDetail() {
@@ -13,7 +15,21 @@ export function CardDetail() {
   const actor = user?.name || 'web';
   const children = childrenOfSelected.value;
 
-  const close = () => { selectedItemId.value = null; };
+  const close = useCallback(() => {
+    // Return focus to the triggering card element (AC5)
+    const triggerId = selectedItemId.value;
+    selectedItemId.value = null;
+    // Use requestAnimationFrame to allow the DOM to update after panel closes
+    requestAnimationFrame(() => {
+      if (triggerId) {
+        const cardEl = document.querySelector<HTMLElement>(`[data-item-id="${triggerId}"]`);
+        cardEl?.focus();
+      }
+    });
+  }, []);
+
+  // Focus trap (AC3) + Escape to close (AC4)
+  const panelRef = useFocusTrap(close);
 
   const save = (field: string, value: string) => {
     if (token) updateItem(item.id, { [field]: value }, actor, token);
@@ -42,9 +58,16 @@ export function CardDetail() {
   };
 
   return (
-    <div class="detail-overlay" onClick={(e) => {
-      if ((e.target as HTMLElement).classList.contains('detail-overlay')) close();
-    }}>
+    <div
+      class="detail-overlay"
+      ref={panelRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Item Details"
+      onClick={(e) => {
+        if ((e.target as HTMLElement).classList.contains('detail-overlay')) close();
+      }}
+    >
       <div class="detail-panel">
         <div class="detail-header">
           <h2>Item Details</h2>
@@ -215,7 +238,7 @@ function EditableField({ label, value, onSave, multiline }: {
           value={draft}
           onInput={(e) => setDraft((e.target as HTMLTextAreaElement).value)}
           onBlur={commit}
-          onKeyDown={(e) => { if (e.key === 'Escape') cancel(); }}
+          onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); cancel(); } }}
           autoFocus
           rows={4}
         />
@@ -227,7 +250,7 @@ function EditableField({ label, value, onSave, multiline }: {
           onBlur={commit}
           onKeyDown={(e) => {
             if (e.key === 'Enter') commit();
-            if (e.key === 'Escape') cancel();
+            if (e.key === 'Escape') { e.stopPropagation(); cancel(); }
           }}
           autoFocus
         />
