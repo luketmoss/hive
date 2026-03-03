@@ -107,6 +107,7 @@ export function KanbanBoard() {
         class="fab"
         onClick={() => { showCreateModal.value = true; }}
         title="Create new item"
+        aria-label="Create new item"
       >
         +
       </button>

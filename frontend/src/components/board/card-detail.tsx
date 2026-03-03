@@ -71,7 +71,7 @@ export function CardDetail() {
       <div class="detail-panel">
         <div class="detail-header">
           <h2>Item Details</h2>
-          <button class="btn btn-ghost" onClick={close}>✕</button>
+          <button class="btn btn-ghost" aria-label="Close" onClick={close}>✕</button>
         </div>
 
         <div class="detail-body">
@@ -171,6 +171,7 @@ export function CardDetail() {
                     <input
                       type="checkbox"
                       checked={child.status === 'Done'}
+                      aria-label={child.title}
                       onChange={() => toggleChildStatus(child.id, child.status)}
                     />
                     <span>{child.title}</span>
@@ -223,7 +224,19 @@ function EditableField({ label, value, onSave, multiline }: {
     return (
       <div class="detail-field" onClick={() => { setDraft(value); setEditing(true); }}>
         <label>{label}</label>
-        <div class="editable-value">
+        <div
+          class="editable-value"
+          role="button"
+          tabIndex={0}
+          aria-label={`Edit ${label.toLowerCase()}`}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setDraft(value);
+              setEditing(true);
+            }
+          }}
+        >
           {value || <span class="placeholder">Click to edit</span>}
         </div>
       </div>
