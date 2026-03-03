@@ -241,4 +241,62 @@ describe('Card', () => {
       });
     });
   });
+
+  // Issue #12 — Description preview
+  describe('Description preview (Issue #12)', () => {
+    // AC1: Non-empty description shows truncated preview below title
+    describe('AC1: Description preview shows on card', () => {
+      it('renders a description preview when description is non-empty', () => {
+        const item = makeItem({ description: 'Pick up milk and eggs from the store' });
+        const { container } = render(<Card item={item} />);
+        const descEl = container.querySelector('.card-description');
+        expect(descEl).not.toBeNull();
+        expect(descEl!.textContent).toBe('Pick up milk and eggs from the store');
+      });
+
+      it('renders description below the title', () => {
+        const item = makeItem({ description: 'Some notes here' });
+        const { container } = render(<Card item={item} />);
+        const title = container.querySelector('.card-title');
+        const desc = container.querySelector('.card-description');
+        expect(title).not.toBeNull();
+        expect(desc).not.toBeNull();
+        // Description should be a sibling after title
+        expect(title!.nextElementSibling).toBe(desc);
+      });
+    });
+
+    // AC2: Long descriptions are truncated with ellipsis (CSS line-clamp)
+    describe('AC2: Long descriptions are truncated', () => {
+      it('applies CSS line-clamp class for long descriptions', () => {
+        const longDesc = 'This is a very long description that spans multiple lines. '.repeat(10);
+        const item = makeItem({ description: longDesc });
+        const { container } = render(<Card item={item} />);
+        const descEl = container.querySelector('.card-description');
+        expect(descEl).not.toBeNull();
+        expect(descEl!.classList.contains('card-description')).toBe(true);
+        // The CSS class card-description applies -webkit-line-clamp: 2
+      });
+    });
+
+    // AC3: Empty descriptions show nothing
+    describe('AC3: Empty descriptions show nothing', () => {
+      it('does not render description element when description is empty string', () => {
+        const item = makeItem({ description: '' });
+        const { container } = render(<Card item={item} />);
+        const descEl = container.querySelector('.card-description');
+        expect(descEl).toBeNull();
+      });
+
+      it('does not render description element when description is undefined-like', () => {
+        const item = makeItem({ description: '' });
+        const { container } = render(<Card item={item} />);
+        const descEl = container.querySelector('.card-description');
+        expect(descEl).toBeNull();
+        // Verify no empty space is left — card-meta should directly follow card-title
+        const title = container.querySelector('.card-title');
+        expect(title!.nextElementSibling!.classList.contains('card-meta')).toBe(true);
+      });
+    });
+  });
 });
