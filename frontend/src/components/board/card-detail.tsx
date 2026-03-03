@@ -5,6 +5,7 @@ import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels
 import { updateItem, deleteItem, createItem, moveItem } from '../../state/actions';
 import { LabelBadge } from '../shared/label-badge';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
+import { getContrastTextColor } from '../../utils/color';
 import type { ItemStatus } from '../../api/types';
 
 export function CardDetail() {
@@ -143,7 +144,7 @@ export function CardDetail() {
                   <button
                     key={l.label}
                     class={`label-toggle ${isActive ? 'label-toggle-active' : ''}`}
-                    style={{ '--label-color': l.color } as any}
+                    style={{ '--label-color': l.color, '--label-text-color': getContrastTextColor(l.color) } as any}
                     onClick={() => {
                       const updated = isActive
                         ? currentLabels.filter(x => x !== l.label)
