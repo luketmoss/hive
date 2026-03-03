@@ -25,6 +25,8 @@
       "Bash(npx tsc:*)",
       "Bash(npx vitest:*)",
       "Bash(npx vite:*)",
+      "Bash(cd frontend:*)",
+      "Bash(cd apps-script:*)",
       "Bash(clasp push:*)",
       "Bash(clasp deploy:*)",
       "mcp__Claude_Preview__preview_start",
