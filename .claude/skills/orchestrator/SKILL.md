@@ -1,7 +1,7 @@
 ---
 name: orchestrator
-description: Coordinate specialized agents through the development pipeline. Can start from a new idea or resume any issue from its current board position. Spawns independent sub-agents (idea, PM, UX, dev, QA, review) that challenge each other. Posts disagreements to the issue so stuck items are visible on the board.
-argument-hint: [new idea OR #issue-number to resume]
+description: Coordinate specialized agents through the development pipeline. Can start from a new idea, resume any issue from its current board position, or batch-process all children of a parent issue. Spawns independent sub-agents (idea, PM, UX, dev, QA, review) that challenge each other. Posts disagreements to the issue so stuck items are visible on the board.
+argument-hint: [new idea OR #issue-number OR #parent-number children]
 allowed-tools: Bash, Read, Grep, Glob, Task, TodoWrite, AskUserQuestion
 ---
 
@@ -31,6 +31,7 @@ $ARGUMENTS — this can be:
 
 1. **A new idea** (freeform text) — start from Stage 1 (Idea)
 2. **An issue number** (e.g., `#4` or `4`) — read the board and resume from the current stage
+3. **Batch children** (e.g., `#3 children` or `children of #3`) — process all sub-issues of a parent issue. See [Batch Mode](#batch-mode-processing-children) below.
 
 ### Resuming from Board State
 
@@ -264,6 +265,102 @@ Then ask:
 3. Spawn Dev with the user's feedback.
 4. Re-run QA and Review stages.
 5. Return to the approval gate with an updated summary.
+
+---
+
+## Batch Mode: Processing Children
+
+**When:** Input matches a pattern like `#3 children`, `children of #3`, or `#3 all`.
+
+### Step 1: Fetch sub-issues
+
+```bash
+gh api graphql -f query='query {
+  repository(owner: "luketmoss", name: "hive") {
+    issue(number: <PARENT_NUMBER>) {
+      title
+      subIssues(first: 50) {
+        nodes {
+          number
+          title
+          state
+        }
+      }
+    }
+  }
+}'
+```
+
+### Step 2: Get board state for each child
+
+For each sub-issue, look up its board column:
+
+```bash
+gh project item-list 2 --owner luketmoss --format json | jq -r '.items[] | select(.content.number == <CHILD_NUMBER>) | .status'
+```
+
+### Step 3: Sort and filter
+
+1. **Skip** children in **Done** or with state `CLOSED`.
+2. **Sort** remaining children by pipeline order so the closest-to-done items finish first:
+   - In Review → Testing → In Development → Ready → Refining → To Do
+3. Use **TodoWrite** to create a checklist of all children with their current board state so progress is visible.
+
+### Step 4: Process each child sequentially
+
+For each child (in sorted order):
+1. Update the TodoWrite to mark the current child as `in_progress`.
+2. Run the **standard single-issue pipeline** for that child — resume from its board state, run through all stages up to and including Stage 5 (Code Review).
+3. **If the child gets stuck** (conflict escalation), note it and move on to the next child.
+4. **If the child completes Stage 5**, collect its summary and continue to the next child.
+
+### Step 5: Batch Approval Gate
+
+After all children have been processed (or stuck), present a **batch summary**:
+
+```
+## Batch Orchestrator Summary — Children of #<PARENT>
+
+### Parent: <parent title>
+
+### Completed (ready to merge)
+| Issue | Title | PR | QA | Review |
+|---|---|---|---|---|
+| #5 | <title> | #20 | PASS | APPROVE |
+| #6 | <title> | #21 | PASS | APPROVE |
+
+### Stuck (needs attention)
+| Issue | Title | Column | Reason |
+|---|---|---|---|
+| #7 | <title> | Testing | QA vs Dev — 2 failed attempts |
+
+### Skipped (already done)
+| Issue | Title |
+|---|---|
+| #8 | <title> |
+
+### Links
+- **Parent issue:** #<PARENT>
+- **PRs to review:** #20, #21
+- **Full diffs:** `gh pr diff 20 --repo luketmoss/hive`, `gh pr diff 21 --repo luketmoss/hive`
+```
+
+Then ask:
+
+> **Ready to merge?** Review the PR diffs above. Reply:
+> - **approve all** — merge all completed PRs
+> - **approve #5, #6** — merge specific PRs
+> - **changes #5: <feedback>** — request changes on a specific issue
+
+### Step 6: Batch Merge
+
+For each approved PR, run the Post-Approval merge steps (approve, squash merge, move to Done). Process them one at a time to avoid conflicts.
+
+After merging, pull the latest main before merging the next PR:
+
+```bash
+git checkout main && git pull origin main
+```
 
 ---
 
