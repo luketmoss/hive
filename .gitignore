@@ -27,6 +27,7 @@ desktop.ini
 *.log
 npm-debug.log*
 
-# Claude Code config (local settings, not skills)
+# Claude Code config (local settings, not skills or project settings)
 .claude/*
 !.claude/skills/
+!.claude/settings.json
