@@ -21,15 +21,21 @@ export function Card({ item, onMoveStatus }: Props) {
     parseLocalDate(item.due_date) < new Date(new Date().toDateString());
 
   const handleDragStart = (e: DragEvent) => {
+    // Set the drag data on the card (the draggable handle is inside)
     e.dataTransfer?.setData('text/plain', item.id);
-    (e.currentTarget as HTMLElement).classList.add('card-dragging');
+    // Add dragging class to the card (parent of handle)
+    const card = (e.currentTarget as HTMLElement).closest('.card') as HTMLElement;
+    if (card) card.classList.add('card-dragging');
   };
 
   const handleDragEnd = (e: DragEvent) => {
-    (e.currentTarget as HTMLElement).classList.remove('card-dragging');
+    const card = (e.currentTarget as HTMLElement).closest('.card') as HTMLElement;
+    if (card) card.classList.remove('card-dragging');
   };
 
-  const handleClick = () => {
+  const handleClick = (e: MouseEvent) => {
+    // Don't open detail if clicking the drag handle
+    if ((e.target as HTMLElement).closest('.drag-handle')) return;
     selectedItemId.value = item.id;
   };
 
@@ -57,48 +63,59 @@ export function Card({ item, onMoveStatus }: Props) {
       tabIndex={0}
       role="button"
       aria-label={`${item.title}, ${item.status}. Press Enter to open details, arrow keys to move between columns.`}
-      draggable
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       data-item-id={item.id}
     >
-      <div class="card-title">{item.title}</div>
+      <div class="card-row">
+        <span
+          class="drag-handle"
+          draggable
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          aria-label="Drag to reorder"
+          title="Drag to move"
+        >
+          <span class="drag-handle-dots" aria-hidden="true" />
+        </span>
+        <div class="card-content">
+          <div class="card-title">{item.title}</div>
 
-      <div class="card-meta">
-        {item.owner ? (
-          <span class="card-owner">{item.owner}</span>
-        ) : (
-          <span class="card-unassigned">Unassigned</span>
-        )}
-        {item.scheduled_date && (
-          <span class="card-scheduled">{'\u{1F4C5}'} {formatDate(item.scheduled_date)}</span>
-        )}
-        {item.due_date && (
-          <span class={`card-due ${isOverdue ? 'card-due-overdue' : ''}`}>
-            {formatDate(item.due_date)}
-          </span>
-        )}
+          <div class="card-meta">
+            {item.owner ? (
+              <span class="card-owner">{item.owner}</span>
+            ) : (
+              <span class="card-unassigned">Unassigned</span>
+            )}
+            {item.scheduled_date && (
+              <span class="card-scheduled">{'\u{1F4C5}'} {formatDate(item.scheduled_date)}</span>
+            )}
+            {item.due_date && (
+              <span class={`card-due ${isOverdue ? 'card-due-overdue' : ''}`}>
+                {formatDate(item.due_date)}
+              </span>
+            )}
+          </div>
+
+          {itemLabels.length > 0 && (
+            <div class="card-labels">
+              {itemLabels.map(label => (
+                <LabelBadge key={label} label={label} />
+              ))}
+            </div>
+          )}
+
+          {childCount.total > 0 && (
+            <div class="card-subtasks">
+              <div
+                class="subtask-bar"
+                style={{ '--progress': `${(childCount.done / childCount.total) * 100}%` } as any}
+              />
+              <span class="subtask-text">{childCount.done}/{childCount.total}</span>
+            </div>
+          )}
+        </div>
       </div>
-
-      {itemLabels.length > 0 && (
-        <div class="card-labels">
-          {itemLabels.map(label => (
-            <LabelBadge key={label} label={label} />
-          ))}
-        </div>
-      )}
-
-      {childCount.total > 0 && (
-        <div class="card-subtasks">
-          <div
-            class="subtask-bar"
-            style={{ '--progress': `${(childCount.done / childCount.total) * 100}%` } as any}
-          />
-          <span class="subtask-text">{childCount.done}/{childCount.total}</span>
-        </div>
-      )}
     </div>
   );
 }
