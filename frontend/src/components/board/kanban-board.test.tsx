@@ -54,6 +54,7 @@ vi.mock('../forms/create-item-modal', () => ({
   CreateItemModal: () => <div data-testid="create-modal" />,
 }));
 
+
 const mockAuth: AuthState = {
   token: 'test-token',
   user: { name: 'Luke', email: 'luke@example.com', picture: '' },
@@ -122,6 +123,26 @@ describe('KanbanBoard empty/welcome state (Issue #11)', () => {
       emptyColumns.forEach(el => {
         expect(el.textContent).toBe('No items');
       });
+    });
+  });
+});
+
+describe('KanbanBoard ARIA labels (Issue #7)', () => {
+  // AC2: FAB has accessible label
+  describe('AC2: FAB has accessible label', () => {
+    it('FAB button has aria-label="Create new item"', () => {
+      mockItems = [];
+      const { container } = renderBoard();
+      const fab = container.querySelector('.fab') as HTMLElement;
+      expect(fab).not.toBeNull();
+      expect(fab.getAttribute('aria-label')).toBe('Create new item');
+    });
+
+    it('FAB button has title="Create new item"', () => {
+      mockItems = [];
+      const { container } = renderBoard();
+      const fab = container.querySelector('.fab') as HTMLElement;
+      expect(fab.getAttribute('title')).toBe('Create new item');
     });
   });
 });
