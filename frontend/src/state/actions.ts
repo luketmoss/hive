@@ -102,15 +102,15 @@ export async function moveItem(
   newStatus: ItemStatus,
   actor: string,
   token: string
-) {
+): Promise<boolean> {
   const item = items.value.find(i => i.id === itemId);
-  if (!item) return;
-  if (item.status === newStatus) return;
+  if (!item) return false;
+  if (item.status === newStatus) return true;
 
   const validation = validateStatusTransition(item, newStatus, items.value);
   if (!validation.valid) {
     showToast(validation.error!, 'error');
-    return;
+    return false;
   }
 
   const oldItem = { ...item };
@@ -123,9 +123,11 @@ export async function moveItem(
     await updateItemRow(item.sheetRow, updated, token);
     await appendAuditEntry(itemId, 'status_changed', 'status', oldItem.status, newStatus, actor, token);
     await refreshItems(token);
+    return true;
   } catch (err: any) {
     items.value = items.value.map(i => i.id === itemId ? oldItem : i);
     showToast('Failed to move item: ' + err.message, 'error');
+    return false;
   }
 }
 
@@ -134,9 +136,9 @@ export async function updateItem(
   changes: Partial<Item>,
   actor: string,
   token: string
-) {
+): Promise<boolean> {
   const item = items.value.find(i => i.id === itemId);
-  if (!item) return;
+  if (!item) return false;
 
   const oldItem = { ...item };
   const updated: ItemWithRow = {
@@ -164,9 +166,11 @@ export async function updateItem(
       }
     }
     await refreshItems(token);
+    return true;
   } catch (err: any) {
     items.value = items.value.map(i => i.id === itemId ? oldItem : i);
     showToast('Failed to update item: ' + err.message, 'error');
+    return false;
   }
 }
 

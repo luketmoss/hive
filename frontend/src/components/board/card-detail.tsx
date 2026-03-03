@@ -31,8 +31,14 @@ export function CardDetail() {
   // Focus trap (AC3) + Escape to close (AC4)
   const panelRef = useFocusTrap(close);
 
-  const save = (field: string, value: string) => {
-    if (token) updateItem(item.id, { [field]: value }, actor, token);
+  const save = async (field: string, value: string): Promise<boolean> => {
+    if (!token) return false;
+    return updateItem(item.id, { [field]: value }, actor, token);
+  };
+
+  const handleMoveStatus = async (newStatus: ItemStatus): Promise<boolean> => {
+    if (!token) return false;
+    return moveItem(item.id, newStatus, actor, token);
   };
 
   const handleDelete = () => {
@@ -88,75 +94,99 @@ export function CardDetail() {
             multiline
           />
 
-          <div class="detail-field">
-            <label>Status</label>
-            <select
-              value={item.status}
-              onChange={(e) => {
-                if (token) moveItem(item.id, (e.target as HTMLSelectElement).value as ItemStatus, actor, token);
-              }}
-            >
-              <option value="To Do">To Do</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Done">Done</option>
-            </select>
-          </div>
+          <SaveFeedbackField label="Status">
+            {(onFieldSaved) => (
+              <select
+                value={item.status}
+                onChange={async (e) => {
+                  const prev = item.status;
+                  const ok = await handleMoveStatus((e.target as HTMLSelectElement).value as ItemStatus);
+                  onFieldSaved(ok);
+                  if (!ok) (e.target as HTMLSelectElement).value = prev;
+                }}
+              >
+                <option value="To Do">To Do</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Done">Done</option>
+              </select>
+            )}
+          </SaveFeedbackField>
 
-          <div class="detail-field">
-            <label>Owner</label>
-            <select
-              value={item.owner}
-              onChange={(e) => save('owner', (e.target as HTMLSelectElement).value)}
-            >
-              <option value="">Unassigned</option>
-              {owners.value.map(o => (
-                <option key={o.name} value={o.name}>{o.name}</option>
-              ))}
-            </select>
-          </div>
+          <SaveFeedbackField label="Owner">
+            {(onFieldSaved) => (
+              <select
+                value={item.owner}
+                onChange={async (e) => {
+                  const prev = item.owner;
+                  const ok = await save('owner', (e.target as HTMLSelectElement).value);
+                  onFieldSaved(ok);
+                  if (!ok) (e.target as HTMLSelectElement).value = prev;
+                }}
+              >
+                <option value="">Unassigned</option>
+                {owners.value.map(o => (
+                  <option key={o.name} value={o.name}>{o.name}</option>
+                ))}
+              </select>
+            )}
+          </SaveFeedbackField>
 
-          <div class="detail-field">
-            <label>Due Date</label>
-            <input
-              type="date"
-              value={item.due_date ? item.due_date.split('T')[0] : ''}
-              onChange={(e) => save('due_date', (e.target as HTMLInputElement).value)}
-            />
-          </div>
+          <SaveFeedbackField label="Due Date">
+            {(onFieldSaved) => (
+              <input
+                type="date"
+                value={item.due_date ? item.due_date.split('T')[0] : ''}
+                onChange={async (e) => {
+                  const prev = item.due_date ? item.due_date.split('T')[0] : '';
+                  const ok = await save('due_date', (e.target as HTMLInputElement).value);
+                  onFieldSaved(ok);
+                  if (!ok) (e.target as HTMLInputElement).value = prev;
+                }}
+              />
+            )}
+          </SaveFeedbackField>
 
-          <div class="detail-field">
-            <label>Scheduled Date</label>
-            <input
-              type="date"
-              value={item.scheduled_date ? item.scheduled_date.split('T')[0] : ''}
-              onChange={(e) => save('scheduled_date', (e.target as HTMLInputElement).value)}
-            />
-          </div>
+          <SaveFeedbackField label="Scheduled Date">
+            {(onFieldSaved) => (
+              <input
+                type="date"
+                value={item.scheduled_date ? item.scheduled_date.split('T')[0] : ''}
+                onChange={async (e) => {
+                  const prev = item.scheduled_date ? item.scheduled_date.split('T')[0] : '';
+                  const ok = await save('scheduled_date', (e.target as HTMLInputElement).value);
+                  onFieldSaved(ok);
+                  if (!ok) (e.target as HTMLInputElement).value = prev;
+                }}
+              />
+            )}
+          </SaveFeedbackField>
 
-          <div class="detail-field">
-            <label>Labels</label>
-            <div class="label-picker">
-              {labelsStore.value.map(l => {
-                const currentLabels = item.labels.split(',').map(x => x.trim()).filter(Boolean);
-                const isActive = currentLabels.includes(l.label);
-                return (
-                  <button
-                    key={l.label}
-                    class={`label-toggle ${isActive ? 'label-toggle-active' : ''}`}
-                    style={{ '--label-color': l.color } as any}
-                    onClick={() => {
-                      const updated = isActive
-                        ? currentLabels.filter(x => x !== l.label)
-                        : [...currentLabels, l.label];
-                      save('labels', updated.join(', '));
-                    }}
-                  >
-                    {l.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <SaveFeedbackField label="Labels">
+            {(onFieldSaved) => (
+              <div class="label-picker">
+                {labelsStore.value.map(l => {
+                  const currentLabels = item.labels.split(',').map(x => x.trim()).filter(Boolean);
+                  const isActive = currentLabels.includes(l.label);
+                  return (
+                    <button
+                      key={l.label}
+                      class={`label-toggle ${isActive ? 'label-toggle-active' : ''}`}
+                      style={{ '--label-color': l.color } as any}
+                      onClick={async () => {
+                        const updated = isActive
+                          ? currentLabels.filter(x => x !== l.label)
+                          : [...currentLabels, l.label];
+                        const ok = await save('labels', updated.join(', '));
+                        onFieldSaved(ok);
+                      }}
+                    >
+                      {l.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </SaveFeedbackField>
 
           {/* Sub-tasks */}
           <div class="detail-subtasks">
@@ -198,20 +228,59 @@ export function CardDetail() {
   );
 }
 
+// --- Save feedback wrapper for non-editable fields (selects, dates, labels) ---
+
+function SaveFeedbackField({ label, children }: {
+  label: string;
+  children: (onFieldSaved: (success: boolean) => void) => any;
+}) {
+  const [feedback, setFeedback] = useState<'saved' | 'error' | null>(null);
+
+  const onFieldSaved = (success: boolean) => {
+    setFeedback(success ? 'saved' : 'error');
+    setTimeout(() => setFeedback(null), 2000);
+  };
+
+  return (
+    <div class="detail-field">
+      <label>
+        {label}
+        {feedback === 'saved' && (
+          <span class="save-indicator save-indicator-success" data-testid="save-indicator">Saved</span>
+        )}
+        {feedback === 'error' && (
+          <span class="save-indicator save-indicator-error" data-testid="save-indicator-error">Error</span>
+        )}
+      </label>
+      {children(onFieldSaved)}
+    </div>
+  );
+}
+
 // --- Inline editable field ---
 
 function EditableField({ label, value, onSave, multiline }: {
   label: string;
   value: string;
-  onSave: (value: string) => void;
+  onSave: (value: string) => Promise<boolean>;
   multiline?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
+  const [feedback, setFeedback] = useState<'saved' | 'error' | null>(null);
 
-  const commit = () => {
-    if (draft !== value) onSave(draft);
+  const commit = async () => {
     setEditing(false);
+    if (draft !== value) {
+      const ok = await onSave(draft);
+      if (ok) {
+        setFeedback('saved');
+      } else {
+        setFeedback('error');
+        setDraft(value); // revert draft on error
+      }
+      setTimeout(() => setFeedback(null), 2000);
+    }
   };
 
   const cancel = () => {
@@ -222,7 +291,15 @@ function EditableField({ label, value, onSave, multiline }: {
   if (!editing) {
     return (
       <div class="detail-field" onClick={() => { setDraft(value); setEditing(true); }}>
-        <label>{label}</label>
+        <label>
+          {label}
+          {feedback === 'saved' && (
+            <span class="save-indicator save-indicator-success" data-testid="save-indicator">Saved</span>
+          )}
+          {feedback === 'error' && (
+            <span class="save-indicator save-indicator-error" data-testid="save-indicator-error">Error</span>
+          )}
+        </label>
         <div class="editable-value">
           {value || <span class="placeholder">Click to edit</span>}
         </div>

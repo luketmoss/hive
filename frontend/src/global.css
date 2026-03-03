@@ -709,6 +709,60 @@ body {
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
+/* === Empty Board Welcome === */
+.board-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: var(--color-text-secondary);
+  gap: 8px;
+  padding: 48px 24px;
+}
+
+.board-welcome-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+.board-welcome h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.board-welcome p {
+  font-size: 15px;
+  color: var(--color-text-secondary);
+}
+
+/* === Save Feedback Indicator === */
+.save-indicator {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  animation: save-fade-in 0.2s ease-out;
+  vertical-align: middle;
+}
+
+.save-indicator-success {
+  color: #2e7d32;
+}
+
+.save-indicator-error {
+  color: var(--color-danger);
+}
+
+@keyframes save-fade-in {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* === Responsive === */
 @media (max-width: 768px) {
   .board-columns {
