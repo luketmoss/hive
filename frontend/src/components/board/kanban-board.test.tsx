@@ -35,6 +35,8 @@ vi.mock('../../state/board-store', () => ({
   filterLabel: { value: null },
   loading: { value: false },
   getChildCount: () => ({ done: 0, total: 0 }),
+  viewMode: { value: 'board' },
+  setViewMode: () => {},
 }));
 
 vi.mock('../../state/actions', () => ({
@@ -46,14 +48,16 @@ vi.mock('../filters/filter-bar', () => ({
   FilterBar: () => <div data-testid="filter-bar" />,
 }));
 
-// Mock CardDetail and CreateItemModal
+// Mock ListView, CardDetail, and CreateItemModal
+vi.mock('./list-view', () => ({
+  ListView: () => <div data-testid="list-view" />,
+}));
 vi.mock('./card-detail', () => ({
   CardDetail: () => <div data-testid="card-detail" />,
 }));
 vi.mock('../forms/create-item-modal', () => ({
   CreateItemModal: () => <div data-testid="create-modal" />,
 }));
-
 
 const mockAuth: AuthState = {
   token: 'test-token',

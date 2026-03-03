@@ -1,7 +1,8 @@
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore } from '../../state/board-store';
+import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode } from '../../state/board-store';
 import { moveItem } from '../../state/actions';
 import { Column } from './column';
+import { ListView } from './list-view';
 import { CardDetail } from './card-detail';
 import { CreateItemModal } from '../forms/create-item-modal';
 import { FilterBar } from '../filters/filter-bar';
@@ -102,6 +103,25 @@ export function KanbanBoard() {
 
       <FilterBar />
 
+      <div class="view-toggle-bar" data-testid="view-toggle-bar">
+        <button
+          class={`view-toggle-btn ${viewMode.value === 'board' ? 'view-toggle-active' : ''}`}
+          onClick={() => setViewMode('board')}
+          aria-pressed={viewMode.value === 'board'}
+          data-testid="view-toggle-board"
+        >
+          Board
+        </button>
+        <button
+          class={`view-toggle-btn ${viewMode.value === 'list' ? 'view-toggle-active' : ''}`}
+          onClick={() => setViewMode('list')}
+          aria-pressed={viewMode.value === 'list'}
+          data-testid="view-toggle-list"
+        >
+          List
+        </button>
+      </div>
+
       <main class="board-main">
         {isBoardEmpty ? (
           <div class="board-welcome" data-testid="board-welcome">
@@ -109,6 +129,8 @@ export function KanbanBoard() {
             <h2>No tasks yet</h2>
             <p>Click <strong>+</strong> to create your first one.</p>
           </div>
+        ) : viewMode.value === 'list' ? (
+          <ListView />
         ) : (
           renderSwimlanes()
         )}

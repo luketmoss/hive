@@ -799,6 +799,91 @@ body {
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
+/* === View Toggle (mobile only) === */
+.view-toggle-bar {
+  display: none;   /* hidden on desktop by default */
+  gap: 4px;
+  padding: 8px 20px 0;
+  flex-shrink: 0;
+}
+
+.view-toggle-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.view-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.view-toggle-active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.view-toggle-active:hover {
+  background: var(--color-primary-hover);
+}
+
+/* === List View === */
+.list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 80px; /* space for FAB */
+}
+
+.list-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--section-color, var(--color-bg));
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.list-section-header h2 {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-secondary);
+}
+
+.list-section-count {
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.list-section-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.list-section-cards .card {
+  cursor: pointer;
+}
+
+.list-section-empty {
+  text-align: center;
+  padding: 16px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
 /* === Empty Board Welcome === */
 .board-welcome {
   display: flex;
@@ -855,6 +940,10 @@ body {
 
 /* === Responsive === */
 @media (max-width: 768px) {
+  .view-toggle-bar {
+    display: flex;    /* show toggle on mobile */
+  }
+
   .board-columns {
     gap: 12px;
   }
@@ -870,6 +959,12 @@ body {
 
   .filter-group {
     flex-wrap: wrap;
+  }
+
+  /* In list mode, board-main scrolls vertically instead of horizontally */
+  .board-main:has(.list-view) {
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   /* AC1: Filter selects have proper touch targets on mobile */
