@@ -2,6 +2,7 @@ import { useState } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
 import { showCreateModal, owners, labels as labelsStore } from '../../state/board-store';
 import { createItem } from '../../state/actions';
+import { getContrastTextColor } from '../../utils/color';
 
 export function CreateItemModal() {
   const { token, user } = useAuth();
@@ -104,7 +105,7 @@ export function CreateItemModal() {
                   key={l.label}
                   type="button"
                   class={`label-toggle ${selectedLabels.includes(l.label) ? 'label-toggle-active' : ''}`}
-                  style={{ '--label-color': l.color } as any}
+                  style={{ '--label-color': l.color, '--label-text-color': getContrastTextColor(l.color) } as any}
                   onClick={() => toggleLabel(l.label)}
                 >
                   {l.label}

@@ -77,7 +77,7 @@ export function Card({ item, onMoveStatus }: Props) {
         )}
         {item.due_date && (
           <span class={`card-due ${isOverdue ? 'card-due-overdue' : ''}`}>
-            {formatDate(item.due_date)}
+            {formatDate(item.due_date)}{isOverdue ? ' (overdue)' : ''}
           </span>
         )}
       </div>

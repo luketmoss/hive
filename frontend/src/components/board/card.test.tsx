@@ -131,6 +131,49 @@ describe('Card', () => {
     });
   });
 
+  // Issue #8 — Overdue non-color indicator
+  describe('Overdue non-color indicator (Issue #8 AC2)', () => {
+    it('shows "(overdue)" suffix when due date is in the past and status is not Done', () => {
+      // Use a date far in the past so it is always overdue
+      const item = makeItem({ due_date: '2020-01-01', status: 'To Do' });
+      const { container } = render(<Card item={item} />);
+      const dueEl = container.querySelector('.card-due');
+      expect(dueEl).not.toBeNull();
+      expect(dueEl!.textContent).toContain('(overdue)');
+    });
+
+    it('adds the card-due-overdue CSS class for overdue items', () => {
+      const item = makeItem({ due_date: '2020-01-01', status: 'In Progress' });
+      const { container } = render(<Card item={item} />);
+      const dueEl = container.querySelector('.card-due');
+      expect(dueEl!.className).toContain('card-due-overdue');
+    });
+
+    it('does NOT show "(overdue)" when status is Done', () => {
+      const item = makeItem({ due_date: '2020-01-01', status: 'Done' });
+      const { container } = render(<Card item={item} />);
+      const dueEl = container.querySelector('.card-due');
+      expect(dueEl).not.toBeNull();
+      expect(dueEl!.textContent).not.toContain('(overdue)');
+    });
+
+    it('does NOT show "(overdue)" when due date is in the future', () => {
+      const item = makeItem({ due_date: '2099-12-31', status: 'To Do' });
+      const { container } = render(<Card item={item} />);
+      const dueEl = container.querySelector('.card-due');
+      expect(dueEl).not.toBeNull();
+      expect(dueEl!.textContent).not.toContain('(overdue)');
+      expect(dueEl!.className).not.toContain('card-due-overdue');
+    });
+
+    it('does NOT show "(overdue)" when there is no due date', () => {
+      const item = makeItem({ due_date: '', status: 'To Do' });
+      const { container } = render(<Card item={item} />);
+      const dueEl = container.querySelector('.card-due');
+      expect(dueEl).toBeNull();
+    });
+  });
+
   // Issue #6 — Keyboard accessibility
   describe('Keyboard accessibility (Issue #6)', () => {
     // AC1: Cards are keyboard-focusable and activatable
