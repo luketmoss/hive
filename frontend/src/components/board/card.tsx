@@ -66,6 +66,10 @@ export function Card({ item, onMoveStatus }: Props) {
     >
       <div class="card-title">{item.title}</div>
 
+      {item.description && (
+        <div class="card-description">{item.description}</div>
+      )}
+
       <div class="card-meta">
         {item.owner ? (
           <span class="card-owner">{item.owner}</span>
