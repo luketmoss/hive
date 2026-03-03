@@ -17,6 +17,27 @@ export const selectedItemId = signal<string | null>(null);
 export const showCreateModal = signal(false);
 export const toastMessage = signal<{ text: string; type: 'success' | 'error' } | null>(null);
 
+// --- View mode (mobile list vs board) ---
+export type ViewMode = 'board' | 'list';
+
+function loadViewMode(): ViewMode {
+  try {
+    const stored = localStorage.getItem('hive-view-mode');
+    if (stored === 'list' || stored === 'board') return stored;
+  } catch { /* localStorage unavailable */ }
+  return 'board';
+}
+
+export const viewMode = signal<ViewMode>(loadViewMode());
+
+/** Toggle between board and list view, persisting to localStorage. */
+export function setViewMode(mode: ViewMode) {
+  viewMode.value = mode;
+  try {
+    localStorage.setItem('hive-view-mode', mode);
+  } catch { /* localStorage unavailable */ }
+}
+
 // --- Derived ---
 export const filteredItems = computed(() => {
   let result = items.value;
