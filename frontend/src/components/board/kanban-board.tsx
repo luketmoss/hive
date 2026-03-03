@@ -17,6 +17,12 @@ export function KanbanBoard() {
     }
   };
 
+  const handleMoveStatus = (itemId: string, newStatus: ItemStatus) => {
+    if (token) {
+      moveItem(itemId, newStatus, user?.name || 'web', token);
+    }
+  };
+
   // Swimlane grouping
   const renderSwimlanes = () => {
     const group = groupBy.value;
@@ -29,6 +35,7 @@ export function KanbanBoard() {
               status={status}
               items={columns.value[status]}
               onDrop={handleDrop}
+              onMoveStatus={handleMoveStatus}
             />
           ))}
         </div>
@@ -61,6 +68,7 @@ export function KanbanBoard() {
                     status={status}
                     items={swimlaneItems.filter(i => i.status === status)}
                     onDrop={handleDrop}
+                    onMoveStatus={handleMoveStatus}
                     compact
                   />
                 ))}

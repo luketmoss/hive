@@ -1,13 +1,17 @@
 import { selectedItemId, getChildCount } from '../../state/board-store';
 import { labels as labelsStore } from '../../state/board-store';
-import type { ItemWithRow } from '../../api/types';
+import type { ItemWithRow, ItemStatus } from '../../api/types';
 import { LabelBadge } from '../shared/label-badge';
+
+/** Ordered statuses for keyboard column navigation */
+const STATUS_ORDER: ItemStatus[] = ['To Do', 'In Progress', 'Done'];
 
 interface Props {
   item: ItemWithRow;
+  onMoveStatus?: (itemId: string, newStatus: ItemStatus) => void;
 }
 
-export function Card({ item }: Props) {
+export function Card({ item, onMoveStatus }: Props) {
   const childCount = getChildCount(item.id);
   const itemLabels = item.labels
     ? item.labels.split(',').map(l => l.trim()).filter(Boolean)
@@ -29,13 +33,36 @@ export function Card({ item }: Props) {
     selectedItemId.value = item.id;
   };
 
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      selectedItemId.value = item.id;
+    }
+
+    // Arrow keys for moving between columns
+    if (onMoveStatus && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      e.preventDefault();
+      const currentIndex = STATUS_ORDER.indexOf(item.status);
+      if (currentIndex === -1) return;
+      const newIndex = e.key === 'ArrowLeft' ? currentIndex - 1 : currentIndex + 1;
+      if (newIndex >= 0 && newIndex < STATUS_ORDER.length) {
+        onMoveStatus(item.id, STATUS_ORDER[newIndex]);
+      }
+    }
+  };
+
   return (
     <div
       class="card"
+      tabIndex={0}
+      role="button"
+      aria-label={`${item.title}, ${item.status}. Press Enter to open details, arrow keys to move between columns.`}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      data-item-id={item.id}
     >
       <div class="card-title">{item.title}</div>
 

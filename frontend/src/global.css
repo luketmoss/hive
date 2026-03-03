@@ -17,6 +17,8 @@
   --radius-sm: 4px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --color-focus: #1976d2;
+  --focus-ring: 0 0 0 2px var(--color-focus);
   --column-width: 320px;
   --header-height: 56px;
   --filter-height: 48px;
@@ -269,6 +271,11 @@ body {
 
 .card:hover {
   box-shadow: var(--shadow-lg);
+}
+
+.card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring), var(--shadow-lg);
 }
 
 .card-dragging {

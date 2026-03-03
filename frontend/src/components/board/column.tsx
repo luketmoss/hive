@@ -5,6 +5,7 @@ interface Props {
   status: ItemStatus;
   items: ItemWithRow[];
   onDrop: (itemId: string, newStatus: ItemStatus) => void;
+  onMoveStatus?: (itemId: string, newStatus: ItemStatus) => void;
   compact?: boolean;
 }
 
@@ -14,7 +15,7 @@ const STATUS_COLORS: Record<ItemStatus, string> = {
   'Done': 'var(--color-done)',
 };
 
-export function Column({ status, items, onDrop, compact }: Props) {
+export function Column({ status, items, onDrop, onMoveStatus, compact }: Props) {
   const handleDragOver = (e: DragEvent) => {
     e.preventDefault();
     (e.currentTarget as HTMLElement).classList.add('column-drag-over');
@@ -47,7 +48,7 @@ export function Column({ status, items, onDrop, compact }: Props) {
       </div>
       <div class="column-cards">
         {items.map(item => (
-          <Card key={item.id} item={item} />
+          <Card key={item.id} item={item} onMoveStatus={onMoveStatus} />
         ))}
         {items.length === 0 && (
           <div class="column-empty">No items</div>
