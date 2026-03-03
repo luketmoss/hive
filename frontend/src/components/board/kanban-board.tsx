@@ -1,5 +1,5 @@
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, selectedItem, groupBy, rootItems, owners, labels as labelsStore, viewMode, setViewMode } from '../../state/board-store';
+import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode } from '../../state/board-store';
 import { moveItem } from '../../state/actions';
 import { Column } from './column';
 import { ListView } from './list-view';
@@ -23,6 +23,9 @@ export function KanbanBoard() {
       moveItem(itemId, newStatus, user?.name || 'web', token);
     }
   };
+
+  // Check if the entire board is empty (zero items total, ignoring filters)
+  const isBoardEmpty = items.value.length === 0;
 
   // Swimlane grouping
   const renderSwimlanes = () => {
@@ -120,13 +123,24 @@ export function KanbanBoard() {
       </div>
 
       <main class="board-main">
-        {viewMode.value === 'list' ? <ListView /> : renderSwimlanes()}
+        {isBoardEmpty ? (
+          <div class="board-welcome" data-testid="board-welcome">
+            <div class="board-welcome-icon">&#128203;</div>
+            <h2>No tasks yet</h2>
+            <p>Click <strong>+</strong> to create your first one.</p>
+          </div>
+        ) : viewMode.value === 'list' ? (
+          <ListView />
+        ) : (
+          renderSwimlanes()
+        )}
       </main>
 
       <button
         class="fab"
         onClick={() => { showCreateModal.value = true; }}
         title="Create new item"
+        aria-label="Create new item"
       >
         +
       </button>

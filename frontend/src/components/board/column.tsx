@@ -37,6 +37,8 @@ export function Column({ status, items, onDrop, onMoveStatus, compact }: Props) 
   return (
     <div
       class={`column ${compact ? 'column-compact' : ''}`}
+      role="region"
+      aria-label={`${status} column, ${items.length} ${items.length === 1 ? 'item' : 'items'}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}

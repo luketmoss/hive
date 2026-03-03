@@ -5,6 +5,7 @@ import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels
 import { updateItem, deleteItem, createItem, moveItem } from '../../state/actions';
 import { LabelBadge } from '../shared/label-badge';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
+import { getContrastTextColor } from '../../utils/color';
 import type { ItemStatus } from '../../api/types';
 
 export function CardDetail() {
@@ -14,6 +15,11 @@ export function CardDetail() {
 
   const actor = user?.name || 'web';
   const children = childrenOfSelected.value;
+
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [addingSubtask, setAddingSubtask] = useState(false);
+  const [subtaskTitle, setSubtaskTitle] = useState('');
+  const subtaskInputRef = useRef<HTMLInputElement>(null);
 
   const close = useCallback(() => {
     // Return focus to the triggering card element (AC5)
@@ -31,24 +37,53 @@ export function CardDetail() {
   // Focus trap (AC3) + Escape to close (AC4)
   const panelRef = useFocusTrap(close);
 
-  const save = (field: string, value: string) => {
-    if (token) updateItem(item.id, { [field]: value }, actor, token);
+  const save = async (field: string, value: string): Promise<boolean> => {
+    if (!token) return false;
+    return updateItem(item.id, { [field]: value }, actor, token);
+  };
+
+  const handleMoveStatus = async (newStatus: ItemStatus): Promise<boolean> => {
+    if (!token) return false;
+    return moveItem(item.id, newStatus, actor, token);
   };
 
   const handleDelete = () => {
-    if (confirm('Delete this item and all sub-tasks?')) {
-      if (token) {
-        deleteItem(item.id, actor, token);
-        selectedItemId.value = null;
-      }
+    setConfirmingDelete(true);
+  };
+
+  const confirmDelete = () => {
+    if (token) {
+      deleteItem(item.id, actor, token);
+      selectedItemId.value = null;
     }
+    setConfirmingDelete(false);
+  };
+
+  const cancelDelete = () => {
+    setConfirmingDelete(false);
   };
 
   const handleAddSubtask = () => {
-    const title = prompt('Sub-task title:');
-    if (title && token) {
-      createItem({ title, parent_id: item.id, owner: item.owner }, actor, token);
+    setAddingSubtask(true);
+    setSubtaskTitle('');
+    // Focus the input after render
+    requestAnimationFrame(() => {
+      subtaskInputRef.current?.focus();
+    });
+  };
+
+  const submitSubtask = () => {
+    const trimmed = subtaskTitle.trim();
+    if (trimmed && token) {
+      createItem({ title: trimmed, parent_id: item.id, owner: item.owner }, actor, token);
     }
+    setAddingSubtask(false);
+    setSubtaskTitle('');
+  };
+
+  const cancelSubtask = () => {
+    setAddingSubtask(false);
+    setSubtaskTitle('');
   };
 
   const toggleChildStatus = (childId: string, currentStatus: ItemStatus) => {
@@ -71,7 +106,7 @@ export function CardDetail() {
       <div class="detail-panel">
         <div class="detail-header">
           <h2>Item Details</h2>
-          <button class="btn btn-ghost" onClick={close}>✕</button>
+          <button class="btn btn-ghost" aria-label="Close" onClick={close}>✕</button>
         </div>
 
         <div class="detail-body">
@@ -88,81 +123,107 @@ export function CardDetail() {
             multiline
           />
 
-          <div class="detail-field">
-            <label>Status</label>
-            <select
-              value={item.status}
-              onChange={(e) => {
-                if (token) moveItem(item.id, (e.target as HTMLSelectElement).value as ItemStatus, actor, token);
-              }}
-            >
-              <option value="To Do">To Do</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Done">Done</option>
-            </select>
-          </div>
+          <SaveFeedbackField label="Status">
+            {(onFieldSaved) => (
+              <select
+                value={item.status}
+                onChange={async (e) => {
+                  const prev = item.status;
+                  const ok = await handleMoveStatus((e.target as HTMLSelectElement).value as ItemStatus);
+                  onFieldSaved(ok);
+                  if (!ok) (e.target as HTMLSelectElement).value = prev;
+                }}
+              >
+                <option value="To Do">To Do</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Done">Done</option>
+              </select>
+            )}
+          </SaveFeedbackField>
 
-          <div class="detail-field">
-            <label>Owner</label>
-            <select
-              value={item.owner}
-              onChange={(e) => save('owner', (e.target as HTMLSelectElement).value)}
-            >
-              <option value="">Unassigned</option>
-              {owners.value.map(o => (
-                <option key={o.name} value={o.name}>{o.name}</option>
-              ))}
-            </select>
-          </div>
+          <SaveFeedbackField label="Owner">
+            {(onFieldSaved) => (
+              <select
+                value={item.owner}
+                onChange={async (e) => {
+                  const prev = item.owner;
+                  const ok = await save('owner', (e.target as HTMLSelectElement).value);
+                  onFieldSaved(ok);
+                  if (!ok) (e.target as HTMLSelectElement).value = prev;
+                }}
+              >
+                <option value="">Unassigned</option>
+                {owners.value.map(o => (
+                  <option key={o.name} value={o.name}>{o.name}</option>
+                ))}
+              </select>
+            )}
+          </SaveFeedbackField>
 
-          <div class="detail-field">
-            <label>Due Date</label>
-            <input
-              type="date"
-              value={item.due_date ? item.due_date.split('T')[0] : ''}
-              onChange={(e) => save('due_date', (e.target as HTMLInputElement).value)}
-            />
-          </div>
+          <SaveFeedbackField label="Due Date">
+            {(onFieldSaved) => (
+              <input
+                type="date"
+                value={item.due_date ? item.due_date.split('T')[0] : ''}
+                onChange={async (e) => {
+                  const prev = item.due_date ? item.due_date.split('T')[0] : '';
+                  const ok = await save('due_date', (e.target as HTMLInputElement).value);
+                  onFieldSaved(ok);
+                  if (!ok) (e.target as HTMLInputElement).value = prev;
+                }}
+              />
+            )}
+          </SaveFeedbackField>
 
-          <div class="detail-field">
-            <label>Scheduled Date</label>
-            <input
-              type="date"
-              value={item.scheduled_date ? item.scheduled_date.split('T')[0] : ''}
-              onChange={(e) => save('scheduled_date', (e.target as HTMLInputElement).value)}
-            />
-          </div>
+          <SaveFeedbackField label="Scheduled Date">
+            {(onFieldSaved) => (
+              <input
+                type="date"
+                value={item.scheduled_date ? item.scheduled_date.split('T')[0] : ''}
+                onChange={async (e) => {
+                  const prev = item.scheduled_date ? item.scheduled_date.split('T')[0] : '';
+                  const ok = await save('scheduled_date', (e.target as HTMLInputElement).value);
+                  onFieldSaved(ok);
+                  if (!ok) (e.target as HTMLInputElement).value = prev;
+                }}
+              />
+            )}
+          </SaveFeedbackField>
 
-          <div class="detail-field">
-            <label>Labels</label>
-            <div class="label-picker">
-              {labelsStore.value.map(l => {
-                const currentLabels = item.labels.split(',').map(x => x.trim()).filter(Boolean);
-                const isActive = currentLabels.includes(l.label);
-                return (
-                  <button
-                    key={l.label}
-                    class={`label-toggle ${isActive ? 'label-toggle-active' : ''}`}
-                    style={{ '--label-color': l.color } as any}
-                    onClick={() => {
-                      const updated = isActive
-                        ? currentLabels.filter(x => x !== l.label)
-                        : [...currentLabels, l.label];
-                      save('labels', updated.join(', '));
-                    }}
-                  >
-                    {l.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <SaveFeedbackField label="Labels">
+            {(onFieldSaved) => (
+              <div class="label-picker">
+                {labelsStore.value.map(l => {
+                  const currentLabels = item.labels.split(',').map(x => x.trim()).filter(Boolean);
+                  const isActive = currentLabels.includes(l.label);
+                  return (
+                    <button
+                      key={l.label}
+                      class={`label-toggle ${isActive ? 'label-toggle-active' : ''}`}
+                      style={{ '--label-color': l.color, '--label-text-color': getContrastTextColor(l.color) } as any}
+                      onClick={async () => {
+                        const updated = isActive
+                          ? currentLabels.filter(x => x !== l.label)
+                          : [...currentLabels, l.label];
+                        const ok = await save('labels', updated.join(', '));
+                        onFieldSaved(ok);
+                      }}
+                    >
+                      {l.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </SaveFeedbackField>
 
           {/* Sub-tasks */}
           <div class="detail-subtasks">
             <div class="detail-subtasks-header">
               <label>Sub-tasks ({children.length})</label>
-              <button class="btn btn-sm" onClick={handleAddSubtask}>+ Add</button>
+              {!addingSubtask && (
+                <button class="btn btn-sm" onClick={handleAddSubtask}>+ Add</button>
+              )}
             </div>
             {children.length > 0 && (
               <ul class="subtask-list">
@@ -171,6 +232,7 @@ export function CardDetail() {
                     <input
                       type="checkbox"
                       checked={child.status === 'Done'}
+                      aria-label={child.title}
                       onChange={() => toggleChildStatus(child.id, child.status)}
                     />
                     <span>{child.title}</span>
@@ -178,6 +240,23 @@ export function CardDetail() {
                   </li>
                 ))}
               </ul>
+            )}
+            {addingSubtask && (
+              <div class="subtask-add-inline">
+                <input
+                  ref={subtaskInputRef}
+                  type="text"
+                  class="subtask-add-input"
+                  placeholder="Sub-task title..."
+                  value={subtaskTitle}
+                  onInput={(e) => setSubtaskTitle((e.target as HTMLInputElement).value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); submitSubtask(); }
+                    if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }
+                  }}
+                  onBlur={cancelSubtask}
+                />
+              </div>
             )}
           </div>
 
@@ -191,9 +270,51 @@ export function CardDetail() {
         </div>
 
         <div class="detail-footer">
-          <button class="btn btn-danger" onClick={handleDelete}>Delete</button>
+          {confirmingDelete ? (
+            <div
+              class="delete-confirm-inline"
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') { e.stopPropagation(); cancelDelete(); }
+              }}
+            >
+              <span class="delete-confirm-text">Are you sure?</span>
+              <button class="btn btn-ghost btn-sm" onClick={cancelDelete}>Cancel</button>
+              <button class="btn btn-danger btn-sm" onClick={confirmDelete}>Delete</button>
+            </div>
+          ) : (
+            <button class="btn btn-danger" onClick={handleDelete}>Delete</button>
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// --- Save feedback wrapper for non-editable fields (selects, dates, labels) ---
+
+function SaveFeedbackField({ label, children }: {
+  label: string;
+  children: (onFieldSaved: (success: boolean) => void) => any;
+}) {
+  const [feedback, setFeedback] = useState<'saved' | 'error' | null>(null);
+
+  const onFieldSaved = (success: boolean) => {
+    setFeedback(success ? 'saved' : 'error');
+    setTimeout(() => setFeedback(null), 2000);
+  };
+
+  return (
+    <div class="detail-field">
+      <label>
+        {label}
+        {feedback === 'saved' && (
+          <span class="save-indicator save-indicator-success" data-testid="save-indicator">Saved</span>
+        )}
+        {feedback === 'error' && (
+          <span class="save-indicator save-indicator-error" data-testid="save-indicator-error">Error</span>
+        )}
+      </label>
+      {children(onFieldSaved)}
     </div>
   );
 }
@@ -203,15 +324,25 @@ export function CardDetail() {
 function EditableField({ label, value, onSave, multiline }: {
   label: string;
   value: string;
-  onSave: (value: string) => void;
+  onSave: (value: string) => Promise<boolean>;
   multiline?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
+  const [feedback, setFeedback] = useState<'saved' | 'error' | null>(null);
 
-  const commit = () => {
-    if (draft !== value) onSave(draft);
+  const commit = async () => {
     setEditing(false);
+    if (draft !== value) {
+      const ok = await onSave(draft);
+      if (ok) {
+        setFeedback('saved');
+      } else {
+        setFeedback('error');
+        setDraft(value); // revert draft on error
+      }
+      setTimeout(() => setFeedback(null), 2000);
+    }
   };
 
   const cancel = () => {
@@ -222,8 +353,28 @@ function EditableField({ label, value, onSave, multiline }: {
   if (!editing) {
     return (
       <div class="detail-field" onClick={() => { setDraft(value); setEditing(true); }}>
-        <label>{label}</label>
-        <div class="editable-value">
+        <label>
+          {label}
+          {feedback === 'saved' && (
+            <span class="save-indicator save-indicator-success" data-testid="save-indicator">Saved</span>
+          )}
+          {feedback === 'error' && (
+            <span class="save-indicator save-indicator-error" data-testid="save-indicator-error">Error</span>
+          )}
+        </label>
+        <div
+          class="editable-value"
+          role="button"
+          tabIndex={0}
+          aria-label={`Edit ${label.toLowerCase()}`}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setDraft(value);
+              setEditing(true);
+            }
+          }}
+        >
           {value || <span class="placeholder">Click to edit</span>}
         </div>
       </div>
