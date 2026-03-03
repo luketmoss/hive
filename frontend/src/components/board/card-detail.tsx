@@ -5,6 +5,7 @@ import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels
 import { updateItem, deleteItem, createItem, moveItem } from '../../state/actions';
 import { LabelBadge } from '../shared/label-badge';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
+import { getContrastTextColor } from '../../utils/color';
 import type { ItemStatus } from '../../api/types';
 
 export function CardDetail() {
@@ -14,6 +15,11 @@ export function CardDetail() {
 
   const actor = user?.name || 'web';
   const children = childrenOfSelected.value;
+
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [addingSubtask, setAddingSubtask] = useState(false);
+  const [subtaskTitle, setSubtaskTitle] = useState('');
+  const subtaskInputRef = useRef<HTMLInputElement>(null);
 
   const close = useCallback(() => {
     // Return focus to the triggering card element (AC5)
@@ -36,19 +42,42 @@ export function CardDetail() {
   };
 
   const handleDelete = () => {
-    if (confirm('Delete this item and all sub-tasks?')) {
-      if (token) {
-        deleteItem(item.id, actor, token);
-        selectedItemId.value = null;
-      }
+    setConfirmingDelete(true);
+  };
+
+  const confirmDelete = () => {
+    if (token) {
+      deleteItem(item.id, actor, token);
+      selectedItemId.value = null;
     }
+    setConfirmingDelete(false);
+  };
+
+  const cancelDelete = () => {
+    setConfirmingDelete(false);
   };
 
   const handleAddSubtask = () => {
-    const title = prompt('Sub-task title:');
-    if (title && token) {
-      createItem({ title, parent_id: item.id, owner: item.owner }, actor, token);
+    setAddingSubtask(true);
+    setSubtaskTitle('');
+    // Focus the input after render
+    requestAnimationFrame(() => {
+      subtaskInputRef.current?.focus();
+    });
+  };
+
+  const submitSubtask = () => {
+    const trimmed = subtaskTitle.trim();
+    if (trimmed && token) {
+      createItem({ title: trimmed, parent_id: item.id, owner: item.owner }, actor, token);
     }
+    setAddingSubtask(false);
+    setSubtaskTitle('');
+  };
+
+  const cancelSubtask = () => {
+    setAddingSubtask(false);
+    setSubtaskTitle('');
   };
 
   const toggleChildStatus = (childId: string, currentStatus: ItemStatus) => {
@@ -71,7 +100,7 @@ export function CardDetail() {
       <div class="detail-panel">
         <div class="detail-header">
           <h2>Item Details</h2>
-          <button class="btn btn-ghost" onClick={close}>✕</button>
+          <button class="btn btn-ghost" aria-label="Close" onClick={close}>✕</button>
         </div>
 
         <div class="detail-body">
@@ -143,7 +172,7 @@ export function CardDetail() {
                   <button
                     key={l.label}
                     class={`label-toggle ${isActive ? 'label-toggle-active' : ''}`}
-                    style={{ '--label-color': l.color } as any}
+                    style={{ '--label-color': l.color, '--label-text-color': getContrastTextColor(l.color) } as any}
                     onClick={() => {
                       const updated = isActive
                         ? currentLabels.filter(x => x !== l.label)
@@ -162,7 +191,9 @@ export function CardDetail() {
           <div class="detail-subtasks">
             <div class="detail-subtasks-header">
               <label>Sub-tasks ({children.length})</label>
-              <button class="btn btn-sm" onClick={handleAddSubtask}>+ Add</button>
+              {!addingSubtask && (
+                <button class="btn btn-sm" onClick={handleAddSubtask}>+ Add</button>
+              )}
             </div>
             {children.length > 0 && (
               <ul class="subtask-list">
@@ -171,6 +202,7 @@ export function CardDetail() {
                     <input
                       type="checkbox"
                       checked={child.status === 'Done'}
+                      aria-label={child.title}
                       onChange={() => toggleChildStatus(child.id, child.status)}
                     />
                     <span>{child.title}</span>
@@ -178,6 +210,23 @@ export function CardDetail() {
                   </li>
                 ))}
               </ul>
+            )}
+            {addingSubtask && (
+              <div class="subtask-add-inline">
+                <input
+                  ref={subtaskInputRef}
+                  type="text"
+                  class="subtask-add-input"
+                  placeholder="Sub-task title..."
+                  value={subtaskTitle}
+                  onInput={(e) => setSubtaskTitle((e.target as HTMLInputElement).value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); submitSubtask(); }
+                    if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }
+                  }}
+                  onBlur={cancelSubtask}
+                />
+              </div>
             )}
           </div>
 
@@ -191,7 +240,20 @@ export function CardDetail() {
         </div>
 
         <div class="detail-footer">
-          <button class="btn btn-danger" onClick={handleDelete}>Delete</button>
+          {confirmingDelete ? (
+            <div
+              class="delete-confirm-inline"
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') { e.stopPropagation(); cancelDelete(); }
+              }}
+            >
+              <span class="delete-confirm-text">Are you sure?</span>
+              <button class="btn btn-ghost btn-sm" onClick={cancelDelete}>Cancel</button>
+              <button class="btn btn-danger btn-sm" onClick={confirmDelete}>Delete</button>
+            </div>
+          ) : (
+            <button class="btn btn-danger" onClick={handleDelete}>Delete</button>
+          )}
         </div>
       </div>
     </div>
@@ -223,7 +285,19 @@ function EditableField({ label, value, onSave, multiline }: {
     return (
       <div class="detail-field" onClick={() => { setDraft(value); setEditing(true); }}>
         <label>{label}</label>
-        <div class="editable-value">
+        <div
+          class="editable-value"
+          role="button"
+          tabIndex={0}
+          aria-label={`Edit ${label.toLowerCase()}`}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setDraft(value);
+              setEditing(true);
+            }
+          }}
+        >
           {value || <span class="placeholder">Click to edit</span>}
         </div>
       </div>

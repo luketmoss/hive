@@ -81,6 +81,10 @@ export function Card({ item, onMoveStatus }: Props) {
         <div class="card-content">
           <div class="card-title">{item.title}</div>
 
+          {item.description && (
+            <div class="card-description">{item.description}</div>
+          )}
+
           <div class="card-meta">
             {item.owner ? (
               <span class="card-owner">{item.owner}</span>
@@ -92,7 +96,7 @@ export function Card({ item, onMoveStatus }: Props) {
             )}
             {item.due_date && (
               <span class={`card-due ${isOverdue ? 'card-due-overdue' : ''}`}>
-                {formatDate(item.due_date)}
+                {formatDate(item.due_date)}{isOverdue ? ' (overdue)' : ''}
               </span>
             )}
           </div>

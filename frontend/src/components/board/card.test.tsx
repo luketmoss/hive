@@ -131,6 +131,49 @@ describe('Card', () => {
     });
   });
 
+  // Issue #8 — Overdue non-color indicator
+  describe('Overdue non-color indicator (Issue #8 AC2)', () => {
+    it('shows "(overdue)" suffix when due date is in the past and status is not Done', () => {
+      // Use a date far in the past so it is always overdue
+      const item = makeItem({ due_date: '2020-01-01', status: 'To Do' });
+      const { container } = render(<Card item={item} />);
+      const dueEl = container.querySelector('.card-due');
+      expect(dueEl).not.toBeNull();
+      expect(dueEl!.textContent).toContain('(overdue)');
+    });
+
+    it('adds the card-due-overdue CSS class for overdue items', () => {
+      const item = makeItem({ due_date: '2020-01-01', status: 'In Progress' });
+      const { container } = render(<Card item={item} />);
+      const dueEl = container.querySelector('.card-due');
+      expect(dueEl!.className).toContain('card-due-overdue');
+    });
+
+    it('does NOT show "(overdue)" when status is Done', () => {
+      const item = makeItem({ due_date: '2020-01-01', status: 'Done' });
+      const { container } = render(<Card item={item} />);
+      const dueEl = container.querySelector('.card-due');
+      expect(dueEl).not.toBeNull();
+      expect(dueEl!.textContent).not.toContain('(overdue)');
+    });
+
+    it('does NOT show "(overdue)" when due date is in the future', () => {
+      const item = makeItem({ due_date: '2099-12-31', status: 'To Do' });
+      const { container } = render(<Card item={item} />);
+      const dueEl = container.querySelector('.card-due');
+      expect(dueEl).not.toBeNull();
+      expect(dueEl!.textContent).not.toContain('(overdue)');
+      expect(dueEl!.className).not.toContain('card-due-overdue');
+    });
+
+    it('does NOT show "(overdue)" when there is no due date', () => {
+      const item = makeItem({ due_date: '', status: 'To Do' });
+      const { container } = render(<Card item={item} />);
+      const dueEl = container.querySelector('.card-due');
+      expect(dueEl).toBeNull();
+    });
+  });
+
   // Issue #6 — Keyboard accessibility
   describe('Keyboard accessibility (Issue #6)', () => {
     // AC1: Cards are keyboard-focusable and activatable
@@ -238,6 +281,64 @@ describe('Card', () => {
         // Should not throw
         fireEvent.keyDown(card, { key: 'ArrowRight' });
         fireEvent.keyDown(card, { key: 'ArrowLeft' });
+      });
+    });
+  });
+
+  // Issue #12 — Description preview
+  describe('Description preview (Issue #12)', () => {
+    // AC1: Non-empty description shows truncated preview below title
+    describe('AC1: Description preview shows on card', () => {
+      it('renders a description preview when description is non-empty', () => {
+        const item = makeItem({ description: 'Pick up milk and eggs from the store' });
+        const { container } = render(<Card item={item} />);
+        const descEl = container.querySelector('.card-description');
+        expect(descEl).not.toBeNull();
+        expect(descEl!.textContent).toBe('Pick up milk and eggs from the store');
+      });
+
+      it('renders description below the title', () => {
+        const item = makeItem({ description: 'Some notes here' });
+        const { container } = render(<Card item={item} />);
+        const title = container.querySelector('.card-title');
+        const desc = container.querySelector('.card-description');
+        expect(title).not.toBeNull();
+        expect(desc).not.toBeNull();
+        // Description should be a sibling after title
+        expect(title!.nextElementSibling).toBe(desc);
+      });
+    });
+
+    // AC2: Long descriptions are truncated with ellipsis (CSS line-clamp)
+    describe('AC2: Long descriptions are truncated', () => {
+      it('applies CSS line-clamp class for long descriptions', () => {
+        const longDesc = 'This is a very long description that spans multiple lines. '.repeat(10);
+        const item = makeItem({ description: longDesc });
+        const { container } = render(<Card item={item} />);
+        const descEl = container.querySelector('.card-description');
+        expect(descEl).not.toBeNull();
+        expect(descEl!.classList.contains('card-description')).toBe(true);
+        // The CSS class card-description applies -webkit-line-clamp: 2
+      });
+    });
+
+    // AC3: Empty descriptions show nothing
+    describe('AC3: Empty descriptions show nothing', () => {
+      it('does not render description element when description is empty string', () => {
+        const item = makeItem({ description: '' });
+        const { container } = render(<Card item={item} />);
+        const descEl = container.querySelector('.card-description');
+        expect(descEl).toBeNull();
+      });
+
+      it('does not render description element when description is undefined-like', () => {
+        const item = makeItem({ description: '' });
+        const { container } = render(<Card item={item} />);
+        const descEl = container.querySelector('.card-description');
+        expect(descEl).toBeNull();
+        // Verify no empty space is left — card-meta should directly follow card-title
+        const title = container.querySelector('.card-title');
+        expect(title!.nextElementSibling!.classList.contains('card-meta')).toBe(true);
       });
     });
   });

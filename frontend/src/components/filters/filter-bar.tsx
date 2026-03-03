@@ -7,6 +7,7 @@ export function FilterBar() {
     <div class="filter-bar">
       <div class="filter-group">
         <select
+          aria-label="Filter by owner"
           value={filterOwner.value || ''}
           onChange={(e) => {
             filterOwner.value = (e.target as HTMLSelectElement).value || null;
@@ -19,6 +20,7 @@ export function FilterBar() {
         </select>
 
         <select
+          aria-label="Filter by label"
           value={filterLabel.value || ''}
           onChange={(e) => {
             filterLabel.value = (e.target as HTMLSelectElement).value || null;
@@ -31,6 +33,7 @@ export function FilterBar() {
         </select>
 
         <select
+          aria-label="Group items by"
           value={groupBy.value}
           onChange={(e) => {
             groupBy.value = (e.target as HTMLSelectElement).value as any;
