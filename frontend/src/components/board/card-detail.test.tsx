@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, fireEvent, cleanup, waitFor } from '@testing-library/preact';
+import { render, fireEvent, cleanup, waitFor, act } from '@testing-library/preact';
 import { CardDetail } from './card-detail';
 import { AuthContext } from '../../auth/auth-context';
 import type { AuthState } from '../../auth/auth-context';
@@ -41,14 +41,17 @@ vi.mock('../../state/board-store', () => ({
   childrenOfSelected: { value: [] },
   items: { value: [] },
   owners: { value: [{ name: 'Luke', google_account: 'luke@example.com' }] },
-  labels: { value: [] },
+  labels: { value: [{ label: 'Urgent', color: '#ff0000' }] },
 }));
 
+const mockUpdateItem = vi.fn().mockResolvedValue(true);
+const mockMoveItem = vi.fn().mockResolvedValue(true);
+
 vi.mock('../../state/actions', () => ({
-  updateItem: vi.fn(),
+  updateItem: (...args: any[]) => mockUpdateItem(...args),
   deleteItem: vi.fn(),
   createItem: vi.fn(),
-  moveItem: vi.fn(),
+  moveItem: (...args: any[]) => mockMoveItem(...args),
 }));
 
 const mockAuth: AuthState = {
@@ -67,9 +70,134 @@ function renderCardDetail() {
   );
 }
 
+describe('CardDetail save feedback (Issue #11)', () => {
+  beforeEach(() => {
+    mockSelectedItemId = 'detail-test-1';
+    mockUpdateItem.mockReset().mockResolvedValue(true);
+    mockMoveItem.mockReset().mockResolvedValue(true);
+  });
+
+  // AC3: Inline save feedback on card field changes
+  describe('AC3: Inline save feedback on successful save', () => {
+    it('shows "Saved" indicator after editing a text field successfully', async () => {
+      const { container } = renderCardDetail();
+
+      // Click on the Title field to enter edit mode
+      const titleField = container.querySelector('.detail-field') as HTMLElement;
+      fireEvent.click(titleField);
+
+      // Type a new value
+      const input = container.querySelector('.detail-field input[type="text"]') as HTMLInputElement;
+      expect(input).not.toBeNull();
+      fireEvent.input(input, { target: { value: 'Updated Title' } });
+
+      // Blur to commit
+      await act(async () => {
+        fireEvent.blur(input);
+      });
+
+      // Wait for the "Saved" indicator to appear
+      await waitFor(() => {
+        const indicator = container.querySelector('[data-testid="save-indicator"]');
+        expect(indicator).not.toBeNull();
+        expect(indicator!.textContent).toBe('Saved');
+      });
+    });
+
+    it('shows "Saved" indicator after changing owner select', async () => {
+      const { container } = renderCardDetail();
+
+      // Find the Owner select
+      const selects = container.querySelectorAll('select');
+      // Owner is the second select (Status is first)
+      const ownerSelect = selects[1] as HTMLSelectElement;
+      expect(ownerSelect).not.toBeNull();
+
+      await act(async () => {
+        fireEvent.change(ownerSelect, { target: { value: 'Luke' } });
+      });
+
+      await waitFor(() => {
+        const indicators = container.querySelectorAll('[data-testid="save-indicator"]');
+        expect(indicators.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('shows "Saved" indicator after toggling a label', async () => {
+      const { container } = renderCardDetail();
+
+      // Find the label toggle button
+      const labelBtn = container.querySelector('.label-toggle') as HTMLElement;
+      expect(labelBtn).not.toBeNull();
+
+      await act(async () => {
+        fireEvent.click(labelBtn);
+      });
+
+      await waitFor(() => {
+        const indicators = container.querySelectorAll('[data-testid="save-indicator"]');
+        expect(indicators.length).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  // AC4: Save feedback on error
+  describe('AC4: Save feedback on error — field reverts', () => {
+    it('shows error indicator and reverts text field on save failure', async () => {
+      mockUpdateItem.mockResolvedValue(false);
+
+      const { container } = renderCardDetail();
+
+      // Click on the Title field to enter edit mode
+      const titleField = container.querySelector('.detail-field') as HTMLElement;
+      fireEvent.click(titleField);
+
+      // Type a new value
+      const input = container.querySelector('.detail-field input[type="text"]') as HTMLInputElement;
+      fireEvent.input(input, { target: { value: 'Bad Title' } });
+
+      // Blur to commit
+      await act(async () => {
+        fireEvent.blur(input);
+      });
+
+      // Wait for error indicator
+      await waitFor(() => {
+        const indicator = container.querySelector('[data-testid="save-indicator-error"]');
+        expect(indicator).not.toBeNull();
+        expect(indicator!.textContent).toBe('Error');
+      });
+
+      // The displayed value should revert to original
+      const editableValue = container.querySelector('.editable-value');
+      expect(editableValue?.textContent).toBe('Test Item');
+    });
+
+    it('shows error indicator on owner select save failure', async () => {
+      mockUpdateItem.mockResolvedValue(false);
+
+      const { container } = renderCardDetail();
+
+      const selects = container.querySelectorAll('select');
+      const ownerSelect = selects[1] as HTMLSelectElement;
+
+      await act(async () => {
+        fireEvent.change(ownerSelect, { target: { value: '' } });
+      });
+
+      await waitFor(() => {
+        const indicator = container.querySelector('[data-testid="save-indicator-error"]');
+        expect(indicator).not.toBeNull();
+      });
+    });
+  });
+});
+
 describe('CardDetail keyboard accessibility (Issue #6)', () => {
   beforeEach(() => {
     mockSelectedItemId = 'detail-test-1';
+    mockUpdateItem.mockReset().mockResolvedValue(true);
+    mockMoveItem.mockReset().mockResolvedValue(true);
   });
 
   // AC3: Detail panel traps focus

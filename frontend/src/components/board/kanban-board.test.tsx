@@ -8,28 +8,52 @@ afterEach(() => {
   cleanup();
 });
 
+// Mutable mock data for items
+let mockItems: any[] = [];
+
 vi.mock('../../state/board-store', () => ({
+  items: { get value() { return mockItems; } },
   columns: {
-    value: {
-      'To Do': [],
-      'In Progress': [],
-      'Done': [],
+    get value() {
+      return {
+        'To Do': mockItems.filter((i: any) => i.status === 'To Do' && !i.parent_id),
+        'In Progress': mockItems.filter((i: any) => i.status === 'In Progress' && !i.parent_id),
+        'Done': mockItems.filter((i: any) => i.status === 'Done' && !i.parent_id),
+      };
     },
+  },
+  rootItems: {
+    get value() { return mockItems.filter((i: any) => !i.parent_id); },
   },
   showCreateModal: { value: false },
   selectedItem: { value: null },
   selectedItemId: { value: null },
   groupBy: { value: 'none' },
-  rootItems: { value: [] },
   owners: { value: [] },
   labels: { value: [] },
   filterOwner: { value: null },
   filterLabel: { value: null },
+  loading: { value: false },
+  getChildCount: () => ({ done: 0, total: 0 }),
 }));
 
 vi.mock('../../state/actions', () => ({
   moveItem: vi.fn(),
 }));
+
+// Mock FilterBar to avoid pulling in the full filter chain
+vi.mock('../filters/filter-bar', () => ({
+  FilterBar: () => <div data-testid="filter-bar" />,
+}));
+
+// Mock CardDetail and CreateItemModal
+vi.mock('./card-detail', () => ({
+  CardDetail: () => <div data-testid="card-detail" />,
+}));
+vi.mock('../forms/create-item-modal', () => ({
+  CreateItemModal: () => <div data-testid="create-modal" />,
+}));
+
 
 const mockAuth: AuthState = {
   token: 'test-token',
@@ -47,10 +71,67 @@ function renderBoard() {
   );
 }
 
+describe('KanbanBoard empty/welcome state (Issue #11)', () => {
+  // AC1: Empty board shows welcome message
+  describe('AC1: Empty board shows welcome message', () => {
+    it('shows welcome message when board has zero items', () => {
+      mockItems = [];
+      const { container } = renderBoard();
+      const welcome = container.querySelector('[data-testid="board-welcome"]');
+      expect(welcome).not.toBeNull();
+      expect(welcome!.textContent).toContain('No tasks yet');
+      expect(welcome!.textContent).toContain('+');
+    });
+
+    it('does not show welcome when board has items', () => {
+      mockItems = [{
+        id: '1', title: 'Task', description: '', status: 'To Do',
+        owner: '', due_date: '', scheduled_date: '', labels: '',
+        parent_id: '', created_at: '', updated_at: '', completed_at: '',
+        sort_order: 1, sheetRow: 2,
+      }];
+      const { container } = renderBoard();
+      const welcome = container.querySelector('[data-testid="board-welcome"]');
+      expect(welcome).toBeNull();
+    });
+
+    it('does not show columns when board is empty', () => {
+      mockItems = [];
+      const { container } = renderBoard();
+      const columns = container.querySelector('.board-columns');
+      expect(columns).toBeNull();
+    });
+  });
+
+  // AC2: Empty columns still show standard "No items" text (not welcome)
+  describe('AC2: Empty columns still show standard text', () => {
+    it('renders columns with "No items" when board has items but some columns are empty', () => {
+      mockItems = [{
+        id: '1', title: 'Task', description: '', status: 'To Do',
+        owner: '', due_date: '', scheduled_date: '', labels: '',
+        parent_id: '', created_at: '', updated_at: '', completed_at: '',
+        sort_order: 1, sheetRow: 2,
+      }];
+      const { container } = renderBoard();
+      // Board should show columns, not welcome
+      const welcome = container.querySelector('[data-testid="board-welcome"]');
+      expect(welcome).toBeNull();
+
+      const emptyColumns = container.querySelectorAll('.column-empty');
+      // "In Progress" and "Done" columns should show "No items"
+      expect(emptyColumns.length).toBe(2);
+      emptyColumns.forEach(el => {
+        expect(el.textContent).toBe('No items');
+      });
+    });
+  });
+});
+
 describe('KanbanBoard ARIA labels (Issue #7)', () => {
   // AC2: FAB has accessible label
   describe('AC2: FAB has accessible label', () => {
     it('FAB button has aria-label="Create new item"', () => {
+      mockItems = [];
       const { container } = renderBoard();
       const fab = container.querySelector('.fab') as HTMLElement;
       expect(fab).not.toBeNull();
@@ -58,6 +139,7 @@ describe('KanbanBoard ARIA labels (Issue #7)', () => {
     });
 
     it('FAB button has title="Create new item"', () => {
+      mockItems = [];
       const { container } = renderBoard();
       const fab = container.querySelector('.fab') as HTMLElement;
       expect(fab.getAttribute('title')).toBe('Create new item');
