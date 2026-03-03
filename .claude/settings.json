@@ -39,7 +39,16 @@
       "mcp__Claude_Preview__preview_eval",
       "mcp__Claude_Preview__preview_console_logs",
       "mcp__Claude_Preview__preview_logs",
-      "mcp__Claude_Preview__preview_network"
+      "mcp__Claude_Preview__preview_network",
+      "Edit(/frontend/**)",
+      "Edit(/apps-script/**)",
+      "Edit(/.claude/skills/**)",
+      "Edit(/.claude/settings.json)",
+      "Edit(/.github/**)",
+      "Write(/frontend/**)",
+      "Write(/apps-script/**)",
+      "Write(/.claude/skills/**)",
+      "Write(/.github/**)"
     ],
     "deny": [
       "Bash(git push --force:*)",
