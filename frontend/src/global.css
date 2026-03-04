@@ -359,6 +359,13 @@ body {
 
 .card-scheduled {
   white-space: nowrap;
+  color: var(--color-text-secondary);
+}
+
+.card-due {
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--color-text);
 }
 
 .card-due-overdue {
