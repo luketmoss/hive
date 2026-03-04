@@ -94,6 +94,7 @@ function rowToItem(row: any[]): Item {
     updated_at: row[10] || '',
     completed_at: row[11] || '',
     sort_order: Number(row[12]) || 0,
+    created_by: row[13] || '',
   };
 }
 
@@ -102,14 +103,14 @@ function itemToRow(item: Item): any[] {
     item.id, item.title, item.description, item.status,
     item.owner, item.due_date, item.scheduled_date, item.labels,
     item.parent_id, item.created_at, item.updated_at, item.completed_at,
-    item.sort_order,
+    item.sort_order, item.created_by,
   ];
 }
 
 // --- Public API ---
 
 export async function fetchAllItems(token: string): Promise<ItemWithRow[]> {
-  const rows = await sheetsGet('Items!A2:M', token);
+  const rows = await sheetsGet('Items!A2:N', token);
   return rows.map((row, i) => ({
     ...rowToItem(row),
     sheetRow: i + 2, // 1-based, header is row 1
@@ -133,11 +134,11 @@ export async function fetchLabels(token: string): Promise<Label[]> {
 }
 
 export async function createItemRow(item: Item, token: string): Promise<void> {
-  await sheetsAppend('Items!A:M', [itemToRow(item)], token);
+  await sheetsAppend('Items!A:N', [itemToRow(item)], token);
 }
 
 export async function updateItemRow(sheetRow: number, item: Item, token: string): Promise<void> {
-  await sheetsUpdate(`Items!A${sheetRow}:M${sheetRow}`, [itemToRow(item)], token);
+  await sheetsUpdate(`Items!A${sheetRow}:N${sheetRow}`, [itemToRow(item)], token);
 }
 
 export async function deleteItemRow(sheetRow: number, token: string): Promise<void> {

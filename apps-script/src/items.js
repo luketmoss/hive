@@ -65,6 +65,7 @@ function createItem(data, actor) {
     updated_at: now,
     completed_at: status === 'Done' ? now : '',
     sort_order: data.sort_order != null ? data.sort_order : getNextSortOrder(allItems, status),
+    created_by: data.created_by || actor,
   };
 
   if (item.status === 'In Progress' && !item.owner) {

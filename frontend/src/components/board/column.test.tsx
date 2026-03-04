@@ -29,6 +29,7 @@ function makeItem(overrides: Partial<ItemWithRow> = {}): ItemWithRow {
     updated_at: '2026-01-01T00:00:00Z',
     completed_at: '',
     sort_order: 1,
+    created_by: '',
     sheetRow: 2,
     ...overrides,
   };

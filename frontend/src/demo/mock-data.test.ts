@@ -64,6 +64,14 @@ describe('Mock data coverage (AC4)', () => {
     expect(colors.size).toBe(MOCK_LABELS.length);
   });
 
+  it('every item has a plausible created_by email matching an owner google_account', () => {
+    for (const item of MOCK_ITEMS) {
+      expect(item.created_by).toBeTruthy();
+      const matchingOwner = MOCK_OWNERS.find(o => o.google_account === item.created_by);
+      expect(matchingOwner).toBeTruthy();
+    }
+  });
+
   it('data is static/deterministic (same values every invocation)', () => {
     // Re-import to verify same reference data
     const items1 = MOCK_ITEMS;

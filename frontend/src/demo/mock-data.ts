@@ -53,6 +53,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     updated_at: daysAgo(1),
     completed_at: '',
     sort_order: 1,
+    created_by: 'mom@family.com',
     sheetRow: 2,
   },
   // Subtask 1a: Buy vegetables — Done
@@ -70,6 +71,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     updated_at: daysAgo(2),
     completed_at: daysAgo(2),
     sort_order: 1,
+    created_by: 'mom@family.com',
     sheetRow: 3,
   },
   // Subtask 1b: Buy cleaning supplies — Done
@@ -87,6 +89,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     updated_at: daysAgo(2),
     completed_at: daysAgo(2),
     sort_order: 2,
+    created_by: 'mom@family.com',
     sheetRow: 4,
   },
   // Subtask 1c: Pick up prescription — To Do, assigned to Dad
@@ -104,6 +107,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     updated_at: daysAgo(3),
     completed_at: '',
     sort_order: 3,
+    created_by: 'mom@family.com',
     sheetRow: 5,
   },
 
@@ -122,6 +126,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     updated_at: daysAgo(1),
     completed_at: '',
     sort_order: 1,
+    created_by: 'dad@family.com',
     sheetRow: 6,
   },
 
@@ -140,6 +145,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     updated_at: daysAgo(0),
     completed_at: '',
     sort_order: 2,
+    created_by: 'kiddo@family.com',
     sheetRow: 7,
   },
 
@@ -158,6 +164,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     updated_at: daysAgo(7),
     completed_at: '',
     sort_order: 2,
+    created_by: 'mom@family.com',
     sheetRow: 8,
   },
 
@@ -176,6 +183,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     updated_at: daysAgo(7),
     completed_at: daysAgo(7),
     sort_order: 1,
+    created_by: 'dad@family.com',
     sheetRow: 9,
   },
 
@@ -194,6 +202,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     updated_at: daysAgo(2),
     completed_at: '',
     sort_order: 3,
+    created_by: 'mom@family.com',
     sheetRow: 10,
   },
 
@@ -212,6 +221,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     updated_at: daysAgo(3),
     completed_at: '',
     sort_order: 4,
+    created_by: 'kiddo@family.com',
     sheetRow: 11,
   },
 
@@ -230,6 +240,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     updated_at: daysAgo(2),
     completed_at: '',
     sort_order: 3,
+    created_by: 'mom@family.com',
     sheetRow: 12,
   },
 
@@ -248,6 +259,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     updated_at: daysAgo(30),
     completed_at: daysAgo(30),
     sort_order: 2,
+    created_by: 'dad@family.com',
     sheetRow: 13,
   },
 
@@ -266,6 +278,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     updated_at: daysAgo(3),
     completed_at: '',
     sort_order: 5,
+    created_by: 'dad@family.com',
     sheetRow: 14,
   },
 
@@ -284,6 +297,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     updated_at: daysAgo(1),
     completed_at: '',
     sort_order: 6,
+    created_by: 'kiddo@family.com',
     sheetRow: 15,
   },
 
@@ -302,6 +316,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     updated_at: daysAgo(0),
     completed_at: '',
     sort_order: 4,
+    created_by: 'mom@family.com',
     sheetRow: 16,
   },
 ];

@@ -92,7 +92,7 @@ describe('KanbanBoard empty/welcome state (Issue #11)', () => {
         id: '1', title: 'Task', description: '', status: 'To Do',
         owner: '', due_date: '', scheduled_date: '', labels: '',
         parent_id: '', created_at: '', updated_at: '', completed_at: '',
-        sort_order: 1, sheetRow: 2,
+        sort_order: 1, created_by: '', sheetRow: 2,
       }];
       const { container } = renderBoard();
       const welcome = container.querySelector('[data-testid="board-welcome"]');
@@ -114,7 +114,7 @@ describe('KanbanBoard empty/welcome state (Issue #11)', () => {
         id: '1', title: 'Task', description: '', status: 'To Do',
         owner: '', due_date: '', scheduled_date: '', labels: '',
         parent_id: '', created_at: '', updated_at: '', completed_at: '',
-        sort_order: 1, sheetRow: 2,
+        sort_order: 1, created_by: '', sheetRow: 2,
       }];
       const { container } = renderBoard();
       // Board should show columns, not welcome

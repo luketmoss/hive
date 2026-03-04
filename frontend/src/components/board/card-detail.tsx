@@ -75,7 +75,7 @@ export function CardDetail() {
   const submitSubtask = () => {
     const trimmed = subtaskTitle.trim();
     if (trimmed && token) {
-      createItem({ title: trimmed, parent_id: item.id, owner: item.owner }, actor, token);
+      createItem({ title: trimmed, parent_id: item.id, owner: item.owner, created_by: user?.email || '' }, actor, token);
     }
     setAddingSubtask(false);
     setSubtaskTitle('');
@@ -261,6 +261,12 @@ export function CardDetail() {
           </div>
 
           <div class="detail-meta">
+            {item.created_by && (
+              <small>Created by: {owners.value.find(o => o.google_account === item.created_by)?.name || item.created_by}</small>
+            )}
+            {!item.created_by && (
+              <small>Created by: Unknown</small>
+            )}
             <small>Created: {new Date(item.created_at).toLocaleString()}</small>
             <small>Updated: {new Date(item.updated_at).toLocaleString()}</small>
             {item.completed_at && (

@@ -17,6 +17,7 @@ export interface Item {
   updated_at: string;
   completed_at: string;
   sort_order: number;
+  created_by: string;
 }
 
 export interface ItemWithRow extends Item {
