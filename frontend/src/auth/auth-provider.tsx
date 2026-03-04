@@ -2,22 +2,34 @@ import { useState, useEffect, useCallback, useRef } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import { AuthContext } from './auth-context';
 import type { UserInfo } from '../api/types';
+import { isDemoMode } from '../demo/is-demo-mode';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets openid email profile';
 
 declare const google: any;
 
+/** Mock user injected in demo mode. */
+const DEMO_USER: UserInfo = {
+  name: 'Demo User',
+  email: 'demo@hive.local',
+  picture: '',
+};
+
 interface Props {
   children: ComponentChildren;
 }
 
 export function AuthProvider({ children }: Props) {
-  const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<UserInfo | null>(null);
+  const demo = isDemoMode();
+  const [token, setToken] = useState<string | null>(demo ? 'demo-token' : null);
+  const [user, setUser] = useState<UserInfo | null>(demo ? DEMO_USER : null);
   const tokenClientRef = useRef<any>(null);
 
   useEffect(() => {
+    // In demo mode, skip GIS initialization entirely.
+    if (demo) return;
+
     // Wait for GIS script to load
     const init = () => {
       if (typeof google === 'undefined' || !google.accounts?.oauth2) {
@@ -57,19 +69,24 @@ export function AuthProvider({ children }: Props) {
     };
 
     init();
-  }, []);
+  }, [demo]);
 
   const login = useCallback(() => {
     tokenClientRef.current?.requestAccessToken();
   }, []);
 
   const logout = useCallback(() => {
+    if (demo) {
+      // In demo mode, navigate to app without ?demo param to exit demo mode
+      window.location.search = '';
+      return;
+    }
     if (token) {
       google.accounts.oauth2.revoke(token);
     }
     setToken(null);
     setUser(null);
-  }, [token]);
+  }, [token, demo]);
 
   return (
     <AuthContext.Provider
