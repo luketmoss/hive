@@ -10,14 +10,14 @@ import { loadBoard, refreshItems } from './state/actions';
 import { loading } from './state/board-store';
 
 function AuthenticatedApp() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const intervalRef = useRef<number>();
   const demo = isDemoMode();
 
   useEffect(() => {
     if (!token) return;
 
-    loadBoard(token);
+    loadBoard(token, user);
 
     // Disable polling in demo mode — mock data is static, no other users.
     if (!demo) {
