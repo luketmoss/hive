@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { UserInfo } from '../api/types';
 
 // Mock the sheets API module before importing actions
@@ -10,7 +10,6 @@ vi.mock('../api/sheets', () => ({
   updateItemRow: vi.fn().mockResolvedValue(undefined),
   deleteItemRow: vi.fn().mockResolvedValue(undefined),
   appendAuditEntry: vi.fn().mockResolvedValue(undefined),
-  upsertOwner: vi.fn().mockResolvedValue(false),
   SheetsApiError: class extends Error {
     status: number;
     constructor(status: number, message: string) {
@@ -34,136 +33,63 @@ vi.mock('../demo/mock-api', () => ({
   updateItemRow: vi.fn().mockResolvedValue(undefined),
   deleteItemRow: vi.fn().mockResolvedValue(undefined),
   appendAuditEntry: vi.fn().mockResolvedValue(undefined),
-  upsertOwner: vi.fn().mockResolvedValue(false),
 }));
 
-import { ensureOwnerRegistered, loadBoard } from './actions';
+import { loadBoard, NotAllowedError } from './actions';
 import { owners, loading } from './board-store';
 import * as sheetsApi from '../api/sheets';
 
-const mockUpsertOwner = vi.mocked(sheetsApi.upsertOwner);
 const mockFetchOwners = vi.mocked(sheetsApi.fetchOwners);
 const mockFetchAllItems = vi.mocked(sheetsApi.fetchAllItems);
 const mockFetchLabels = vi.mocked(sheetsApi.fetchLabels);
 
-describe('ensureOwnerRegistered', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  // Scenario 1: First-time sign-in calls upsertOwner with display name and email
-  it('calls upsertOwner with display name and email', async () => {
-    mockUpsertOwner.mockResolvedValueOnce(true);
-    const user: UserInfo = { name: 'Luke', email: 'luke@example.com', picture: '' };
-
-    const result = await ensureOwnerRegistered(user, 'test-token');
-
-    expect(result).toBe(true);
-    expect(mockUpsertOwner).toHaveBeenCalledWith('Luke', 'luke@example.com', 'test-token');
-  });
-
-  // Scenario 2: Returning user — upsertOwner returns false (no write)
-  it('returns false when upsertOwner finds no changes needed', async () => {
-    mockUpsertOwner.mockResolvedValueOnce(false);
-    const user: UserInfo = { name: 'Luke', email: 'luke@example.com', picture: '' };
-
-    const result = await ensureOwnerRegistered(user, 'test-token');
-
-    expect(result).toBe(false);
-  });
-
-  // Edge case: Google account with no display name falls back to email prefix
-  it('falls back to email prefix when display name is empty', async () => {
-    mockUpsertOwner.mockResolvedValueOnce(true);
-    const user: UserInfo = { name: '', email: 'luke@example.com', picture: '' };
-
-    await ensureOwnerRegistered(user, 'test-token');
-
-    expect(mockUpsertOwner).toHaveBeenCalledWith('luke', 'luke@example.com', 'test-token');
-  });
-
-  // Scenario 5: Auto-register fails gracefully
-  it('returns false and logs to console when upsertOwner throws', async () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockUpsertOwner.mockRejectedValueOnce(new Error('Network error'));
-    const user: UserInfo = { name: 'Luke', email: 'luke@example.com', picture: '' };
-
-    const result = await ensureOwnerRegistered(user, 'test-token');
-
-    expect(result).toBe(false);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Auto-register owner failed:',
-      expect.any(Error)
-    );
-    consoleErrorSpy.mockRestore();
-  });
-});
-
-describe('loadBoard with auto-registration', () => {
+describe('loadBoard owner allowlist', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFetchAllItems.mockResolvedValue([]);
     mockFetchLabels.mockResolvedValue([]);
-    mockFetchOwners.mockResolvedValue([{ name: 'Mom', google_account: 'mom@example.com' }]);
   });
 
-  // Scenario 1: loadBoard triggers auto-registration and re-fetches owners on write
-  it('auto-registers user and re-fetches owners when upsert writes', async () => {
-    mockUpsertOwner.mockResolvedValueOnce(true);
-    // After upsert, the re-fetch returns updated owners
-    mockFetchOwners
-      .mockResolvedValueOnce([{ name: 'Mom', google_account: 'mom@example.com' }])  // initial load
-      .mockResolvedValueOnce([
-        { name: 'Mom', google_account: 'mom@example.com' },
-        { name: 'Luke', google_account: 'luke@example.com' },
-      ]);  // re-fetch after upsert
+  it('loads the board when user email is in the Owners sheet', async () => {
+    mockFetchOwners.mockResolvedValue([
+      { name: 'Luke', google_account: 'luke@example.com' },
+    ]);
 
     const user: UserInfo = { name: 'Luke', email: 'luke@example.com', picture: '' };
     await loadBoard('test-token', user);
 
-    expect(mockUpsertOwner).toHaveBeenCalledWith('Luke', 'luke@example.com', 'test-token');
-    // fetchOwners called twice: once in initial parallel fetch, once after upsert
-    expect(mockFetchOwners).toHaveBeenCalledTimes(2);
-    // owners signal should have both owners
-    expect(owners.value).toHaveLength(2);
-    expect(owners.value.find(o => o.name === 'Luke')).toBeTruthy();
+    expect(owners.value).toHaveLength(1);
     expect(loading.value).toBe(false);
   });
 
-  // Scenario 2: No re-fetch when upsert returns false (no change)
-  it('skips re-fetch when upsert returns false (no change needed)', async () => {
-    mockUpsertOwner.mockResolvedValueOnce(false);
+  it('throws NotAllowedError when user email is not in Owners sheet', async () => {
+    mockFetchOwners.mockResolvedValue([
+      { name: 'Luke', google_account: 'luke@example.com' },
+    ]);
 
-    const user: UserInfo = { name: 'Mom', email: 'mom@example.com', picture: '' };
+    const user: UserInfo = { name: 'Stranger', email: 'stranger@example.com', picture: '' };
+    await expect(loadBoard('test-token', user)).rejects.toThrow(NotAllowedError);
+    expect(loading.value).toBe(false);
+  });
+
+  it('matches email case-insensitively', async () => {
+    mockFetchOwners.mockResolvedValue([
+      { name: 'Luke', google_account: 'Luke@Example.COM' },
+    ]);
+
+    const user: UserInfo = { name: 'Luke', email: 'luke@example.com', picture: '' };
     await loadBoard('test-token', user);
 
-    expect(mockUpsertOwner).toHaveBeenCalled();
-    // fetchOwners called only once (initial load), not re-fetched
-    expect(mockFetchOwners).toHaveBeenCalledTimes(1);
+    expect(owners.value).toHaveLength(1);
     expect(loading.value).toBe(false);
   });
 
-  // loadBoard without user does not call ensureOwnerRegistered
-  it('does not call upsertOwner when user is not provided', async () => {
+  it('skips allowlist check when no user is provided', async () => {
+    mockFetchOwners.mockResolvedValue([]);
+
     await loadBoard('test-token');
 
-    expect(mockUpsertOwner).not.toHaveBeenCalled();
+    // No error thrown even though owners list is empty
     expect(loading.value).toBe(false);
-  });
-
-  // Scenario 5: Board loads even if auto-registration fails
-  it('still loads the board when auto-registration fails', async () => {
-    mockUpsertOwner.mockRejectedValueOnce(new Error('Network error'));
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    const user: UserInfo = { name: 'Luke', email: 'luke@example.com', picture: '' };
-    await loadBoard('test-token', user);
-
-    // Board should still have loaded successfully
-    expect(owners.value).toHaveLength(1);
-    expect(owners.value[0].name).toBe('Mom');
-    expect(loading.value).toBe(false);
-
-    consoleErrorSpy.mockRestore();
   });
 });

@@ -8,7 +8,6 @@ import {
   updateItemRow as sheetsUpdateItemRow,
   deleteItemRow as sheetsDeleteItemRow,
   appendAuditEntry as sheetsAppendAuditEntry,
-  upsertOwner as sheetsUpsertOwner,
 } from '../api/sheets';
 import {
   fetchAllItems as mockFetchAllItems,
@@ -18,7 +17,6 @@ import {
   updateItemRow as mockUpdateItemRow,
   deleteItemRow as mockDeleteItemRow,
   appendAuditEntry as mockAppendAuditEntry,
-  upsertOwner as mockUpsertOwner,
 } from '../demo/mock-api';
 import { isDemoMode } from '../demo/is-demo-mode';
 import { owners, labels, loading } from './board-store';
@@ -36,7 +34,6 @@ function api() {
       updateItemRow: mockUpdateItemRow,
       deleteItemRow: mockDeleteItemRow,
       appendAuditEntry: mockAppendAuditEntry,
-      upsertOwner: mockUpsertOwner,
     };
   }
   return {
@@ -47,7 +44,6 @@ function api() {
     updateItemRow: sheetsUpdateItemRow,
     deleteItemRow: sheetsDeleteItemRow,
     appendAuditEntry: sheetsAppendAuditEntry,
-    upsertOwner: sheetsUpsertOwner,
   };
 }
 
@@ -58,30 +54,16 @@ const createItemRow = (...args: Parameters<typeof sheetsCreateItemRow>) => api()
 const updateItemRow = (...args: Parameters<typeof sheetsUpdateItemRow>) => api().updateItemRow(...args);
 const deleteItemRow = (...args: Parameters<typeof sheetsDeleteItemRow>) => api().deleteItemRow(...args);
 const appendAuditEntry = (...args: Parameters<typeof sheetsAppendAuditEntry>) => api().appendAuditEntry(...args);
-const upsertOwner = (...args: Parameters<typeof sheetsUpsertOwner>) => api().upsertOwner(...args);
 
 function generateUUID(): string {
   return crypto.randomUUID();
 }
 
-/**
- * Ensure the signed-in user exists in the Owners sheet.
- * If the user is new, appends a row. If the display name changed, updates it.
- * Fails silently — board loading continues even if this fails.
- * Returns true if a write occurred (caller should re-fetch owners).
- */
-export async function ensureOwnerRegistered(
-  user: UserInfo,
-  token: string
-): Promise<boolean> {
-  try {
-    // Fall back to email prefix if no display name is set
-    const displayName = user.name || user.email.split('@')[0];
-    return await upsertOwner(displayName, user.email, token);
-  } catch (err) {
-    // Non-blocking: log to console but do not show a toast
-    console.error('Auto-register owner failed:', err);
-    return false;
+/** Error thrown when the signed-in user is not in the Owners allowlist. */
+export class NotAllowedError extends Error {
+  constructor(email: string) {
+    super(`${email} is not an authorized user. Ask a board admin to add you to the Owners sheet.`);
+    this.name = 'NotAllowedError';
   }
 }
 
@@ -97,16 +79,19 @@ export async function loadBoard(token: string, user?: UserInfo | null) {
     owners.value = ownersData;
     labels.value = labelsData;
 
-    // Auto-register the signed-in user as an owner (after initial data load).
-    // Runs in the background — a write triggers a re-fetch of owners so the
-    // UI immediately reflects the new entry.
-    if (user) {
-      const wrote = await ensureOwnerRegistered(user, token);
-      if (wrote) {
-        owners.value = await fetchOwners(token);
+    // Allowlist check: the Owners sheet is the source of truth for who can
+    // use the board. If the signed-in user's email isn't listed, reject.
+    // Skip in demo mode — the mock user isn't in the mock owners list.
+    if (user && !isDemoMode()) {
+      const allowed = ownersData.some(
+        o => o.google_account.toLowerCase() === user.email.toLowerCase()
+      );
+      if (!allowed) {
+        throw new NotAllowedError(user.email);
       }
     }
   } catch (err: any) {
+    if (err instanceof NotAllowedError) throw err;
     showToast('Failed to load board: ' + err.message, 'error');
   } finally {
     loading.value = false;

@@ -6,18 +6,23 @@ import { KanbanBoard } from './components/board/kanban-board';
 import { Toast } from './components/shared/toast';
 import { DemoBanner } from './demo/demo-banner';
 import { isDemoMode } from './demo/is-demo-mode';
-import { loadBoard, refreshItems } from './state/actions';
-import { loading } from './state/board-store';
+import { loadBoard, refreshItems, NotAllowedError } from './state/actions';
+import { loading, showToast } from './state/board-store';
 
 function AuthenticatedApp() {
-  const { token, user } = useAuth();
+  const { token, user, logout } = useAuth();
   const intervalRef = useRef<number>();
   const demo = isDemoMode();
 
   useEffect(() => {
     if (!token) return;
 
-    loadBoard(token, user);
+    loadBoard(token, user).catch(err => {
+      if (err instanceof NotAllowedError) {
+        showToast(err.message, 'error');
+        logout();
+      }
+    });
 
     // Disable polling in demo mode — mock data is static, no other users.
     if (!demo) {
