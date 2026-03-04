@@ -137,7 +137,9 @@ The QA agent independently reads the acceptance criteria and PR code. It does NO
 
 **Collect:** QA verdict (PASS/FAIL), AC verification, edge case findings.
 
-**Board state after:** Issue in **In Review** (if PASS).
+**If PASS:** Move issue to **In Review**, proceed to Stage 5.
+
+**If FAIL:** Go to **Conflict Resolution** below. Set `failingAgent = "QA"` and `failCount = 1`.
 
 ---
 
@@ -151,31 +153,42 @@ The Review agent independently reads the diff. It does NOT receive Dev or QA sum
 
 **Collect:** Review verdict (APPROVE/CHANGES REQUESTED), findings.
 
-**Board state after:** Stays in **In Review** until user approves.
+**If APPROVE:** Proceed to the **Approval Gate**.
+
+**If CHANGES REQUESTED:** Go to **Conflict Resolution** below. Set `failingAgent = "Review"` and `failCount = 1`.
 
 ---
 
 ## Conflict Resolution
 
-When agents disagree, manage up to **2 resolution attempts**. If unresolved, the issue stays in its current column (visible on the board) with a detailed comment explaining the disagreement.
+**CRITICAL: You must track the fail count as a variable. You get exactly 2 attempts total — not 2 per cycle, not "a couple", exactly 2. After 2 failures from the same agent, STOP and escalate. Do NOT re-run the failing agent a third time under any circumstances.**
 
-### Pattern (applies to both QA and Review conflicts)
+### Procedure
 
-**Attempt 1:** Move issue to **In Development**. Spawn Dev with the failure report. Dev fixes, updates PR, re-runs tests. Move issue back. Spawn the failing agent again.
+Track these variables:
+- `failingAgent`: which agent failed ("QA" or "Review")
+- `failCount`: starts at 1 when the agent first fails
 
-**Attempt 2:** If it fails again, repeat the cycle one more time.
+**When failCount is 1 (first failure):**
+1. Move issue to **In Development**.
+2. Spawn Dev agent with the failure report and specific issues to fix.
+3. Dev fixes, updates PR, re-runs tests.
+4. Move issue back to the failing agent's stage (Testing for QA, In Review for Review).
+5. Spawn the failing agent again.
+6. If it **passes** this time → continue the pipeline normally.
+7. If it **fails again** → set `failCount = 2` and continue below.
 
-**Escalate (after 2 failed attempts):**
-
-1. Leave the issue in its current column — it's now visibly stuck on the board.
-2. Post a detailed comment on the issue:
+**When failCount is 2 (second failure) — ESCALATE IMMEDIATELY:**
+1. Do NOT spawn Dev again. Do NOT re-run the failing agent again.
+2. Leave the issue in its current column — it's now visibly stuck on the board.
+3. Post a detailed comment on the issue:
    ```bash
    gh issue comment <number> --repo luketmoss/hive --body "$(cat <<'EOF'
-   ## 🔴 Orchestrator: Stuck — <Agent A> vs <Agent B>
+   ## Orchestrator: Stuck — Dev vs <failingAgent>
 
    This issue could not be resolved automatically after 2 attempts.
 
-   ### What <Failing Agent> Found
+   ### What <failingAgent> Found
    <latest findings from the failing agent>
 
    ### What Dev Tried
@@ -188,8 +201,9 @@ When agents disagree, manage up to **2 resolution attempts**. If unresolved, the
    EOF
    )"
    ```
-3. Notify the user in the session:
+4. Notify the user in the session:
    > Issue #N is stuck in **<Column>**. The details are posted on the issue. When you've addressed it, run `/orchestrator #N` to resume.
+5. **STOP processing this issue.** Do not continue to the approval gate.
 
 ---
 
