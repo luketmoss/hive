@@ -48,7 +48,8 @@
       "Write(/frontend/**)",
       "Write(/apps-script/**)",
       "Write(/.claude/skills/**)",
-      "Write(/.github/**)"
+      "Write(/.github/**)",
+      "Write(/.tmp*)"
     ],
     "deny": [
       "Bash(git push --force:*)",
