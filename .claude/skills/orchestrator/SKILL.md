@@ -362,6 +362,18 @@ After merging, pull the latest main before merging the next PR:
 git checkout main && git pull origin main
 ```
 
+### Step 7: Close the Parent
+
+After all children are merged (no stuck items remaining), move the **parent issue** to **Done** and close it:
+
+```bash
+gh issue close <PARENT_NUMBER> --repo luketmoss/hive --comment "All child issues completed and merged."
+```
+
+Then move the parent to **Done** using the Board Movement Helper.
+
+If some children are still stuck, do NOT close the parent. Instead note in the batch summary which children remain and leave the parent in its current column.
+
 ---
 
 ## Definition of Done
