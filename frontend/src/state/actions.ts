@@ -1,16 +1,59 @@
 import { items, showToast } from './board-store';
 import { validateStatusTransition, applyStatusSideEffects } from './rules';
 import {
-  fetchAllItems,
-  fetchOwners,
-  fetchLabels,
-  createItemRow,
-  updateItemRow,
-  deleteItemRow,
-  appendAuditEntry,
+  fetchAllItems as sheetsFetchAllItems,
+  fetchOwners as sheetsFetchOwners,
+  fetchLabels as sheetsFetchLabels,
+  createItemRow as sheetsCreateItemRow,
+  updateItemRow as sheetsUpdateItemRow,
+  deleteItemRow as sheetsDeleteItemRow,
+  appendAuditEntry as sheetsAppendAuditEntry,
 } from '../api/sheets';
+import {
+  fetchAllItems as mockFetchAllItems,
+  fetchOwners as mockFetchOwners,
+  fetchLabels as mockFetchLabels,
+  createItemRow as mockCreateItemRow,
+  updateItemRow as mockUpdateItemRow,
+  deleteItemRow as mockDeleteItemRow,
+  appendAuditEntry as mockAppendAuditEntry,
+} from '../demo/mock-api';
+import { isDemoMode } from '../demo/is-demo-mode';
 import { owners, labels, loading } from './board-store';
 import type { Item, ItemStatus, ItemWithRow } from '../api/types';
+
+// Select real or mock API based on demo mode.
+// isDemoMode() is cached after the first call, so this is cheap.
+function api() {
+  if (isDemoMode()) {
+    return {
+      fetchAllItems: mockFetchAllItems,
+      fetchOwners: mockFetchOwners,
+      fetchLabels: mockFetchLabels,
+      createItemRow: mockCreateItemRow,
+      updateItemRow: mockUpdateItemRow,
+      deleteItemRow: mockDeleteItemRow,
+      appendAuditEntry: mockAppendAuditEntry,
+    };
+  }
+  return {
+    fetchAllItems: sheetsFetchAllItems,
+    fetchOwners: sheetsFetchOwners,
+    fetchLabels: sheetsFetchLabels,
+    createItemRow: sheetsCreateItemRow,
+    updateItemRow: sheetsUpdateItemRow,
+    deleteItemRow: sheetsDeleteItemRow,
+    appendAuditEntry: sheetsAppendAuditEntry,
+  };
+}
+
+const fetchAllItems = (...args: Parameters<typeof sheetsFetchAllItems>) => api().fetchAllItems(...args);
+const fetchOwners = (...args: Parameters<typeof sheetsFetchOwners>) => api().fetchOwners(...args);
+const fetchLabels = (...args: Parameters<typeof sheetsFetchLabels>) => api().fetchLabels(...args);
+const createItemRow = (...args: Parameters<typeof sheetsCreateItemRow>) => api().createItemRow(...args);
+const updateItemRow = (...args: Parameters<typeof sheetsUpdateItemRow>) => api().updateItemRow(...args);
+const deleteItemRow = (...args: Parameters<typeof sheetsDeleteItemRow>) => api().deleteItemRow(...args);
+const appendAuditEntry = (...args: Parameters<typeof sheetsAppendAuditEntry>) => api().appendAuditEntry(...args);
 
 function generateUUID(): string {
   return crypto.randomUUID();

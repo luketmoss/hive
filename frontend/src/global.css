@@ -945,6 +945,17 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* === Demo Banner === */
+.demo-banner {
+  background: #fff3cd;
+  color: #856404;
+  font-size: 13px;
+  text-align: center;
+  padding: 8px;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
 /* === Responsive === */
 @media (max-width: 768px) {
   .view-toggle-bar {
