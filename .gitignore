@@ -10,6 +10,7 @@ frontend/dist/
 
 # clasp config (contains script ID specific to your account)
 apps-script/.clasp.json
+.clasprc.json
 
 # IDE
 .vscode/
