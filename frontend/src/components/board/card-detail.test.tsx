@@ -34,6 +34,7 @@ vi.mock('../../state/board-store', () => ({
         updated_at: '2026-01-01T00:00:00Z',
         completed_at: '',
         sort_order: 1,
+        created_by: 'luke@example.com',
         sheetRow: 2,
       };
     },
@@ -463,7 +464,7 @@ describe('CardDetail inline dialogs (Issue #9)', () => {
       fireEvent.keyDown(input, { key: 'Enter' });
 
       expect(createItem).toHaveBeenCalledWith(
-        { title: 'New subtask', parent_id: 'detail-test-1', owner: 'Luke' },
+        { title: 'New subtask', parent_id: 'detail-test-1', owner: 'Luke', created_by: 'luke@example.com' },
         'Luke',
         'test-token'
       );
@@ -539,6 +540,44 @@ describe('CardDetail inline dialogs (Issue #9)', () => {
       // Input should close
       expect(container.querySelector('.subtask-add-input')).toBeNull();
       expect(createItem).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe('CardDetail created_by display (Issue #23)', () => {
+  beforeEach(() => {
+    mockSelectedItemId = 'detail-test-1';
+  });
+
+  // AC4: Creator displayed in card detail view
+  describe('AC4: Creator displayed in metadata section', () => {
+    it('shows "Created by" line in the detail metadata section', () => {
+      const { container } = renderCardDetail();
+      const metaSection = container.querySelector('.detail-meta');
+      expect(metaSection).not.toBeNull();
+      const smalls = metaSection!.querySelectorAll('small');
+      const createdByLine = Array.from(smalls).find(s => s.textContent?.startsWith('Created by:'));
+      expect(createdByLine).not.toBeNull();
+    });
+
+    it('resolves email to display name when email matches a known owner', () => {
+      // The mock item has created_by: 'luke@example.com' and
+      // owners has { name: 'Luke', google_account: 'luke@example.com' }
+      const { container } = renderCardDetail();
+      const metaSection = container.querySelector('.detail-meta');
+      const smalls = metaSection!.querySelectorAll('small');
+      const createdByLine = Array.from(smalls).find(s => s.textContent?.startsWith('Created by:'));
+      expect(createdByLine!.textContent).toBe('Created by: Luke');
+    });
+  });
+
+  // AC5: Creator field is read-only
+  describe('AC5: Creator field is read-only', () => {
+    it('created_by line is not editable (no input/select in metadata)', () => {
+      const { container } = renderCardDetail();
+      const metaSection = container.querySelector('.detail-meta');
+      const inputs = metaSection!.querySelectorAll('input, select, textarea');
+      expect(inputs.length).toBe(0);
     });
   });
 });

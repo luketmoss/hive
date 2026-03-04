@@ -20,6 +20,7 @@ interface Item {
   updated_at: string;
   completed_at: string;
   sort_order: number;
+  created_by: string;
 }
 
 interface ValidationResult {
@@ -83,6 +84,7 @@ function makeItem(overrides: Partial<Item> = {}): Item {
     updated_at: '2025-01-01T00:00:00.000Z',
     completed_at: '',
     sort_order: 1,
+    created_by: '',
     ...overrides,
   };
 }

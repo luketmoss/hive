@@ -157,6 +157,7 @@ export async function createItem(
     updated_at: now,
     completed_at: status === 'Done' ? now : '',
     sort_order: maxOrder + 1,
+    created_by: data.created_by || '',
   };
 
   // Optimistic update

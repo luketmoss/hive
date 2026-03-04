@@ -32,6 +32,7 @@ vi.mock('../../state/board-store', () => ({
         updated_at: '2026-01-01T00:00:00Z',
         completed_at: '',
         sort_order: 1,
+        created_by: 'luke@example.com',
         sheetRow: 2,
       };
     },
@@ -53,6 +54,7 @@ vi.mock('../../state/board-store', () => ({
           updated_at: '2026-01-01T00:00:00Z',
           completed_at: '',
           sort_order: 1,
+          created_by: 'luke@example.com',
           sheetRow: 3,
         },
         {
@@ -69,6 +71,7 @@ vi.mock('../../state/board-store', () => ({
           updated_at: '2026-01-01T00:00:00Z',
           completed_at: '2026-01-02T00:00:00Z',
           sort_order: 2,
+          created_by: 'luke@example.com',
           sheetRow: 4,
         },
       ];

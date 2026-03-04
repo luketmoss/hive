@@ -25,6 +25,7 @@ export function CreateItemModal() {
         owner,
         due_date: dueDate,
         labels: selectedLabels.join(', '),
+        created_by: user?.email || '',
       },
       user?.name || 'web',
       token
