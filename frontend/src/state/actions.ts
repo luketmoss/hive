@@ -8,6 +8,7 @@ import {
   updateItemRow as sheetsUpdateItemRow,
   deleteItemRow as sheetsDeleteItemRow,
   appendAuditEntry as sheetsAppendAuditEntry,
+  upsertOwner as sheetsUpsertOwner,
 } from '../api/sheets';
 import {
   fetchAllItems as mockFetchAllItems,
@@ -17,10 +18,11 @@ import {
   updateItemRow as mockUpdateItemRow,
   deleteItemRow as mockDeleteItemRow,
   appendAuditEntry as mockAppendAuditEntry,
+  upsertOwner as mockUpsertOwner,
 } from '../demo/mock-api';
 import { isDemoMode } from '../demo/is-demo-mode';
 import { owners, labels, loading } from './board-store';
-import type { Item, ItemStatus, ItemWithRow } from '../api/types';
+import type { Item, ItemStatus, ItemWithRow, UserInfo } from '../api/types';
 
 // Select real or mock API based on demo mode.
 // isDemoMode() is cached after the first call, so this is cheap.
@@ -34,6 +36,7 @@ function api() {
       updateItemRow: mockUpdateItemRow,
       deleteItemRow: mockDeleteItemRow,
       appendAuditEntry: mockAppendAuditEntry,
+      upsertOwner: mockUpsertOwner,
     };
   }
   return {
@@ -44,6 +47,7 @@ function api() {
     updateItemRow: sheetsUpdateItemRow,
     deleteItemRow: sheetsDeleteItemRow,
     appendAuditEntry: sheetsAppendAuditEntry,
+    upsertOwner: sheetsUpsertOwner,
   };
 }
 
@@ -54,12 +58,34 @@ const createItemRow = (...args: Parameters<typeof sheetsCreateItemRow>) => api()
 const updateItemRow = (...args: Parameters<typeof sheetsUpdateItemRow>) => api().updateItemRow(...args);
 const deleteItemRow = (...args: Parameters<typeof sheetsDeleteItemRow>) => api().deleteItemRow(...args);
 const appendAuditEntry = (...args: Parameters<typeof sheetsAppendAuditEntry>) => api().appendAuditEntry(...args);
+const upsertOwner = (...args: Parameters<typeof sheetsUpsertOwner>) => api().upsertOwner(...args);
 
 function generateUUID(): string {
   return crypto.randomUUID();
 }
 
-export async function loadBoard(token: string) {
+/**
+ * Ensure the signed-in user exists in the Owners sheet.
+ * If the user is new, appends a row. If the display name changed, updates it.
+ * Fails silently — board loading continues even if this fails.
+ * Returns true if a write occurred (caller should re-fetch owners).
+ */
+export async function ensureOwnerRegistered(
+  user: UserInfo,
+  token: string
+): Promise<boolean> {
+  try {
+    // Fall back to email prefix if no display name is set
+    const displayName = user.name || user.email.split('@')[0];
+    return await upsertOwner(displayName, user.email, token);
+  } catch (err) {
+    // Non-blocking: log to console but do not show a toast
+    console.error('Auto-register owner failed:', err);
+    return false;
+  }
+}
+
+export async function loadBoard(token: string, user?: UserInfo | null) {
   loading.value = true;
   try {
     const [itemsData, ownersData, labelsData] = await Promise.all([
@@ -70,6 +96,16 @@ export async function loadBoard(token: string) {
     items.value = itemsData;
     owners.value = ownersData;
     labels.value = labelsData;
+
+    // Auto-register the signed-in user as an owner (after initial data load).
+    // Runs in the background — a write triggers a re-fetch of owners so the
+    // UI immediately reflects the new entry.
+    if (user) {
+      const wrote = await ensureOwnerRegistered(user, token);
+      if (wrote) {
+        owners.value = await fetchOwners(token);
+      }
+    }
   } catch (err: any) {
     showToast('Failed to load board: ' + err.message, 'error');
   } finally {

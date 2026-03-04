@@ -57,3 +57,12 @@ export async function appendAuditEntry(
 ): Promise<void> {
   // No-op in demo mode — audit log is not displayed in the UI.
 }
+
+export async function upsertOwner(
+  _name: string,
+  _email: string,
+  _token: string
+): Promise<boolean> {
+  // No-op in demo mode — mock data already has owners.
+  return false;
+}

@@ -154,6 +154,42 @@ export async function deleteItemRow(sheetRow: number, token: string): Promise<vo
   await sheetsDeleteRow(sheetId, sheetRow, token);
 }
 
+/**
+ * Upsert an owner row in the Owners sheet.
+ * - If the email already exists and the name matches, does nothing (returns false).
+ * - If the email exists but the name differs, updates the name (returns true).
+ * - If the email is not found, appends a new row (returns true).
+ * Returns true if a write occurred (caller should re-fetch owners).
+ */
+export async function upsertOwner(
+  name: string,
+  email: string,
+  token: string
+): Promise<boolean> {
+  const rows = await sheetsGet('Owners!A2:B', token);
+
+  // Find existing row by email (column B)
+  const existingIndex = rows.findIndex(
+    row => (row[1] || '').toLowerCase() === email.toLowerCase()
+  );
+
+  if (existingIndex >= 0) {
+    // Email already exists — check if name needs updating
+    const existingName = rows[existingIndex][0] || '';
+    if (existingName === name) {
+      return false; // No change needed
+    }
+    // Update the name in the existing row (row index + 2 because header is row 1, data starts at row 2)
+    const sheetRow = existingIndex + 2;
+    await sheetsUpdate(`Owners!A${sheetRow}:B${sheetRow}`, [[name, email]], token);
+    return true;
+  }
+
+  // Email not found — append new row
+  await sheetsAppend('Owners!A:B', [[name, email]], token);
+  return true;
+}
+
 export async function appendAuditEntry(
   itemId: string,
   action: string,
