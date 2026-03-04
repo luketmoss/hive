@@ -1,8 +1,9 @@
 import { useState } from 'preact/hooks';
 import { useRef, useCallback } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels as labelsStore } from '../../state/board-store';
+import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels as labelsStore, showToast } from '../../state/board-store';
 import { updateItem, deleteItem, createItem, moveItem } from '../../state/actions';
+import { validateOwnerChange } from '../../state/rules';
 import { LabelBadge } from '../shared/label-badge';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
 import { getContrastTextColor } from '../../utils/color';
@@ -90,6 +91,21 @@ export function CardDetail() {
     if (!token) return;
     const newStatus: ItemStatus = currentStatus === 'Done' ? 'To Do' : 'Done';
     moveItem(childId, newStatus, actor, token);
+  };
+
+  const handleSubtaskOwnerChange = async (childId: string, newOwner: string, selectEl: HTMLSelectElement) => {
+    if (!token) return;
+    const child = items.value.find(i => i.id === childId);
+    if (!child) return;
+
+    const validation = validateOwnerChange(child, newOwner);
+    if (!validation.valid) {
+      showToast(validation.error!, 'error');
+      selectEl.value = child.owner;
+      return;
+    }
+
+    await updateItem(childId, { owner: newOwner }, actor, token);
   };
 
   return (
@@ -236,7 +252,17 @@ export function CardDetail() {
                       onChange={() => toggleChildStatus(child.id, child.status)}
                     />
                     <span>{child.title}</span>
-                    {child.owner && <span class="subtask-owner">{child.owner}</span>}
+                    <select
+                      class="subtask-owner-select"
+                      value={child.owner}
+                      aria-label={`Owner for ${child.title}`}
+                      onChange={(e) => handleSubtaskOwnerChange(child.id, (e.target as HTMLSelectElement).value, e.target as HTMLSelectElement)}
+                    >
+                      <option value="">Unassigned</option>
+                      {owners.value.map(o => (
+                        <option key={o.name} value={o.name}>{o.name}</option>
+                      ))}
+                    </select>
                   </li>
                 ))}
               </ul>
