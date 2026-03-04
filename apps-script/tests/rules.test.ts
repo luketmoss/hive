@@ -158,6 +158,57 @@ describe('validateStatusTransition', () => {
   });
 });
 
+// --- Copied from rules.js (pure logic, no Apps Script deps) ---
+
+function validateOwnerChange(
+  item: Item,
+  newOwner: string
+): ValidationResult {
+  if (item.status === 'In Progress' && !newOwner) {
+    return { valid: false, error: 'Cannot remove owner from In Progress items' };
+  }
+  return { valid: true };
+}
+
+describe('validateOwnerChange', () => {
+  it('allows changing owner on a To Do item', () => {
+    const item = makeItem({ status: 'To Do', owner: 'Luke' });
+    const result = validateOwnerChange(item, 'Sarah');
+    expect(result.valid).toBe(true);
+  });
+
+  it('allows changing owner on an In Progress item to a different owner', () => {
+    const item = makeItem({ status: 'In Progress', owner: 'Luke' });
+    const result = validateOwnerChange(item, 'Sarah');
+    expect(result.valid).toBe(true);
+  });
+
+  it('blocks removing owner from an In Progress item', () => {
+    const item = makeItem({ status: 'In Progress', owner: 'Luke' });
+    const result = validateOwnerChange(item, '');
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe('Cannot remove owner from In Progress items');
+  });
+
+  it('allows removing owner from a To Do item', () => {
+    const item = makeItem({ status: 'To Do', owner: 'Luke' });
+    const result = validateOwnerChange(item, '');
+    expect(result.valid).toBe(true);
+  });
+
+  it('allows removing owner from a Done item', () => {
+    const item = makeItem({ status: 'Done', owner: 'Luke', completed_at: '2025-01-02T00:00:00.000Z' });
+    const result = validateOwnerChange(item, '');
+    expect(result.valid).toBe(true);
+  });
+
+  it('allows setting owner on an unassigned item', () => {
+    const item = makeItem({ status: 'To Do', owner: '' });
+    const result = validateOwnerChange(item, 'Luke');
+    expect(result.valid).toBe(true);
+  });
+});
+
 describe('checkParentCompletion', () => {
   it('returns null for root items', () => {
     const item = makeItem({ parent_id: '' });

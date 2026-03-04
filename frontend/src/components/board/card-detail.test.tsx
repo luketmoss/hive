@@ -4,6 +4,7 @@ import { CardDetail } from './card-detail';
 import { AuthContext } from '../../auth/auth-context';
 import type { AuthState } from '../../auth/auth-context';
 import { deleteItem, createItem } from '../../state/actions';
+import { showToast } from '../../state/board-store';
 
 afterEach(() => {
   cleanup();
@@ -11,6 +12,8 @@ afterEach(() => {
 
 // Track selectedItemId state for assertions
 let mockSelectedItemId: string | null = 'detail-test-1';
+let mockChildren: any[] = [];
+let mockItems: any[] = [];
 
 vi.mock('../../state/board-store', () => ({
   selectedItemId: {
@@ -39,10 +42,15 @@ vi.mock('../../state/board-store', () => ({
       };
     },
   },
-  childrenOfSelected: { value: [] },
-  items: { value: [] },
-  owners: { value: [{ name: 'Luke', google_account: 'luke@example.com' }] },
+  childrenOfSelected: {
+    get value() { return mockChildren; },
+  },
+  items: {
+    get value() { return mockItems; },
+  },
+  owners: { value: [{ name: 'Luke', google_account: 'luke@example.com' }, { name: 'Sarah', google_account: 'sarah@example.com' }] },
   labels: { value: [{ label: 'Urgent', color: '#ff0000' }] },
+  showToast: vi.fn(),
 }));
 
 const mockUpdateItem = vi.fn().mockResolvedValue(true);
@@ -74,6 +82,8 @@ function renderCardDetail() {
 describe('CardDetail save feedback (Issue #11)', () => {
   beforeEach(() => {
     mockSelectedItemId = 'detail-test-1';
+    mockChildren = [];
+    mockItems = [];
     mockUpdateItem.mockReset().mockResolvedValue(true);
     mockMoveItem.mockReset().mockResolvedValue(true);
   });
@@ -197,6 +207,8 @@ describe('CardDetail save feedback (Issue #11)', () => {
 describe('CardDetail keyboard accessibility (Issue #6)', () => {
   beforeEach(() => {
     mockSelectedItemId = 'detail-test-1';
+    mockChildren = [];
+    mockItems = [];
     mockUpdateItem.mockReset().mockResolvedValue(true);
     mockMoveItem.mockReset().mockResolvedValue(true);
   });
@@ -315,6 +327,8 @@ describe('CardDetail keyboard accessibility (Issue #6)', () => {
 describe('CardDetail inline dialogs (Issue #9)', () => {
   beforeEach(() => {
     mockSelectedItemId = 'detail-test-1';
+    mockChildren = [];
+    mockItems = [];
     vi.clearAllMocks();
   });
 
@@ -578,6 +592,223 @@ describe('CardDetail created_by display (Issue #23)', () => {
       const metaSection = container.querySelector('.detail-meta');
       const inputs = metaSection!.querySelectorAll('input, select, textarea');
       expect(inputs.length).toBe(0);
+    });
+  });
+});
+
+describe('CardDetail sub-task owner editing (Issue #24)', () => {
+  const childTodo = {
+    id: 'child-1',
+    title: 'Pick up prescription',
+    description: '',
+    status: 'To Do' as const,
+    owner: 'Luke',
+    due_date: '',
+    scheduled_date: '',
+    labels: '',
+    parent_id: 'detail-test-1',
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+    completed_at: '',
+    sort_order: 1,
+    created_by: '',
+    sheetRow: 3,
+  };
+
+  const childInProgress = {
+    ...childTodo,
+    id: 'child-2',
+    title: 'Buy groceries',
+    status: 'In Progress' as const,
+    owner: 'Sarah',
+    sheetRow: 4,
+    sort_order: 2,
+  };
+
+  beforeEach(() => {
+    mockSelectedItemId = 'detail-test-1';
+    mockChildren = [childTodo, childInProgress];
+    mockItems = [childTodo, childInProgress];
+    mockUpdateItem.mockReset().mockResolvedValue(true);
+    mockMoveItem.mockReset().mockResolvedValue(true);
+    vi.mocked(showToast).mockReset();
+  });
+
+  // AC1: Sub-task owner is editable inline
+  describe('AC1: Sub-task owner is editable inline', () => {
+    it('renders an owner dropdown for each sub-task', () => {
+      const { container } = renderCardDetail();
+
+      const ownerSelects = container.querySelectorAll('.subtask-owner-select');
+      expect(ownerSelects.length).toBe(2);
+    });
+
+    it('shows "Unassigned" plus all owners in the dropdown', () => {
+      const { container } = renderCardDetail();
+
+      const select = container.querySelector('.subtask-owner-select') as HTMLSelectElement;
+      const options = Array.from(select.querySelectorAll('option'));
+
+      expect(options.length).toBe(3); // Unassigned + Luke + Sarah
+      expect(options[0].value).toBe('');
+      expect(options[0].textContent).toBe('Unassigned');
+      expect(options[1].value).toBe('Luke');
+      expect(options[2].value).toBe('Sarah');
+    });
+
+    it('shows the current owner as the selected value', () => {
+      const { container } = renderCardDetail();
+
+      const selects = container.querySelectorAll('.subtask-owner-select') as NodeListOf<HTMLSelectElement>;
+      expect(selects[0].value).toBe('Luke');
+      expect(selects[1].value).toBe('Sarah');
+    });
+
+    it('has accessible label for each sub-task owner dropdown', () => {
+      const { container } = renderCardDetail();
+
+      const selects = container.querySelectorAll('.subtask-owner-select') as NodeListOf<HTMLSelectElement>;
+      expect(selects[0].getAttribute('aria-label')).toBe('Owner for Pick up prescription');
+      expect(selects[1].getAttribute('aria-label')).toBe('Owner for Buy groceries');
+    });
+  });
+
+  // AC2: Selecting an owner saves immediately
+  describe('AC2: Selecting an owner saves immediately', () => {
+    it('calls updateItem with new owner when selection changes', async () => {
+      const { container } = renderCardDetail();
+
+      const selects = container.querySelectorAll('.subtask-owner-select') as NodeListOf<HTMLSelectElement>;
+
+      await act(async () => {
+        fireEvent.change(selects[0], { target: { value: 'Sarah' } });
+      });
+
+      expect(mockUpdateItem).toHaveBeenCalledWith(
+        'child-1',
+        { owner: 'Sarah' },
+        'Luke',
+        'test-token'
+      );
+    });
+  });
+
+  // AC3: Sub-task creation still defaults to parent's owner
+  describe('AC3: Sub-task creation still defaults to parent owner', () => {
+    it('creates sub-task with parent owner when + Add is used', () => {
+      const { container } = renderCardDetail();
+
+      const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+      fireEvent.click(addBtn);
+
+      const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+      fireEvent.input(input, { target: { value: 'New subtask' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+
+      expect(createItem).toHaveBeenCalledWith(
+        { title: 'New subtask', parent_id: 'detail-test-1', owner: 'Luke', created_by: 'luke@example.com' },
+        'Luke',
+        'test-token'
+      );
+    });
+  });
+
+  // AC4: Sub-task can be set to "Unassigned"
+  describe('AC4: Sub-task can be set to Unassigned', () => {
+    it('calls updateItem with empty owner when Unassigned is selected', async () => {
+      const { container } = renderCardDetail();
+
+      const selects = container.querySelectorAll('.subtask-owner-select') as NodeListOf<HTMLSelectElement>;
+
+      await act(async () => {
+        fireEvent.change(selects[0], { target: { value: '' } });
+      });
+
+      expect(mockUpdateItem).toHaveBeenCalledWith(
+        'child-1',
+        { owner: '' },
+        'Luke',
+        'test-token'
+      );
+    });
+  });
+
+  // AC5: Owner change respects "In Progress requires owner" rule
+  describe('AC5: Owner change respects In Progress requires owner rule', () => {
+    it('shows toast error when trying to unassign an In Progress sub-task', async () => {
+      const { container } = renderCardDetail();
+
+      const selects = container.querySelectorAll('.subtask-owner-select') as NodeListOf<HTMLSelectElement>;
+      // selects[1] is the "In Progress" child owned by "Sarah"
+
+      await act(async () => {
+        fireEvent.change(selects[1], { target: { value: '' } });
+      });
+
+      expect(showToast).toHaveBeenCalledWith('Cannot remove owner from In Progress items', 'error');
+      expect(mockUpdateItem).not.toHaveBeenCalled();
+    });
+
+    it('reverts the select value when validation fails', async () => {
+      const { container } = renderCardDetail();
+
+      const selects = container.querySelectorAll('.subtask-owner-select') as NodeListOf<HTMLSelectElement>;
+
+      await act(async () => {
+        fireEvent.change(selects[1], { target: { value: '' } });
+      });
+
+      // The select should revert to the original value
+      expect(selects[1].value).toBe('Sarah');
+    });
+
+    it('allows changing In Progress sub-task to a different owner', async () => {
+      const { container } = renderCardDetail();
+
+      const selects = container.querySelectorAll('.subtask-owner-select') as NodeListOf<HTMLSelectElement>;
+
+      await act(async () => {
+        fireEvent.change(selects[1], { target: { value: 'Luke' } });
+      });
+
+      expect(mockUpdateItem).toHaveBeenCalledWith(
+        'child-2',
+        { owner: 'Luke' },
+        'Luke',
+        'test-token'
+      );
+      expect(showToast).not.toHaveBeenCalled();
+    });
+  });
+
+  // AC6: Changing parent's owner does NOT cascade to sub-tasks
+  describe('AC6: Changing parent owner does NOT cascade to sub-tasks', () => {
+    it('sub-task owners remain unchanged when parent owner changes', async () => {
+      const { container } = renderCardDetail();
+
+      // Change the parent's owner via the parent Owner select
+      // The parent Owner select is in .detail-field, not in .subtask-item
+      const detailSelects = container.querySelectorAll('.detail-field select') as NodeListOf<HTMLSelectElement>;
+      // Status is first, Owner is second
+      const parentOwnerSelect = detailSelects[1];
+
+      await act(async () => {
+        fireEvent.change(parentOwnerSelect, { target: { value: 'Sarah' } });
+      });
+
+      // updateItem should only be called for the parent, not for children
+      expect(mockUpdateItem).toHaveBeenCalledTimes(1);
+      expect(mockUpdateItem).toHaveBeenCalledWith(
+        'detail-test-1',
+        { owner: 'Sarah' },
+        'Luke',
+        'test-token'
+      );
+
+      // Sub-task owner selects should still show their original values
+      const subtaskSelects = container.querySelectorAll('.subtask-owner-select') as NodeListOf<HTMLSelectElement>;
+      expect(subtaskSelects[0].value).toBe('Luke');
+      expect(subtaskSelects[1].value).toBe('Sarah');
     });
   });
 });

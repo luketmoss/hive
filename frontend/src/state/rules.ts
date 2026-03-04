@@ -40,6 +40,17 @@ export function validateStatusTransition(
   return { valid: true };
 }
 
+export function validateOwnerChange(
+  item: Item,
+  newOwner: string
+): ValidationResult {
+  // Cannot remove owner from an "In Progress" item
+  if (item.status === 'In Progress' && !newOwner) {
+    return { valid: false, error: 'Cannot remove owner from In Progress items' };
+  }
+  return { valid: true };
+}
+
 export function applyStatusSideEffects(item: Item, newStatus: ItemStatus): Item {
   const now = new Date().toISOString();
   return {

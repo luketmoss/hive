@@ -30,6 +30,14 @@ function validateStatusTransition(item, newStatus, allItems) {
   return { valid: true };
 }
 
+function validateOwnerChange(item, newOwner) {
+  // Cannot remove owner from an "In Progress" item
+  if (item.status === 'In Progress' && !newOwner) {
+    return { valid: false, error: 'Cannot remove owner from In Progress items' };
+  }
+  return { valid: true };
+}
+
 function applyStatusSideEffects(item, newStatus) {
   var updated = {};
   for (var key in item) {

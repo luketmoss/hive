@@ -639,6 +639,30 @@ body {
   color: var(--color-text-secondary);
 }
 
+.subtask-owner-select {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  max-width: 120px;
+}
+
+.subtask-owner-select:hover {
+  border-color: var(--color-border);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.subtask-owner-select:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 /* === Inline delete confirmation === */
 .delete-confirm-inline {
   display: flex;
