@@ -73,8 +73,9 @@ Go through **each** acceptance criterion from the issue. For each one:
 
 ### Step 4: Visual and functional testing
 
-Start the dev server and inspect the running application:
+> **Auth limitation:** The app requires Google OAuth, so preview tools cannot get past the login screen. Skip this step unless demo mode is available (see #35). Instead, do a **code-level visual review** of the changed components — read the JSX/CSS and verify the markup, styles, and responsive behavior match the acceptance criteria.
 
+If demo mode IS available (app loads without login):
 1. Start the preview: use `preview_start` with the "frontend" server config
 2. Take screenshots: `preview_screenshot` to capture the current state
 3. Check the accessibility tree: `preview_snapshot` for element structure and text content
@@ -82,11 +83,9 @@ Start the dev server and inspect the running application:
 5. Test interactions: `preview_click` and `preview_fill` to simulate user actions
 6. Test responsive: `preview_resize` with mobile (375x812), tablet (768x1024), and desktop (1280x800)
 
-Verify that the UI changes look correct and function as expected.
-
 ### Step 5: Edge case testing
 
-Think about scenarios NOT covered by the acceptance criteria:
+Think about scenarios NOT covered by the acceptance criteria. Review the code for how these are handled:
 - **Empty states** — what happens with no data?
 - **Long content** — very long titles, descriptions, labels
 - **Special characters** — quotes, HTML entities, emoji
