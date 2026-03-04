@@ -49,7 +49,9 @@
       "Write(/apps-script/**)",
       "Write(/.claude/skills/**)",
       "Write(/.github/**)",
-      "Write(/.tmp*)"
+      "Write(/.tmp*)",
+      "Edit(/.claude/worktrees/**)",
+      "Write(/.claude/worktrees/**)"
     ],
     "deny": [
       "Bash(git push --force:*)",
