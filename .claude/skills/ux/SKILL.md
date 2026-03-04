@@ -33,11 +33,12 @@ This can be:
 
 ### Step 1: Set up
 
-1. Start the preview server: use `preview_start` with the "frontend" server config
-2. If an issue number was provided, read the issue to understand the context:
+1. If an issue number was provided, read the issue to understand the context:
    ```bash
    gh issue view <number> --repo luketmoss/hive
    ```
+2. Start the preview server: use `preview_start` with the "frontend" server config
+3. Check if the app is accessible: use `preview_snapshot` and look for board content (columns, cards). If you see a **login/sign-in page instead**, the app requires auth and visual testing is blocked — fall back to a **code-level UX review** (read the JSX/CSS, check semantic HTML structure, verify ARIA attributes, review responsive CSS breakpoints, and inspect component markup for accessibility). Note the limitation in your report.
 
 ### Step 2: Visual inspection at all viewports
 
