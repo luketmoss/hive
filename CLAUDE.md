@@ -24,3 +24,14 @@ Family task management system using Google Sheets as data layer.
 ## Data Model
 Google Sheet "Hive Board" with 4 tabs: Items, Owners, Labels, Audit Log.
 See the spec at the project root or the plan file for full column definitions.
+
+## Agent Routing
+When the user's request matches a custom skill, invoke it automatically — no slash command needed:
+- Bug report, feature idea, or new request → `/idea`
+- Refine an issue or write acceptance criteria → `/pm`
+- Implement an issue or write code for a ticket → `/dev`
+- Run QA or verify acceptance criteria → `/qa`
+- Review a PR → `/review`
+- UX or accessibility audit → `/ux`
+- CI/CD or deployment issue → `/devops`
+- Process all children of a parent issue → `/orchestrator`
