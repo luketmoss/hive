@@ -67,6 +67,7 @@ const mockAuth: AuthState = {
   isAuthenticated: true,
   login: () => {},
   logout: () => {},
+  updateUserName: () => {},
 };
 
 function renderBoard() {

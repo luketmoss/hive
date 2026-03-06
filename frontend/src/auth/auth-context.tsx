@@ -8,6 +8,7 @@ export interface AuthState {
   isAuthenticated: boolean;
   login: () => void;
   logout: () => void;
+  updateUserName: (newName: string) => void;
 }
 
 export const AuthContext = createContext<AuthState>({
@@ -16,6 +17,7 @@ export const AuthContext = createContext<AuthState>({
   isAuthenticated: false,
   login: () => {},
   logout: () => {},
+  updateUserName: () => {},
 });
 
 export function useAuth(): AuthState {

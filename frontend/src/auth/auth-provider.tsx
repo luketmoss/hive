@@ -180,6 +180,21 @@ export function AuthProvider({ children }: Props) {
     tokenClientRef.current?.requestAccessToken();
   }, []);
 
+  const updateUserName = useCallback((newName: string) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, name: newName };
+      // Update localStorage cache so the name survives page reload
+      const cachedToken = localStorage.getItem(TOKEN_KEY);
+      const cachedExpiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
+      if (cachedToken && cachedExpiry) {
+        const remainingSec = Math.max(0, (Number(cachedExpiry) - Date.now()) / 1000);
+        saveCachedAuth(cachedToken, updated, remainingSec);
+      }
+      return updated;
+    });
+  }, []);
+
   const logout = useCallback(() => {
     if (demo) {
       // In demo mode, navigate to app without ?demo param to exit demo mode
@@ -201,6 +216,7 @@ export function AuthProvider({ children }: Props) {
         isAuthenticated: !!token,
         login,
         logout,
+        updateUserName,
       }}
     >
       {children}
