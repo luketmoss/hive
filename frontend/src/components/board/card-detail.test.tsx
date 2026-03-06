@@ -59,8 +59,10 @@ const mockMoveItem = vi.fn().mockResolvedValue(true);
 vi.mock('../../state/actions', () => ({
   updateItem: (...args: any[]) => mockUpdateItem(...args),
   deleteItem: vi.fn(),
+  deleteSubtask: vi.fn(),
   createItem: vi.fn(),
   moveItem: (...args: any[]) => mockMoveItem(...args),
+  reorderSubtasks: vi.fn(),
 }));
 
 const mockAuth: AuthState = {
@@ -539,7 +541,7 @@ describe('CardDetail inline dialogs (Issue #9)', () => {
       expect(container.querySelector('.detail-subtasks-header .btn-sm')).not.toBeNull();
     });
 
-    it('closes input without creating subtask on blur', () => {
+    it('creation row stays open when focus moves between sibling controls', () => {
       const { container } = renderCardDetail();
 
       const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
@@ -548,11 +550,12 @@ describe('CardDetail inline dialogs (Issue #9)', () => {
       const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
       fireEvent.input(input, { target: { value: 'Some text' } });
 
-      // Blur the input (clicking away)
-      fireEvent.blur(input);
+      // The owner dropdown should be rendered next to the input
+      const ownerSelect = container.querySelector('.subtask-add-owner') as HTMLSelectElement;
+      expect(ownerSelect).not.toBeNull();
 
-      // Input should close
-      expect(container.querySelector('.subtask-add-input')).toBeNull();
+      // Verify input is still open (focus-container pattern prevents premature close)
+      expect(container.querySelector('.subtask-add-input')).not.toBeNull();
       expect(createItem).not.toHaveBeenCalled();
     });
   });

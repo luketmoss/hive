@@ -45,13 +45,17 @@ vi.mock('../demo/mock-api', () => ({
   cascadeLabelUpdate: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { loadBoard, NotAllowedError } from './actions';
-import { owners, loading } from './board-store';
+import { loadBoard, NotAllowedError, deleteSubtask, reorderSubtasks } from './actions';
+import { owners, loading, items } from './board-store';
 import * as sheetsApi from '../api/sheets';
+import type { ItemWithRow } from '../api/types';
 
 const mockFetchOwners = vi.mocked(sheetsApi.fetchOwners);
 const mockFetchAllItems = vi.mocked(sheetsApi.fetchAllItems);
 const mockFetchLabels = vi.mocked(sheetsApi.fetchLabels);
+const mockDeleteItemRow = vi.mocked(sheetsApi.deleteItemRow);
+const mockUpdateItemRow = vi.mocked(sheetsApi.updateItemRow);
+const mockAppendAuditEntry = vi.mocked(sheetsApi.appendAuditEntry);
 
 describe('loadBoard owner allowlist', () => {
   beforeEach(() => {
@@ -101,5 +105,135 @@ describe('loadBoard owner allowlist', () => {
 
     // No error thrown even though owners list is empty
     expect(loading.value).toBe(false);
+  });
+});
+
+// --- Helper to create test items ---
+function makeItem(overrides: Partial<ItemWithRow> = {}): ItemWithRow {
+  return {
+    id: 'item-1',
+    title: 'Test Item',
+    description: '',
+    status: 'To Do',
+    owner: 'Luke',
+    due_date: '',
+    scheduled_date: '',
+    labels: '',
+    parent_id: '',
+    created_at: '2025-01-01T00:00:00Z',
+    updated_at: '2025-01-01T00:00:00Z',
+    completed_at: '',
+    sort_order: 1,
+    created_by: 'luke@example.com',
+    sheetRow: 2,
+    ...overrides,
+  };
+}
+
+describe('deleteSubtask', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('removes sub-task from items optimistically and calls deleteItemRow + audit log', async () => {
+    const parent = makeItem({ id: 'parent-1', title: 'Parent Task', sheetRow: 2 });
+    const subtask = makeItem({ id: 'sub-1', title: 'Sub Task 1', parent_id: 'parent-1', sheetRow: 3 });
+    items.value = [parent, subtask];
+
+    // First call to fetchAllItems (inside deleteSubtask) returns fresh data WITH the subtask still present
+    // Second call (refreshItems) returns without it
+    mockFetchAllItems
+      .mockResolvedValueOnce([parent, subtask])
+      .mockResolvedValueOnce([parent]);
+
+    await deleteSubtask('sub-1', 'web', 'test-token');
+
+    // Optimistic: sub-task should be removed
+    expect(items.value.find(i => i.id === 'sub-1')).toBeUndefined();
+    // deleteItemRow should have been called
+    expect(mockDeleteItemRow).toHaveBeenCalled();
+    // Audit log should record the deletion
+    expect(mockAppendAuditEntry).toHaveBeenCalledWith(
+      'sub-1', 'deleted', '', 'Sub Task 1', '', 'web', 'test-token'
+    );
+  });
+
+  it('does nothing if item does not exist', async () => {
+    items.value = [];
+
+    await deleteSubtask('non-existent', 'web', 'test-token');
+
+    expect(mockDeleteItemRow).not.toHaveBeenCalled();
+    expect(mockAppendAuditEntry).not.toHaveBeenCalled();
+  });
+
+  it('rolls back on API failure', async () => {
+    const parent = makeItem({ id: 'parent-1', title: 'Parent Task', sheetRow: 2 });
+    const subtask = makeItem({ id: 'sub-1', title: 'Sub Task 1', parent_id: 'parent-1', sheetRow: 3 });
+    items.value = [parent, subtask];
+
+    mockFetchAllItems.mockRejectedValue(new Error('Network error'));
+
+    await deleteSubtask('sub-1', 'web', 'test-token');
+
+    // Should roll back to original state
+    expect(items.value).toHaveLength(2);
+    expect(items.value.find(i => i.id === 'sub-1')).toBeDefined();
+  });
+});
+
+describe('reorderSubtasks', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('swaps sort_order between two sub-tasks optimistically', async () => {
+    const parent = makeItem({ id: 'parent-1', title: 'Parent', sheetRow: 2 });
+    const subA = makeItem({ id: 'sub-a', title: 'Sub A', parent_id: 'parent-1', sort_order: 1, sheetRow: 3 });
+    const subB = makeItem({ id: 'sub-b', title: 'Sub B', parent_id: 'parent-1', sort_order: 2, sheetRow: 4 });
+    items.value = [parent, subA, subB];
+
+    mockFetchAllItems.mockResolvedValue([parent, { ...subA, sort_order: 2 }, { ...subB, sort_order: 1 }]);
+
+    await reorderSubtasks('sub-a', 'sub-b', 'web', 'test-token');
+
+    // After reorder, sort_orders should be swapped
+    const updatedA = items.value.find(i => i.id === 'sub-a');
+    const updatedB = items.value.find(i => i.id === 'sub-b');
+    expect(updatedA!.sort_order).toBe(2);
+    expect(updatedB!.sort_order).toBe(1);
+
+    // updateItemRow should have been called for both items
+    expect(mockUpdateItemRow).toHaveBeenCalledTimes(2);
+    // Audit log should record the reorder
+    expect(mockAppendAuditEntry).toHaveBeenCalledWith(
+      'sub-a', 'reordered', 'sort_order', '1', '2', 'web', 'test-token'
+    );
+  });
+
+  it('does nothing if either item does not exist', async () => {
+    const subA = makeItem({ id: 'sub-a', title: 'Sub A', sort_order: 1, sheetRow: 3 });
+    items.value = [subA];
+
+    await reorderSubtasks('sub-a', 'non-existent', 'web', 'test-token');
+
+    expect(mockUpdateItemRow).not.toHaveBeenCalled();
+  });
+
+  it('rolls back on API failure', async () => {
+    const parent = makeItem({ id: 'parent-1', title: 'Parent', sheetRow: 2 });
+    const subA = makeItem({ id: 'sub-a', title: 'Sub A', parent_id: 'parent-1', sort_order: 1, sheetRow: 3 });
+    const subB = makeItem({ id: 'sub-b', title: 'Sub B', parent_id: 'parent-1', sort_order: 2, sheetRow: 4 });
+    items.value = [parent, subA, subB];
+
+    mockUpdateItemRow.mockRejectedValue(new Error('Network error'));
+
+    await reorderSubtasks('sub-a', 'sub-b', 'web', 'test-token');
+
+    // Should roll back to original sort orders
+    const rolledBackA = items.value.find(i => i.id === 'sub-a');
+    const rolledBackB = items.value.find(i => i.id === 'sub-b');
+    expect(rolledBackA!.sort_order).toBe(1);
+    expect(rolledBackB!.sort_order).toBe(2);
   });
 });

@@ -2,7 +2,7 @@ import { useState } from 'preact/hooks';
 import { useRef, useCallback } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
 import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels as labelsStore, showToast } from '../../state/board-store';
-import { updateItem, deleteItem, createItem, moveItem } from '../../state/actions';
+import { updateItem, deleteItem, deleteSubtask, createItem, moveItem, reorderSubtasks } from '../../state/actions';
 import { validateOwnerChange } from '../../state/rules';
 import { LabelBadge } from '../shared/label-badge';
 import { LabelPickerManager } from '../labels/label-picker-manager';
@@ -21,7 +21,9 @@ export function CardDetail() {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [addingSubtask, setAddingSubtask] = useState(false);
   const [subtaskTitle, setSubtaskTitle] = useState('');
+  const [subtaskOwner, setSubtaskOwner] = useState(item.owner);
   const subtaskInputRef = useRef<HTMLInputElement>(null);
+  const subtaskRowRef = useRef<HTMLDivElement>(null);
 
   const close = useCallback(() => {
     // Return focus to the triggering card element (AC5)
@@ -68,6 +70,7 @@ export function CardDetail() {
   const handleAddSubtask = () => {
     setAddingSubtask(true);
     setSubtaskTitle('');
+    setSubtaskOwner(item.owner);
     // Focus the input after render
     requestAnimationFrame(() => {
       subtaskInputRef.current?.focus();
@@ -77,7 +80,7 @@ export function CardDetail() {
   const submitSubtask = () => {
     const trimmed = subtaskTitle.trim();
     if (trimmed && token) {
-      createItem({ title: trimmed, parent_id: item.id, owner: item.owner, created_by: user?.email || '' }, actor, token);
+      createItem({ title: trimmed, parent_id: item.id, owner: subtaskOwner, created_by: user?.email || '' }, actor, token);
     }
     setAddingSubtask(false);
     setSubtaskTitle('');
@@ -86,6 +89,32 @@ export function CardDetail() {
   const cancelSubtask = () => {
     setAddingSubtask(false);
     setSubtaskTitle('');
+  };
+
+  /** Focus-container: only cancel when focus leaves the entire creation row */
+  const handleCreationRowFocusOut = (e: FocusEvent) => {
+    const container = subtaskRowRef.current;
+    const related = e.relatedTarget as Node | null;
+    // If focus moved to another element inside the creation row, don't cancel
+    if (container && related && container.contains(related)) return;
+    submitSubtask();
+  };
+
+  const handleDeleteSubtask = (childId: string, childTitle: string) => {
+    if (!token) return;
+    const confirmed = confirm(`Delete sub-task '${childTitle}'?`);
+    if (confirmed) {
+      deleteSubtask(childId, actor, token);
+    }
+  };
+
+  const handleReorder = (childId: string, direction: 'up' | 'down') => {
+    if (!token) return;
+    const idx = children.findIndex(c => c.id === childId);
+    if (idx < 0) return;
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= children.length) return;
+    reorderSubtasks(children[idx].id, children[swapIdx].id, actor, token);
   };
 
   const toggleChildStatus = (childId: string, currentStatus: ItemStatus) => {
@@ -235,7 +264,7 @@ export function CardDetail() {
             </div>
             {children.length > 0 && (
               <ul class="subtask-list">
-                {children.map(child => (
+                {children.map((child, idx) => (
                   <li key={child.id} class={`subtask-item ${child.status === 'Done' ? 'subtask-done' : ''}`}>
                     <input
                       type="checkbox"
@@ -243,7 +272,7 @@ export function CardDetail() {
                       aria-label={child.title}
                       onChange={() => toggleChildStatus(child.id, child.status)}
                     />
-                    <span>{child.title}</span>
+                    <span class="subtask-title">{child.title}</span>
                     <select
                       class="subtask-owner-select"
                       value={child.owner}
@@ -255,12 +284,41 @@ export function CardDetail() {
                         <option key={o.name} value={o.name}>{o.name}</option>
                       ))}
                     </select>
+                    <div class="subtask-actions">
+                      {children.length > 1 && (
+                        <>
+                          <button
+                            class="btn-icon subtask-action-btn"
+                            aria-label="Move up"
+                            aria-disabled={idx === 0 ? 'true' : undefined}
+                            style={idx === 0 ? 'opacity: 0.3; cursor: not-allowed;' : undefined}
+                            onClick={() => { if (idx > 0) handleReorder(child.id, 'up'); }}
+                          >&#9650;</button>
+                          <button
+                            class="btn-icon subtask-action-btn"
+                            aria-label="Move down"
+                            aria-disabled={idx === children.length - 1 ? 'true' : undefined}
+                            style={idx === children.length - 1 ? 'opacity: 0.3; cursor: not-allowed;' : undefined}
+                            onClick={() => { if (idx < children.length - 1) handleReorder(child.id, 'down'); }}
+                          >&#9660;</button>
+                        </>
+                      )}
+                      <button
+                        class="btn-icon btn-icon-danger subtask-action-btn"
+                        aria-label="Delete sub-task"
+                        onClick={() => handleDeleteSubtask(child.id, child.title)}
+                      >&#215;</button>
+                    </div>
                   </li>
                 ))}
               </ul>
             )}
             {addingSubtask && (
-              <div class="subtask-add-inline">
+              <div
+                class="subtask-add-inline"
+                ref={subtaskRowRef}
+                onFocusOut={handleCreationRowFocusOut}
+              >
                 <input
                   ref={subtaskInputRef}
                   type="text"
@@ -272,8 +330,21 @@ export function CardDetail() {
                     if (e.key === 'Enter') { e.preventDefault(); submitSubtask(); }
                     if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }
                   }}
-                  onBlur={cancelSubtask}
                 />
+                <select
+                  class="subtask-add-owner"
+                  value={subtaskOwner}
+                  aria-label="Owner for new sub-task"
+                  onChange={(e) => setSubtaskOwner((e.target as HTMLSelectElement).value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }
+                  }}
+                >
+                  <option value="">Unassigned</option>
+                  {owners.value.map(o => (
+                    <option key={o.name} value={o.name}>{o.name}</option>
+                  ))}
+                </select>
               </div>
             )}
           </div>
