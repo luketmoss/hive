@@ -21,6 +21,11 @@ Family task management system using Google Sheets as data layer.
 - Business rules are duplicated in `apps-script/src/rules.ts` and `frontend/src/state/rules.ts` — keep in sync
 - CSS Modules + custom properties for styling (no CSS framework)
 
+## Preview & Demo Mode
+- The app requires Google OAuth to function. For preview testing (QA, UX agents), use **demo mode** by navigating to `http://localhost:5173/hive/?demo=true` after starting the dev server.
+- `preview_start` with the "frontend" config starts the Vite dev server but does NOT automatically navigate to the demo URL. After `preview_start`, always run `preview_eval` with `window.location.href` to check the current URL, and if it's not on `?demo=true`, use `preview_eval` with `window.location.href = 'http://localhost:5173/hive/?demo=true'` to navigate there.
+- Demo mode provides a fake user ("Demo User" / demo@hive.local) and skips Google auth entirely. Changes are not persisted to any sheet.
+
 ## Data Model
 Google Sheet "Hive Board" with 4 tabs: Items, Owners, Labels, Audit Log.
 See the spec at the project root or the plan file for full column definitions.

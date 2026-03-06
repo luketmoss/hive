@@ -74,7 +74,7 @@ Go through **each** acceptance criterion from the issue. For each one:
 ### Step 4: Visual and functional testing
 
 1. Start the preview: use `preview_start` with the "frontend" server config
-2. Check if the app is accessible: use `preview_snapshot` and look for board content (columns, cards). If you see a **login/sign-in page instead**, the app requires auth and visual testing is blocked — fall back to a **code-level visual review** (read the JSX/CSS and verify markup, styles, and responsive behavior match the ACs). Skip the remaining visual steps.
+2. Navigate to demo mode: run `preview_eval` with `window.location.href = 'http://localhost:5173/hive/?demo=true'` — the app requires Google OAuth, so demo mode is required for preview testing. Wait briefly, then use `preview_snapshot` to confirm the board loaded (you should see columns and cards, not a login page). If demo mode fails to load after 2 attempts, fall back to a **code-level visual review** (read the JSX/CSS and verify markup, styles, and responsive behavior match the ACs).
 3. Take screenshots: `preview_screenshot` to capture the current state
 4. Inspect specific elements: `preview_inspect` for CSS values and layout
 5. Test interactions: `preview_click` and `preview_fill` to simulate user actions

@@ -38,7 +38,7 @@ This can be:
    gh issue view <number> --repo luketmoss/hive
    ```
 2. Start the preview server: use `preview_start` with the "frontend" server config
-3. Check if the app is accessible: use `preview_snapshot` and look for board content (columns, cards). If you see a **login/sign-in page instead**, the app requires auth and visual testing is blocked — fall back to a **code-level UX review** (read the JSX/CSS, check semantic HTML structure, verify ARIA attributes, review responsive CSS breakpoints, and inspect component markup for accessibility). Note the limitation in your report.
+3. Navigate to demo mode: run `preview_eval` with `window.location.href = 'http://localhost:5173/hive/?demo=true'` — the app requires Google OAuth, so demo mode is required for preview testing. Wait briefly, then use `preview_snapshot` to confirm the board loaded (you should see columns and cards, not a login page). If demo mode fails to load after 2 attempts, fall back to a **code-level UX review** (read the JSX/CSS, check semantic HTML structure, verify ARIA attributes, review responsive CSS breakpoints, and inspect component markup for accessibility). Note the limitation in your report.
 
 ### Step 2: Visual inspection at all viewports
 
