@@ -176,12 +176,68 @@ body {
   gap: 8px;
   font-size: 14px;
   color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: inherit;
+  min-height: 36px;
+}
+
+.user-info:hover,
+.user-info:focus-visible {
+  background: rgba(0, 0, 0, 0.05);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.user-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .user-info {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 
 .user-avatar {
   width: 28px;
   height: 28px;
   border-radius: 50%;
+}
+
+/* === Profile Dialog === */
+.profile-dialog {
+  max-width: 400px;
+}
+
+.profile-avatar-section {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 16px;
+}
+
+.profile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+}
+
+.profile-email-input {
+  background: var(--color-bg);
+  cursor: default;
+}
+
+.profile-error {
+  font-size: 12px;
+  color: var(--color-danger);
+  margin-top: 2px;
 }
 
 .board-main {

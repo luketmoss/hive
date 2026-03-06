@@ -63,12 +63,23 @@ export async function appendAuditEntry(
 }
 
 export async function upsertOwner(
-  _name: string,
+  name: string,
   _email: string,
   _token: string
 ): Promise<boolean> {
-  // No-op in demo mode — mock data already has owners.
-  return false;
+  // In demo mode, just return true to signal success.
+  return true;
+}
+
+export async function cascadeOwnerUpdate(
+  oldName: string,
+  newName: string,
+  _token: string
+): Promise<void> {
+  mockItemsState.value = mockItemsState.value.map(item => {
+    if (item.owner !== oldName) return item;
+    return { ...item, owner: newName };
+  });
 }
 
 // --- Label CRUD (in-memory) ---

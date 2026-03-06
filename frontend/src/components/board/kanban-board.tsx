@@ -1,3 +1,4 @@
+import { useState, useRef } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
 import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode } from '../../state/board-store';
 import { moveItem } from '../../state/actions';
@@ -5,11 +6,14 @@ import { Column } from './column';
 import { ListView } from './list-view';
 import { CardDetail } from './card-detail';
 import { CreateItemModal } from '../forms/create-item-modal';
+import { ProfileDialog } from '../profile/profile-dialog';
 import { FilterBar } from '../filters/filter-bar';
 import type { ItemStatus, ItemWithRow } from '../../api/types';
 
 export function KanbanBoard() {
   const { user, logout, token } = useAuth();
+  const [showProfile, setShowProfile] = useState(false);
+  const profileTriggerRef = useRef<HTMLButtonElement>(null);
   const statuses: ItemStatus[] = ['To Do', 'In Progress', 'Done'];
 
   const handleDrop = (itemId: string, newStatus: ItemStatus) => {
@@ -92,10 +96,15 @@ export function KanbanBoard() {
         </div>
         <div class="board-header-right">
           {user && (
-            <div class="user-info">
+            <button
+              class="user-info"
+              ref={profileTriggerRef}
+              onClick={() => setShowProfile(true)}
+              aria-haspopup="dialog"
+            >
               {user.picture && <img src={user.picture} alt="" class="user-avatar" />}
-              <span>{user.name}</span>
-            </div>
+              <span class="user-name">{user.name}</span>
+            </button>
           )}
           <button class="btn btn-ghost" onClick={logout}>Sign out</button>
         </div>
@@ -147,6 +156,17 @@ export function KanbanBoard() {
 
       {selectedItem.value && <CardDetail />}
       {showCreateModal.value && <CreateItemModal />}
+      {showProfile && user && token && (
+        <ProfileDialog
+          user={user}
+          currentName={user.name}
+          token={token}
+          onClose={() => {
+            setShowProfile(false);
+            profileTriggerRef.current?.focus();
+          }}
+        />
+      )}
     </div>
   );
 }

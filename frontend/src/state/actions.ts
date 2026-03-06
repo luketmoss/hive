@@ -13,6 +13,8 @@ import {
   deleteLabelRow as sheetsDeleteLabelRow,
   fetchLabelsWithRows as sheetsFetchLabelsWithRows,
   cascadeLabelUpdate as sheetsCascadeLabelUpdate,
+  cascadeOwnerUpdate as sheetsCascadeOwnerUpdate,
+  upsertOwner as sheetsUpsertOwner,
 } from '../api/sheets';
 import {
   fetchAllItems as mockFetchAllItems,
@@ -27,6 +29,8 @@ import {
   deleteLabelRow as mockDeleteLabelRow,
   fetchLabelsWithRows as mockFetchLabelsWithRows,
   cascadeLabelUpdate as mockCascadeLabelUpdate,
+  cascadeOwnerUpdate as mockCascadeOwnerUpdate,
+  upsertOwner as mockUpsertOwner,
 } from '../demo/mock-api';
 import { isDemoMode } from '../demo/is-demo-mode';
 import { ReauthFailedError } from '../auth/reauth';
@@ -60,6 +64,8 @@ function api() {
       deleteLabelRow: mockDeleteLabelRow,
       fetchLabelsWithRows: mockFetchLabelsWithRows,
       cascadeLabelUpdate: mockCascadeLabelUpdate,
+      cascadeOwnerUpdate: mockCascadeOwnerUpdate,
+      upsertOwner: mockUpsertOwner,
     };
   }
   return {
@@ -75,6 +81,8 @@ function api() {
     deleteLabelRow: sheetsDeleteLabelRow,
     fetchLabelsWithRows: sheetsFetchLabelsWithRows,
     cascadeLabelUpdate: sheetsCascadeLabelUpdate,
+    cascadeOwnerUpdate: sheetsCascadeOwnerUpdate,
+    upsertOwner: sheetsUpsertOwner,
   };
 }
 
@@ -90,6 +98,8 @@ const updateLabelRow = (...args: Parameters<typeof sheetsUpdateLabelRow>) => api
 const deleteLabelRow = (...args: Parameters<typeof sheetsDeleteLabelRow>) => api().deleteLabelRow(...args);
 const fetchLabelsWithRows = (...args: Parameters<typeof sheetsFetchLabelsWithRows>) => api().fetchLabelsWithRows(...args);
 const cascadeLabelUpdate = (...args: Parameters<typeof sheetsCascadeLabelUpdate>) => api().cascadeLabelUpdate(...args);
+const cascadeOwnerUpdate = (...args: Parameters<typeof sheetsCascadeOwnerUpdate>) => api().cascadeOwnerUpdate(...args);
+const upsertOwner = (...args: Parameters<typeof sheetsUpsertOwner>) => api().upsertOwner(...args);
 
 function generateUUID(): string {
   return crypto.randomUUID();
@@ -389,6 +399,61 @@ export async function reorderSubtasks(
     if (!isReauthFailure(err)) {
       showToast('Failed to reorder sub-tasks: ' + err.message, 'error');
     }
+  }
+}
+
+// --- Profile actions ---
+
+export async function updateDisplayName(
+  newName: string,
+  email: string,
+  oldName: string,
+  token: string
+): Promise<boolean> {
+  // Strip control characters and newlines
+  const cleaned = newName.replace(/[\x00-\x1f\x7f]/g, '').trim();
+
+  if (!cleaned) {
+    throw new Error('Display name cannot be empty');
+  }
+  if (cleaned.length > 50) {
+    throw new Error('Display name must be 50 characters or fewer');
+  }
+
+  // Optimistic update
+  const oldItems = [...items.value];
+  const oldOwners = [...owners.value];
+  owners.value = owners.value.map(o =>
+    o.google_account.toLowerCase() === email.toLowerCase()
+      ? { ...o, name: cleaned }
+      : o
+  );
+  items.value = items.value.map(i =>
+    i.owner === oldName ? { ...i, owner: cleaned } : i
+  );
+
+  try {
+    await upsertOwner(cleaned, email, token);
+    if (oldName && oldName !== cleaned) {
+      await cascadeOwnerUpdate(oldName, cleaned, token);
+    }
+    // Refresh to get server state
+    const [freshItems, freshOwners] = await Promise.all([
+      fetchAllItems(token),
+      fetchOwners(token),
+    ]);
+    items.value = freshItems;
+    owners.value = freshOwners;
+    showToast('Display name updated');
+    return true;
+  } catch (err: any) {
+    // Rollback
+    items.value = oldItems;
+    owners.value = oldOwners;
+    if (!isReauthFailure(err)) {
+      throw err; // Re-throw so dialog can show inline error
+    }
+    return false;
   }
 }
 
