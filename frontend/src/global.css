@@ -1295,6 +1295,11 @@ body {
     min-height: 44px;
   }
 
+  /* Sub-task creation row: 44px min-height for touch targets on mobile */
+  .subtask-add-inline {
+    min-height: 44px;
+  }
+
   /* Touch-friendly action buttons: 44x44px minimum */
   .subtask-action-btn {
     width: 44px;
