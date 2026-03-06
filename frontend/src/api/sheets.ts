@@ -2,6 +2,7 @@
 // No gapi.client dependency — smaller, more control.
 
 import type { Item, ItemWithRow, Owner, Label } from './types';
+import { attemptReauth } from '../auth/reauth';
 
 const SPREADSHEET_ID = import.meta.env.VITE_SPREADSHEET_ID;
 const BASE = 'https://sheets.googleapis.com/v4/spreadsheets';
@@ -10,6 +11,24 @@ class SheetsApiError extends Error {
   constructor(public status: number, message: string) {
     super(`Sheets API ${status}: ${message}`);
     this.name = 'SheetsApiError';
+  }
+}
+
+/**
+ * Wrap a Sheets API call with 401 retry logic.
+ * On 401: attempt silent re-auth, then retry once with the new token.
+ * The `callFn` receives a token and performs the actual API call.
+ */
+async function withReauth<T>(token: string, callFn: (t: string) => Promise<T>): Promise<T> {
+  try {
+    return await callFn(token);
+  } catch (err) {
+    if (err instanceof SheetsApiError && err.status === 401) {
+      // Attempt silent re-auth and retry once
+      const newToken = await attemptReauth();
+      return callFn(newToken);
+    }
+    throw err;
   }
 }
 
@@ -110,49 +129,57 @@ function itemToRow(item: Item): any[] {
 // --- Public API ---
 
 export async function fetchAllItems(token: string): Promise<ItemWithRow[]> {
-  const rows = await sheetsGet('Items!A2:N', token);
-  return rows.map((row, i) => ({
-    ...rowToItem(row),
-    sheetRow: i + 2, // 1-based, header is row 1
-  }));
+  return withReauth(token, async (t) => {
+    const rows = await sheetsGet('Items!A2:N', t);
+    return rows.map((row, i) => ({
+      ...rowToItem(row),
+      sheetRow: i + 2, // 1-based, header is row 1
+    }));
+  });
 }
 
 export async function fetchOwners(token: string): Promise<Owner[]> {
-  const rows = await sheetsGet('Owners!A2:B', token);
-  return rows.map(row => ({
-    name: row[0] || '',
-    google_account: row[1] || '',
-  }));
+  return withReauth(token, async (t) => {
+    const rows = await sheetsGet('Owners!A2:B', t);
+    return rows.map(row => ({
+      name: row[0] || '',
+      google_account: row[1] || '',
+    }));
+  });
 }
 
 export async function fetchLabels(token: string): Promise<Label[]> {
-  const rows = await sheetsGet('Labels!A2:B', token);
-  return rows.map(row => ({
-    label: row[0] || '',
-    color: row[1] || '',
-  }));
+  return withReauth(token, async (t) => {
+    const rows = await sheetsGet('Labels!A2:B', t);
+    return rows.map(row => ({
+      label: row[0] || '',
+      color: row[1] || '',
+    }));
+  });
 }
 
 export async function createItemRow(item: Item, token: string): Promise<void> {
-  await sheetsAppend('Items!A:N', [itemToRow(item)], token);
+  return withReauth(token, (t) => sheetsAppend('Items!A:N', [itemToRow(item)], t));
 }
 
 export async function updateItemRow(sheetRow: number, item: Item, token: string): Promise<void> {
-  await sheetsUpdate(`Items!A${sheetRow}:N${sheetRow}`, [itemToRow(item)], token);
+  return withReauth(token, (t) => sheetsUpdate(`Items!A${sheetRow}:N${sheetRow}`, [itemToRow(item)], t));
 }
 
 export async function deleteItemRow(sheetRow: number, token: string): Promise<void> {
-  // Get the Items sheet ID (gid). We need it for batchUpdate.
-  const url = `${BASE}/${SPREADSHEET_ID}?fields=sheets.properties`;
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
+  return withReauth(token, async (t) => {
+    // Get the Items sheet ID (gid). We need it for batchUpdate.
+    const url = `${BASE}/${SPREADSHEET_ID}?fields=sheets.properties`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${t}` },
+    });
+    const data = await res.json();
+    const itemsSheet = data.sheets?.find(
+      (s: any) => s.properties.title === 'Items'
+    );
+    const sheetId = itemsSheet?.properties?.sheetId ?? 0;
+    await sheetsDeleteRow(sheetId, sheetRow, t);
   });
-  const data = await res.json();
-  const itemsSheet = data.sheets?.find(
-    (s: any) => s.properties.title === 'Items'
-  );
-  const sheetId = itemsSheet?.properties?.sheetId ?? 0;
-  await sheetsDeleteRow(sheetId, sheetRow, token);
 }
 
 /**
@@ -167,28 +194,30 @@ export async function upsertOwner(
   email: string,
   token: string
 ): Promise<boolean> {
-  const rows = await sheetsGet('Owners!A2:B', token);
+  return withReauth(token, async (t) => {
+    const rows = await sheetsGet('Owners!A2:B', t);
 
-  // Find existing row by email (column B)
-  const existingIndex = rows.findIndex(
-    row => (row[1] || '').toLowerCase() === email.toLowerCase()
-  );
+    // Find existing row by email (column B)
+    const existingIndex = rows.findIndex(
+      row => (row[1] || '').toLowerCase() === email.toLowerCase()
+    );
 
-  if (existingIndex >= 0) {
-    // Email already exists — check if name needs updating
-    const existingName = rows[existingIndex][0] || '';
-    if (existingName === name) {
-      return false; // No change needed
+    if (existingIndex >= 0) {
+      // Email already exists — check if name needs updating
+      const existingName = rows[existingIndex][0] || '';
+      if (existingName === name) {
+        return false; // No change needed
+      }
+      // Update the name in the existing row (row index + 2 because header is row 1, data starts at row 2)
+      const sheetRow = existingIndex + 2;
+      await sheetsUpdate(`Owners!A${sheetRow}:B${sheetRow}`, [[name, email]], t);
+      return true;
     }
-    // Update the name in the existing row (row index + 2 because header is row 1, data starts at row 2)
-    const sheetRow = existingIndex + 2;
-    await sheetsUpdate(`Owners!A${sheetRow}:B${sheetRow}`, [[name, email]], token);
-    return true;
-  }
 
-  // Email not found — append new row
-  await sheetsAppend('Owners!A:B', [[name, email]], token);
-  return true;
+    // Email not found — append new row
+    await sheetsAppend('Owners!A:B', [[name, email]], t);
+    return true;
+  });
 }
 
 export async function appendAuditEntry(
@@ -200,9 +229,9 @@ export async function appendAuditEntry(
   actor: string,
   token: string
 ): Promise<void> {
-  await sheetsAppend('Audit Log!A:G', [[
+  return withReauth(token, (t) => sheetsAppend('Audit Log!A:G', [[
     new Date().toISOString(), itemId, action, field, oldValue, newValue, actor,
-  ]], token);
+  ]], t));
 }
 
 export { SheetsApiError };

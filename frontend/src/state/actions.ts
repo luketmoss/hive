@@ -19,8 +19,19 @@ import {
   appendAuditEntry as mockAppendAuditEntry,
 } from '../demo/mock-api';
 import { isDemoMode } from '../demo/is-demo-mode';
+import { ReauthFailedError } from '../auth/reauth';
 import { owners, labels, loading } from './board-store';
 import type { Item, ItemStatus, ItemWithRow, UserInfo } from '../api/types';
+
+/**
+ * Check if an error is from a failed silent re-auth attempt.
+ * When reauth fails, the onReauthFailed callback already handles
+ * clearing auth state, showing the login screen, and displaying
+ * a "Session expired" toast — so callers should NOT show an additional toast.
+ */
+function isReauthFailure(err: unknown): boolean {
+  return err instanceof ReauthFailedError;
+}
 
 // Select real or mock API based on demo mode.
 // isDemoMode() is cached after the first call, so this is cheap.
@@ -92,6 +103,7 @@ export async function loadBoard(token: string, user?: UserInfo | null) {
     }
   } catch (err: any) {
     if (err instanceof NotAllowedError) throw err;
+    if (isReauthFailure(err)) return; // Auth layer handles this
     showToast('Failed to load board: ' + err.message, 'error');
   } finally {
     loading.value = false;
@@ -102,6 +114,7 @@ export async function refreshItems(token: string) {
   try {
     items.value = await fetchAllItems(token);
   } catch (err: any) {
+    if (isReauthFailure(err)) return; // Auth layer handles this
     if (err.status === 401) throw err; // Let auth layer handle it
     console.error('Refresh failed:', err);
   }
@@ -158,7 +171,9 @@ export async function createItem(
   } catch (err: any) {
     // Rollback
     items.value = items.value.filter(i => i.id !== item.id);
-    showToast('Failed to create item: ' + err.message, 'error');
+    if (!isReauthFailure(err)) {
+      showToast('Failed to create item: ' + err.message, 'error');
+    }
   }
 }
 
@@ -191,7 +206,9 @@ export async function moveItem(
     return true;
   } catch (err: any) {
     items.value = items.value.map(i => i.id === itemId ? oldItem : i);
-    showToast('Failed to move item: ' + err.message, 'error');
+    if (!isReauthFailure(err)) {
+      showToast('Failed to move item: ' + err.message, 'error');
+    }
     return false;
   }
 }
@@ -234,7 +251,9 @@ export async function updateItem(
     return true;
   } catch (err: any) {
     items.value = items.value.map(i => i.id === itemId ? oldItem : i);
-    showToast('Failed to update item: ' + err.message, 'error');
+    if (!isReauthFailure(err)) {
+      showToast('Failed to update item: ' + err.message, 'error');
+    }
     return false;
   }
 }
@@ -275,6 +294,8 @@ export async function deleteItem(
     showToast('Item deleted');
   } catch (err: any) {
     items.value = oldItems;
-    showToast('Failed to delete item: ' + err.message, 'error');
+    if (!isReauthFailure(err)) {
+      showToast('Failed to delete item: ' + err.message, 'error');
+    }
   }
 }

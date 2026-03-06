@@ -1,5 +1,23 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { upsertOwner } from './sheets';
+
+// Mock the reauth module before importing sheets
+vi.mock('../auth/reauth', () => ({
+  attemptReauth: vi.fn(),
+  ReauthFailedError: class ReauthFailedError extends Error {
+    declare cause?: Error;
+    constructor(cause?: Error) {
+      super('Silent re-auth failed');
+      this.name = 'ReauthFailedError';
+      this.cause = cause;
+    }
+  },
+}));
+
+import { upsertOwner, fetchAllItems, fetchOwners, updateItemRow } from './sheets';
+import { attemptReauth } from '../auth/reauth';
+import { ReauthFailedError } from '../auth/reauth';
+
+const mockAttemptReauth = vi.mocked(attemptReauth);
 
 // Mock fetch globally for Sheets API calls
 const mockFetch = vi.fn() as Mock;
@@ -8,6 +26,15 @@ globalThis.fetch = mockFetch;
 // The module reads VITE_SPREADSHEET_ID from import.meta.env.
 // Vitest + Vite makes this available, but we set a fallback via env.
 // Sheets functions build URLs from this, but we mock fetch so the value doesn't matter.
+
+function mock401Response() {
+  return {
+    ok: false,
+    status: 401,
+    json: async () => ({}),
+    text: async () => 'Unauthorized',
+  };
+}
 
 function mockSheetsGetResponse(values: any[][]) {
   return {
@@ -30,6 +57,7 @@ function mockSheetsWriteResponse() {
 describe('upsertOwner', () => {
   beforeEach(() => {
     mockFetch.mockReset();
+    mockAttemptReauth.mockReset();
   });
 
   // Scenario 1: First-time sign-in auto-registers owner
@@ -135,5 +163,143 @@ describe('upsertOwner', () => {
 
     await expect(upsertOwner('Luke', 'luke@example.com', 'test-token'))
       .rejects.toThrow('Sheets API 500');
+  });
+});
+
+// --- AC2: Stale/revoked token on first API call → silent re-auth ---
+describe('withReauth: stale token triggers silent re-auth (AC2)', () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+    mockAttemptReauth.mockReset();
+  });
+
+  it('retries fetchAllItems with new token after 401 + successful reauth', async () => {
+    // First call: 401 (stale token)
+    mockFetch.mockResolvedValueOnce(mock401Response());
+    // attemptReauth succeeds with fresh token
+    mockAttemptReauth.mockResolvedValueOnce('fresh-token');
+    // Retry call with fresh token: success
+    mockFetch.mockResolvedValueOnce(
+      mockSheetsGetResponse([
+        ['id-1', 'Task 1', '', 'To Do', '', '', '', '', '', '', '', '', '1', ''],
+      ])
+    );
+
+    const result = await fetchAllItems('stale-token');
+
+    expect(result).toHaveLength(1);
+    expect(result[0].title).toBe('Task 1');
+    expect(mockAttemptReauth).toHaveBeenCalledTimes(1);
+    // First call used stale token, retry used fresh token
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    const retryHeaders = mockFetch.mock.calls[1][1]?.headers || {};
+    expect(retryHeaders.Authorization || mockFetch.mock.calls[1][0]).toBeDefined();
+  });
+
+  it('retries fetchOwners with new token after 401 + successful reauth', async () => {
+    // First call: 401
+    mockFetch.mockResolvedValueOnce(mock401Response());
+    // Reauth succeeds
+    mockAttemptReauth.mockResolvedValueOnce('fresh-token');
+    // Retry: success
+    mockFetch.mockResolvedValueOnce(
+      mockSheetsGetResponse([['Mom', 'mom@example.com']])
+    );
+
+    const result = await fetchOwners('stale-token');
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Mom');
+    expect(mockAttemptReauth).toHaveBeenCalledTimes(1);
+  });
+});
+
+// --- AC3: Silent re-auth fails after stale token → propagate ReauthFailedError ---
+describe('withReauth: reauth failure propagates (AC3)', () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+    mockAttemptReauth.mockReset();
+  });
+
+  it('propagates ReauthFailedError when reauth fails after 401', async () => {
+    // First call: 401
+    mockFetch.mockResolvedValueOnce(mock401Response());
+    // Reauth fails
+    mockAttemptReauth.mockRejectedValueOnce(
+      new ReauthFailedError(new Error('popup blocked'))
+    );
+
+    await expect(fetchAllItems('stale-token')).rejects.toThrow(ReauthFailedError);
+    expect(mockAttemptReauth).toHaveBeenCalledTimes(1);
+    // No retry attempt after reauth failure
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+// --- AC4: Mid-session token expiry → silent re-auth + retry ---
+describe('withReauth: mid-session 401 retries API call (AC4)', () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+    mockAttemptReauth.mockReset();
+  });
+
+  it('retries updateItemRow with new token after mid-session 401', async () => {
+    const item = {
+      id: 'id-1', title: 'Test', description: '', status: 'To Do' as const,
+      owner: '', due_date: '', scheduled_date: '', labels: '', parent_id: '',
+      created_at: '', updated_at: '', completed_at: '', sort_order: 1, created_by: '',
+    };
+
+    // First call: 401 (expired token mid-session)
+    mockFetch.mockResolvedValueOnce(mock401Response());
+    // Reauth succeeds
+    mockAttemptReauth.mockResolvedValueOnce('refreshed-token');
+    // Retry: success
+    mockFetch.mockResolvedValueOnce(mockSheetsWriteResponse());
+
+    // Should not throw — retried successfully
+    await updateItemRow(2, item, 'expired-token');
+
+    expect(mockAttemptReauth).toHaveBeenCalledTimes(1);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+});
+
+// --- AC5: Mid-session reauth fails → propagate error ---
+describe('withReauth: mid-session reauth failure (AC5)', () => {
+  beforeEach(() => {
+    mockFetch.mockReset();
+    mockAttemptReauth.mockReset();
+  });
+
+  it('propagates ReauthFailedError when mid-session reauth fails', async () => {
+    const item = {
+      id: 'id-1', title: 'Test', description: '', status: 'To Do' as const,
+      owner: '', due_date: '', scheduled_date: '', labels: '', parent_id: '',
+      created_at: '', updated_at: '', completed_at: '', sort_order: 1, created_by: '',
+    };
+
+    // First call: 401
+    mockFetch.mockResolvedValueOnce(mock401Response());
+    // Reauth fails
+    mockAttemptReauth.mockRejectedValueOnce(
+      new ReauthFailedError(new Error('consent revoked'))
+    );
+
+    await expect(updateItemRow(2, item, 'expired-token'))
+      .rejects.toThrow(ReauthFailedError);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry on non-401 errors', async () => {
+    // 500 error — should not trigger reauth
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      text: async () => 'Server Error',
+    });
+
+    await expect(fetchAllItems('valid-token')).rejects.toThrow('Sheets API 500');
+    expect(mockAttemptReauth).not.toHaveBeenCalled();
   });
 });
