@@ -8,6 +8,11 @@ import {
   updateItemRow as sheetsUpdateItemRow,
   deleteItemRow as sheetsDeleteItemRow,
   appendAuditEntry as sheetsAppendAuditEntry,
+  createLabelRow as sheetsCreateLabelRow,
+  updateLabelRow as sheetsUpdateLabelRow,
+  deleteLabelRow as sheetsDeleteLabelRow,
+  fetchLabelsWithRows as sheetsFetchLabelsWithRows,
+  cascadeLabelUpdate as sheetsCascadeLabelUpdate,
 } from '../api/sheets';
 import {
   fetchAllItems as mockFetchAllItems,
@@ -17,6 +22,11 @@ import {
   updateItemRow as mockUpdateItemRow,
   deleteItemRow as mockDeleteItemRow,
   appendAuditEntry as mockAppendAuditEntry,
+  createLabelRow as mockCreateLabelRow,
+  updateLabelRow as mockUpdateLabelRow,
+  deleteLabelRow as mockDeleteLabelRow,
+  fetchLabelsWithRows as mockFetchLabelsWithRows,
+  cascadeLabelUpdate as mockCascadeLabelUpdate,
 } from '../demo/mock-api';
 import { isDemoMode } from '../demo/is-demo-mode';
 import { ReauthFailedError } from '../auth/reauth';
@@ -45,6 +55,11 @@ function api() {
       updateItemRow: mockUpdateItemRow,
       deleteItemRow: mockDeleteItemRow,
       appendAuditEntry: mockAppendAuditEntry,
+      createLabelRow: mockCreateLabelRow,
+      updateLabelRow: mockUpdateLabelRow,
+      deleteLabelRow: mockDeleteLabelRow,
+      fetchLabelsWithRows: mockFetchLabelsWithRows,
+      cascadeLabelUpdate: mockCascadeLabelUpdate,
     };
   }
   return {
@@ -55,6 +70,11 @@ function api() {
     updateItemRow: sheetsUpdateItemRow,
     deleteItemRow: sheetsDeleteItemRow,
     appendAuditEntry: sheetsAppendAuditEntry,
+    createLabelRow: sheetsCreateLabelRow,
+    updateLabelRow: sheetsUpdateLabelRow,
+    deleteLabelRow: sheetsDeleteLabelRow,
+    fetchLabelsWithRows: sheetsFetchLabelsWithRows,
+    cascadeLabelUpdate: sheetsCascadeLabelUpdate,
   };
 }
 
@@ -65,6 +85,11 @@ const createItemRow = (...args: Parameters<typeof sheetsCreateItemRow>) => api()
 const updateItemRow = (...args: Parameters<typeof sheetsUpdateItemRow>) => api().updateItemRow(...args);
 const deleteItemRow = (...args: Parameters<typeof sheetsDeleteItemRow>) => api().deleteItemRow(...args);
 const appendAuditEntry = (...args: Parameters<typeof sheetsAppendAuditEntry>) => api().appendAuditEntry(...args);
+const createLabelRow = (...args: Parameters<typeof sheetsCreateLabelRow>) => api().createLabelRow(...args);
+const updateLabelRow = (...args: Parameters<typeof sheetsUpdateLabelRow>) => api().updateLabelRow(...args);
+const deleteLabelRow = (...args: Parameters<typeof sheetsDeleteLabelRow>) => api().deleteLabelRow(...args);
+const fetchLabelsWithRows = (...args: Parameters<typeof sheetsFetchLabelsWithRows>) => api().fetchLabelsWithRows(...args);
+const cascadeLabelUpdate = (...args: Parameters<typeof sheetsCascadeLabelUpdate>) => api().cascadeLabelUpdate(...args);
 
 function generateUUID(): string {
   return crypto.randomUUID();
@@ -296,6 +321,123 @@ export async function deleteItem(
     items.value = oldItems;
     if (!isReauthFailure(err)) {
       showToast('Failed to delete item: ' + err.message, 'error');
+    }
+  }
+}
+
+// --- Label CRUD actions ---
+
+export async function refreshLabels(token: string) {
+  try {
+    labels.value = await fetchLabels(token);
+  } catch (err: any) {
+    if (isReauthFailure(err)) return;
+    console.error('Label refresh failed:', err);
+  }
+}
+
+export async function createLabel(
+  name: string,
+  color: string,
+  token: string
+) {
+  // Optimistic update
+  const oldLabels = [...labels.value];
+  labels.value = [...labels.value, { label: name, color }];
+
+  try {
+    await createLabelRow(name, color, token);
+    await refreshLabels(token);
+    showToast('Label created');
+  } catch (err: any) {
+    labels.value = oldLabels;
+    if (!isReauthFailure(err)) {
+      showToast('Failed to create label: ' + err.message, 'error');
+    }
+  }
+}
+
+export async function updateLabel(
+  oldName: string,
+  newName: string,
+  newColor: string,
+  token: string
+) {
+  // Find the label row
+  const labelsWithRows = await fetchLabelsWithRows(token);
+  const labelRow = labelsWithRows.find(l => l.label === oldName);
+  if (!labelRow) {
+    showToast('Label not found', 'error');
+    return;
+  }
+
+  // Optimistic update
+  const oldLabels = [...labels.value];
+  const oldItems = [...items.value];
+  labels.value = labels.value.map(l =>
+    l.label === oldName ? { label: newName, color: newColor } : l
+  );
+  // Also optimistically update items if label was renamed
+  if (oldName !== newName) {
+    items.value = items.value.map(i => {
+      const labelsList = i.labels.split(',').map(x => x.trim()).filter(Boolean);
+      if (!labelsList.includes(oldName)) return i;
+      const updated = labelsList.map(l => l === oldName ? newName : l);
+      return { ...i, labels: updated.join(', ') };
+    });
+  }
+
+  try {
+    await updateLabelRow(labelRow.sheetRow, newName, newColor, token);
+    if (oldName !== newName) {
+      await cascadeLabelUpdate(oldName, newName, token);
+    }
+    await refreshLabels(token);
+    await refreshItems(token);
+    showToast('Label updated');
+  } catch (err: any) {
+    labels.value = oldLabels;
+    items.value = oldItems;
+    if (!isReauthFailure(err)) {
+      showToast('Failed to update label: ' + err.message, 'error');
+    }
+  }
+}
+
+export async function deleteLabel(
+  labelName: string,
+  token: string
+) {
+  // Find the label row
+  const labelsWithRows = await fetchLabelsWithRows(token);
+  const labelRow = labelsWithRows.find(l => l.label === labelName);
+  if (!labelRow) {
+    showToast('Label not found', 'error');
+    return;
+  }
+
+  // Optimistic update
+  const oldLabels = [...labels.value];
+  const oldItems = [...items.value];
+  labels.value = labels.value.filter(l => l.label !== labelName);
+  items.value = items.value.map(i => {
+    const labelsList = i.labels.split(',').map(x => x.trim()).filter(Boolean);
+    if (!labelsList.includes(labelName)) return i;
+    const updated = labelsList.filter(l => l !== labelName);
+    return { ...i, labels: updated.join(', ') };
+  });
+
+  try {
+    await cascadeLabelUpdate(labelName, '', token);
+    await deleteLabelRow(labelRow.sheetRow, token);
+    await refreshLabels(token);
+    await refreshItems(token);
+    showToast('Label deleted');
+  } catch (err: any) {
+    labels.value = oldLabels;
+    items.value = oldItems;
+    if (!isReauthFailure(err)) {
+      showToast('Failed to delete label: ' + err.message, 'error');
     }
   }
 }

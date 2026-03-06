@@ -10,6 +10,11 @@ vi.mock('../api/sheets', () => ({
   updateItemRow: vi.fn().mockResolvedValue(undefined),
   deleteItemRow: vi.fn().mockResolvedValue(undefined),
   appendAuditEntry: vi.fn().mockResolvedValue(undefined),
+  createLabelRow: vi.fn().mockResolvedValue(undefined),
+  updateLabelRow: vi.fn().mockResolvedValue(undefined),
+  deleteLabelRow: vi.fn().mockResolvedValue(undefined),
+  fetchLabelsWithRows: vi.fn().mockResolvedValue([]),
+  cascadeLabelUpdate: vi.fn().mockResolvedValue(undefined),
   SheetsApiError: class extends Error {
     status: number;
     constructor(status: number, message: string) {
@@ -33,6 +38,11 @@ vi.mock('../demo/mock-api', () => ({
   updateItemRow: vi.fn().mockResolvedValue(undefined),
   deleteItemRow: vi.fn().mockResolvedValue(undefined),
   appendAuditEntry: vi.fn().mockResolvedValue(undefined),
+  createLabelRow: vi.fn().mockResolvedValue(undefined),
+  updateLabelRow: vi.fn().mockResolvedValue(undefined),
+  deleteLabelRow: vi.fn().mockResolvedValue(undefined),
+  fetchLabelsWithRows: vi.fn().mockResolvedValue([]),
+  cascadeLabelUpdate: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { loadBoard, NotAllowedError } from './actions';
