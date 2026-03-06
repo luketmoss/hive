@@ -150,6 +150,11 @@ EOF
 )"
 ```
 
+Also post a summary comment on the **GitHub issue** so all agent reports are visible in one place:
+```bash
+gh issue comment <issue-number> --repo luketmoss/hive --body "## Code Review: <APPROVED or CHANGES REQUESTED>\n\n<summary of findings>\n\nFull review on PR #<pr-number>."
+```
+
 ## Post-Review Actions
 
 **Do NOT merge the PR.** Merging is handled by the orchestrator (or the user) after approval.

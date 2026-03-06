@@ -47,7 +47,7 @@ When the user's request matches a custom skill, invoke it automatically — no s
 Use this when the user wants an issue refined and ready for development.
 
 1. **Invoke `/pm`** with the issue number. Collect the acceptance criteria and scope.
-2. **Invoke `/ux`** with the issue number and the ACs from step 1. Ask it to review the proposed UX for usability and accessibility gaps.
+2. **Invoke `/ux`** with the issue number and the ACs from step 1. Ask it to review the proposed UX for usability and accessibility gaps. **Tell it to post its findings as a comment on the GitHub issue.**
 3. **PM + UX negotiation**: Invoke `/pm` again with the UX findings. PM reviews each UX recommendation and decides:
    - **Accept**: update the ACs on the issue to incorporate the feedback.
    - **Defer**: the item is valid but out of scope for this issue. You (the orchestrator) create a new backlog issue for it (see **Deferred Items** below).
@@ -61,7 +61,7 @@ Use this when the user wants an issue taken from its current board state through
 1. **Check board state**: Look up the issue's current column to determine where to start.
 2. **Refinement** (if in To Do/Refining): Run the Refinement Pipeline above.
 3. **Development** (if in Ready/In Development): Invoke `/dev` with the issue number.
-4. **QA** (if in Testing): Invoke `/qa` with the issue number.
+4. **QA** (if in Testing): Invoke `/qa` with the issue number. **Tell it to post its QA report as a comment on the GitHub issue (in addition to the PR).**
    - If QA **fails with code issues**: Invoke `/dev` with the QA failure report. Then re-invoke `/qa`. If it fails a second time, **stop and tell the user**.
    - If QA **flags AC problems** (ACs are ambiguous, contradictory, or don't match real behavior): Invoke `/pm` with the QA + Dev findings to negotiate AC updates. PM decides what to accept, defer, or reject (same as refinement). Then re-invoke `/dev` and `/qa` with the updated ACs.
 5. **Code Review** (if in In Review): Invoke `/review` with the issue number. Tell the review agent **not to merge** — only post its verdict.

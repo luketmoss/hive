@@ -98,7 +98,7 @@ If the PR modified `frontend/src/state/rules.ts` or `apps-script/src/rules.js`:
 
 ### Step 7: Post QA report
 
-Post findings as a comment on the PR:
+Post findings as a comment on **both** the PR and the GitHub issue so the full history is on the issue:
 
 ```bash
 gh pr comment <pr-number> --repo luketmoss/hive --body "$(cat <<'EOF'
@@ -128,6 +128,11 @@ gh pr comment <pr-number> --repo luketmoss/hive --body "$(cat <<'EOF'
 ### Verdict: PASS / FAIL / AC_PROBLEM
 EOF
 )"
+```
+
+Then post the same report on the issue:
+```bash
+gh issue comment <issue-number> --repo luketmoss/hive --body "<same report as above>"
 ```
 
 **Use AC_PROBLEM** when the acceptance criteria themselves are the issue — they're ambiguous, contradictory, untestable, or don't match real-world behavior. This is different from FAIL (where the code doesn't meet the ACs). With AC_PROBLEM, include a clear explanation of what's wrong with the ACs and what you'd recommend changing.
