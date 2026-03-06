@@ -66,7 +66,47 @@ Use this when the user wants an issue taken from its current board state through
    - If QA **flags AC problems** (ACs are ambiguous, contradictory, or don't match real behavior): Invoke `/pm` with the QA + Dev findings to negotiate AC updates. PM decides what to accept, defer, or reject (same as refinement). Then re-invoke `/dev` and `/qa` with the updated ACs.
 5. **Code Review** (if in In Review): Invoke `/review` with the issue number. Tell the review agent **not to merge** — only post its verdict.
    - If review **requests changes**: Invoke `/dev` with the review feedback. Then re-invoke `/review`. If it requests changes a second time, **stop and tell the user**.
-6. **Approval Gate**: Present a summary of all agent results to the user. Wait for explicit approval before merging.
+6. **Approval Gate**: Present a structured summary to the user using this format, then wait for explicit approval before merging:
+
+   ```
+   ## Pipeline Summary — Issue #N: <title>
+
+   ### Requirements (PM)
+   - <number> acceptance criteria defined
+   - Scope: <one-line scope summary>
+   - Complexity: <small/medium/large>
+
+   ### UX Review
+   - <accepted count> accepted, <deferred count> deferred, <rejected count> rejected
+   - Key changes: <brief list of UX-driven AC updates>
+
+   ### Implementation (Dev)
+   - Branch: `<branch-name>`
+   - Files changed: <count> | Tests added: <count>
+   - Key changes: <brief summary of what was built>
+
+   ### QA Results
+   - Verdict: **PASS** / **FAIL**
+   - <X/Y> acceptance criteria verified
+   - Automated tests: frontend <pass>/<total>, apps-script <pass>/<total>
+   - Edge cases tested: <brief list>
+
+   ### Code Review
+   - Verdict: **APPROVED** / **CHANGES REQUESTED**
+   - Security: <clean / issues found>
+   - Conventions: <clean / issues found>
+
+   ### Deferred Items
+   - <list of deferred issues with links, or "None">
+
+   ### Links
+   - Issue: #<number>
+   - PR: #<pr-number>
+
+   **Ready to merge?** Reply **approve** to squash-merge, or provide feedback.
+   ```
+
+   Omit sections for stages that were skipped (e.g., if the issue started in Testing, omit Requirements and UX Review).
 7. **Merge** (after user approves):
    ```
    gh pr review <pr> --repo luketmoss/hive --approve --body "All agents passed, user approved."
