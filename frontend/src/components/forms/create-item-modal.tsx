@@ -11,6 +11,7 @@ export function CreateItemModal() {
   const [description, setDescription] = useState('');
   const [owner, setOwner] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [scheduledDate, setScheduledDate] = useState('');
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
 
   const close = () => { showCreateModal.value = false; };
@@ -25,6 +26,7 @@ export function CreateItemModal() {
         description,
         owner,
         due_date: dueDate,
+        scheduled_date: scheduledDate,
         labels: selectedLabels.join(', '),
         created_by: user?.email || '',
       },
@@ -97,6 +99,17 @@ export function CreateItemModal() {
               value={dueDate}
               onChange={(e) => setDueDate((e.target as HTMLInputElement).value)}
             />
+          </div>
+
+          <div class="form-field">
+            <label for="scheduled-date">Scheduled Date</label>
+            <input
+              id="scheduled-date"
+              type="date"
+              value={scheduledDate}
+              onChange={(e) => setScheduledDate((e.target as HTMLInputElement).value)}
+            />
+            <span class="form-hint">When you plan to do this</span>
           </div>
 
           <div class="form-field">
