@@ -234,4 +234,77 @@ export async function appendAuditEntry(
   ]], t));
 }
 
+// --- Label CRUD ---
+
+export async function createLabelRow(label: string, color: string, token: string): Promise<void> {
+  return withReauth(token, (t) => sheetsAppend('Labels!A:B', [[label, color]], t));
+}
+
+export async function updateLabelRow(sheetRow: number, label: string, color: string, token: string): Promise<void> {
+  return withReauth(token, (t) => sheetsUpdate(`Labels!A${sheetRow}:B${sheetRow}`, [[label, color]], t));
+}
+
+export async function deleteLabelRow(sheetRow: number, token: string): Promise<void> {
+  return withReauth(token, async (t) => {
+    // Get the Labels sheet ID (gid) for batchUpdate row deletion.
+    const url = `${BASE}/${SPREADSHEET_ID}?fields=sheets.properties`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${t}` },
+    });
+    const data = await res.json();
+    const labelsSheet = data.sheets?.find(
+      (s: any) => s.properties.title === 'Labels'
+    );
+    const sheetId = labelsSheet?.properties?.sheetId ?? 0;
+    await sheetsDeleteRow(sheetId, sheetRow, t);
+  });
+}
+
+/**
+ * Fetch labels with their sheet row numbers for update/delete operations.
+ */
+export async function fetchLabelsWithRows(token: string): Promise<Array<{ label: string; color: string; sheetRow: number }>> {
+  return withReauth(token, async (t) => {
+    const rows = await sheetsGet('Labels!A2:B', t);
+    return rows.map((row, i) => ({
+      label: row[0] || '',
+      color: row[1] || '',
+      sheetRow: i + 2, // 1-based, header is row 1
+    }));
+  });
+}
+
+/**
+ * Cascade rename or remove a label from all Items that reference it.
+ * Scans the labels column (H) in Items, replacing `oldName` with `newName`
+ * (or removing it entirely if `newName` is empty).
+ */
+export async function cascadeLabelUpdate(
+  oldName: string,
+  newName: string,
+  token: string
+): Promise<void> {
+  return withReauth(token, async (t) => {
+    const rows = await sheetsGet('Items!A2:N', t);
+    for (let i = 0; i < rows.length; i++) {
+      const labelsStr = rows[i][7] || '';
+      const labelsList = labelsStr.split(',').map((l: string) => l.trim()).filter(Boolean);
+      if (!labelsList.includes(oldName)) continue;
+
+      let updated: string[];
+      if (newName) {
+        updated = labelsList.map((l: string) => l === oldName ? newName : l);
+      } else {
+        updated = labelsList.filter((l: string) => l !== oldName);
+      }
+      const newLabelsStr = updated.join(', ');
+      if (newLabelsStr !== labelsStr) {
+        const sheetRow = i + 2;
+        // Update only the labels column (H = column 8)
+        await sheetsUpdate(`Items!H${sheetRow}`, [[newLabelsStr]], t);
+      }
+    }
+  });
+}
+
 export { SheetsApiError };

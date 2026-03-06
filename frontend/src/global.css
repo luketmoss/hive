@@ -980,6 +980,156 @@ body {
   line-height: 1.4;
 }
 
+/* === Label Picker Manager === */
+.label-picker-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label-picker-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.label-picker-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  color: var(--color-text-secondary);
+}
+
+.label-picker-empty-text {
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* Label toggle wrapper for edit mode icons */
+.label-toggle-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.label-toggle-edit-mode .label-toggle {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.label-edit-actions {
+  display: inline-flex;
+  gap: 2px;
+}
+
+/* Icon buttons for edit/delete */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-icon:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--color-text);
+}
+
+.btn-icon-danger:hover {
+  background: rgba(211, 47, 47, 0.1);
+  color: var(--color-danger);
+}
+
+/* Label form (create/edit) */
+.label-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+}
+
+.label-form-input {
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--color-text);
+}
+
+.label-form-input:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.label-form-error {
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
+.label-form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Color swatch grid */
+.color-swatch-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.color-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.1);
+}
+
+.color-swatch:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.color-swatch-selected {
+  border-color: var(--color-text);
+  transform: scale(1.1);
+}
+
+/* Label delete confirmation (inline) */
+.label-delete-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  flex-wrap: wrap;
+}
+
 /* === Responsive === */
 @media (max-width: 768px) {
   .view-toggle-bar {

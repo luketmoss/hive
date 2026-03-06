@@ -5,6 +5,7 @@ import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels
 import { updateItem, deleteItem, createItem, moveItem } from '../../state/actions';
 import { validateOwnerChange } from '../../state/rules';
 import { LabelBadge } from '../shared/label-badge';
+import { LabelPickerManager } from '../labels/label-picker-manager';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
 import { getContrastTextColor } from '../../utils/color';
 import type { ItemStatus } from '../../api/types';
@@ -208,28 +209,19 @@ export function CardDetail() {
 
           <SaveFeedbackField label="Labels">
             {(onFieldSaved) => (
-              <div class="label-picker">
-                {labelsStore.value.map(l => {
+              <LabelPickerManager
+                currentLabels={item.labels}
+                onToggle={async (labelName) => {
                   const currentLabels = item.labels.split(',').map(x => x.trim()).filter(Boolean);
-                  const isActive = currentLabels.includes(l.label);
-                  return (
-                    <button
-                      key={l.label}
-                      class={`label-toggle ${isActive ? 'label-toggle-active' : ''}`}
-                      style={{ '--label-color': l.color, '--label-text-color': getContrastTextColor(l.color) } as any}
-                      onClick={async () => {
-                        const updated = isActive
-                          ? currentLabels.filter(x => x !== l.label)
-                          : [...currentLabels, l.label];
-                        const ok = await save('labels', updated.join(', '));
-                        onFieldSaved(ok);
-                      }}
-                    >
-                      {l.label}
-                    </button>
-                  );
-                })}
-              </div>
+                  const isActive = currentLabels.includes(labelName);
+                  const updated = isActive
+                    ? currentLabels.filter(x => x !== labelName)
+                    : [...currentLabels, labelName];
+                  const ok = await save('labels', updated.join(', '));
+                  onFieldSaved(ok);
+                }}
+                token={token!}
+              />
             )}
           </SaveFeedbackField>
 

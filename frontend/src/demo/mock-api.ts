@@ -8,10 +8,14 @@ import { MOCK_ITEMS, MOCK_OWNERS, MOCK_LABELS } from './mock-data';
 
 // In-memory state — deep-clone from static data so writes don't mutate the originals.
 const mockItemsState = signal<ItemWithRow[]>(structuredClone(MOCK_ITEMS));
+const mockLabelsState = signal<Array<Label & { sheetRow: number }>>(
+  structuredClone(MOCK_LABELS).map((l, i) => ({ ...l, sheetRow: i + 2 }))
+);
 
 /** Reset in-memory state back to the original mock data (for page refresh behavior). */
 export function resetMockState(): void {
   mockItemsState.value = structuredClone(MOCK_ITEMS);
+  mockLabelsState.value = structuredClone(MOCK_LABELS).map((l, i) => ({ ...l, sheetRow: i + 2 }));
 }
 
 // --- Read operations ---
@@ -25,7 +29,7 @@ export async function fetchOwners(_token: string): Promise<Owner[]> {
 }
 
 export async function fetchLabels(_token: string): Promise<Label[]> {
-  return MOCK_LABELS;
+  return mockLabelsState.value.map(({ label, color }) => ({ label, color }));
 }
 
 // --- Write operations (in-memory only) ---
@@ -65,4 +69,45 @@ export async function upsertOwner(
 ): Promise<boolean> {
   // No-op in demo mode — mock data already has owners.
   return false;
+}
+
+// --- Label CRUD (in-memory) ---
+
+export async function createLabelRow(label: string, color: string, _token: string): Promise<void> {
+  const maxRow = mockLabelsState.value.reduce((max, l) => Math.max(max, l.sheetRow), 1);
+  mockLabelsState.value = [...mockLabelsState.value, { label, color, sheetRow: maxRow + 1 }];
+}
+
+export async function updateLabelRow(sheetRow: number, label: string, color: string, _token: string): Promise<void> {
+  mockLabelsState.value = mockLabelsState.value.map(l =>
+    l.sheetRow === sheetRow ? { label, color, sheetRow } : l
+  );
+}
+
+export async function deleteLabelRow(sheetRow: number, _token: string): Promise<void> {
+  mockLabelsState.value = mockLabelsState.value.filter(l => l.sheetRow !== sheetRow);
+}
+
+export async function fetchLabelsWithRows(_token: string): Promise<Array<{ label: string; color: string; sheetRow: number }>> {
+  return mockLabelsState.value;
+}
+
+export async function cascadeLabelUpdate(
+  oldName: string,
+  newName: string,
+  _token: string
+): Promise<void> {
+  // Update items in-memory: rename or remove the label from all items that reference it.
+  mockItemsState.value = mockItemsState.value.map(item => {
+    const labelsList = item.labels.split(',').map(l => l.trim()).filter(Boolean);
+    if (!labelsList.includes(oldName)) return item;
+
+    let updated: string[];
+    if (newName) {
+      updated = labelsList.map(l => l === oldName ? newName : l);
+    } else {
+      updated = labelsList.filter(l => l !== oldName);
+    }
+    return { ...item, labels: updated.join(', ') };
+  });
 }

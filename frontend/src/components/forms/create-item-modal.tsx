@@ -2,6 +2,7 @@ import { useState } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
 import { showCreateModal, owners, labels as labelsStore } from '../../state/board-store';
 import { createItem } from '../../state/actions';
+import { LabelPickerManager } from '../labels/label-picker-manager';
 import { getContrastTextColor } from '../../utils/color';
 
 export function CreateItemModal() {
@@ -100,19 +101,11 @@ export function CreateItemModal() {
 
           <div class="form-field">
             <label>Labels</label>
-            <div class="label-picker">
-              {labelsStore.value.map(l => (
-                <button
-                  key={l.label}
-                  type="button"
-                  class={`label-toggle ${selectedLabels.includes(l.label) ? 'label-toggle-active' : ''}`}
-                  style={{ '--label-color': l.color, '--label-text-color': getContrastTextColor(l.color) } as any}
-                  onClick={() => toggleLabel(l.label)}
-                >
-                  {l.label}
-                </button>
-              ))}
-            </div>
+            <LabelPickerManager
+              currentLabels={selectedLabels.join(', ')}
+              onToggle={toggleLabel}
+              token={token!}
+            />
           </div>
 
           <div class="modal-footer">
