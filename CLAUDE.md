@@ -29,14 +29,11 @@ See the spec at the project root or the plan file for full column definitions.
 
 When the user's request matches a custom skill, invoke it automatically — no slash command needed:
 - Bug report, feature idea, or new request → `/idea`
-- Refine an issue or write acceptance criteria → start the **Refinement Pipeline** below
-- Implement an issue or write code for a ticket → `/dev`
-- Run QA or verify acceptance criteria → `/qa`
-- Review a PR → `/review`
-- UX or accessibility audit → `/ux`
+- UX or accessibility audit (no issue context) → `/ux`
 - CI/CD or deployment issue → `/devops`
 - Process all children of a parent issue → `/orchestrator`
-- "Take this issue all the way" or full pipeline request → start the **Full Pipeline** below
+
+**When the user references an issue number** (e.g., "implement #29", "work on 29", "refine #29", "take #29 all the way"), **always start the Full Pipeline**. The pipeline checks the issue's board state and picks up from the right stage — do NOT skip ahead to `/dev`, `/qa`, or `/review` directly. The only exceptions are when the user explicitly invokes a slash command (e.g., `/dev #29`) or explicitly says to skip stages.
 
 ## Pipeline Orchestration
 
