@@ -622,10 +622,19 @@ body {
   padding: 6px 8px;
   border-radius: var(--radius-sm);
   font-size: 14px;
+  min-height: 36px;
 }
 
 .subtask-item:hover {
   background: rgba(0, 0, 0, 0.03);
+}
+
+.subtask-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .subtask-done span {
@@ -663,6 +672,28 @@ body {
   box-shadow: var(--focus-ring);
 }
 
+/* === Sub-task action buttons (delete, reorder) === */
+.subtask-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.subtask-item:hover .subtask-actions,
+.subtask-item:focus-within .subtask-actions {
+  opacity: 1;
+}
+
+.subtask-action-btn {
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
+  line-height: 1;
+}
+
 /* === Inline delete confirmation === */
 .delete-confirm-inline {
   display: flex;
@@ -679,10 +710,14 @@ body {
 /* === Inline subtask add === */
 .subtask-add-inline {
   margin-top: 4px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .subtask-add-input {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 6px 8px;
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-sm);
@@ -693,6 +728,24 @@ body {
 }
 
 .subtask-add-input:focus {
+  box-shadow: var(--focus-ring);
+}
+
+.subtask-add-owner {
+  flex-shrink: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+  max-width: 130px;
+}
+
+.subtask-add-owner:focus {
+  border-color: var(--color-primary);
+  outline: none;
   box-shadow: var(--focus-ring);
 }
 
@@ -1168,5 +1221,22 @@ body {
   /* AC5: Mobile card spacing >= 10px gap */
   .column-cards {
     gap: 10px;
+  }
+
+  /* Sub-task action buttons: always visible on mobile/tablet */
+  .subtask-actions {
+    opacity: 1;
+  }
+
+  /* Sub-task rows: 44px min-height for touch targets on mobile */
+  .subtask-item {
+    min-height: 44px;
+  }
+
+  /* Touch-friendly action buttons: 44x44px minimum */
+  .subtask-action-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 16px;
   }
 }

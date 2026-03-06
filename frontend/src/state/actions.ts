@@ -325,6 +325,73 @@ export async function deleteItem(
   }
 }
 
+export async function deleteSubtask(
+  itemId: string,
+  actor: string,
+  token: string
+) {
+  const item = items.value.find(i => i.id === itemId);
+  if (!item) return;
+
+  const oldItems = [...items.value];
+
+  // Optimistic: remove just this sub-task (no children cascade for sub-tasks)
+  items.value = items.value.filter(i => i.id !== itemId);
+
+  try {
+    // Re-fetch to get current row numbers
+    const freshItems = await fetchAllItems(token);
+    const freshItem = freshItems.find(i => i.id === itemId);
+    if (freshItem) {
+      await deleteItemRow(freshItem.sheetRow, token);
+      await appendAuditEntry(itemId, 'deleted', '', item.title, '', actor, token);
+    }
+    await refreshItems(token);
+    showToast('Sub-task deleted');
+  } catch (err: any) {
+    items.value = oldItems;
+    if (!isReauthFailure(err)) {
+      showToast('Failed to delete sub-task: ' + err.message, 'error');
+    }
+  }
+}
+
+export async function reorderSubtasks(
+  itemIdA: string,
+  itemIdB: string,
+  actor: string,
+  token: string
+) {
+  const itemA = items.value.find(i => i.id === itemIdA);
+  const itemB = items.value.find(i => i.id === itemIdB);
+  if (!itemA || !itemB) return;
+
+  const oldItems = [...items.value];
+  const orderA = itemA.sort_order;
+  const orderB = itemB.sort_order;
+
+  // Optimistic: swap sort_order values
+  const updatedA: ItemWithRow = { ...itemA, sort_order: orderB, updated_at: new Date().toISOString() };
+  const updatedB: ItemWithRow = { ...itemB, sort_order: orderA, updated_at: new Date().toISOString() };
+  items.value = items.value.map(i => {
+    if (i.id === itemIdA) return updatedA;
+    if (i.id === itemIdB) return updatedB;
+    return i;
+  });
+
+  try {
+    await updateItemRow(itemA.sheetRow, updatedA, token);
+    await updateItemRow(itemB.sheetRow, updatedB, token);
+    await appendAuditEntry(itemIdA, 'reordered', 'sort_order', String(orderA), String(orderB), actor, token);
+    await refreshItems(token);
+  } catch (err: any) {
+    items.value = oldItems;
+    if (!isReauthFailure(err)) {
+      showToast('Failed to reorder sub-tasks: ' + err.message, 'error');
+    }
+  }
+}
+
 // --- Label CRUD actions ---
 
 export async function refreshLabels(token: string) {
