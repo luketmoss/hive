@@ -125,27 +125,30 @@ gh pr comment <pr-number> --repo luketmoss/hive --body "$(cat <<'EOF'
 ### Issues Found
 - (list any issues, or "None")
 
-### Verdict: PASS / FAIL
+### Verdict: PASS / FAIL / AC_PROBLEM
 EOF
 )"
 ```
+
+**Use AC_PROBLEM** when the acceptance criteria themselves are the issue — they're ambiguous, contradictory, untestable, or don't match real-world behavior. This is different from FAIL (where the code doesn't meet the ACs). With AC_PROBLEM, include a clear explanation of what's wrong with the ACs and what you'd recommend changing.
 
 ### Step 8: Move the issue
 
 - **If PASS** — move the issue to **"In Review"** using the board movement helper.
 - **If FAIL** — move the issue back to **"In Development"** using the board movement helper.
+- **If AC_PROBLEM** — leave the issue in **"Testing"**. The orchestrator will route it back to PM.
 
 Also switch back to the main branch: `git checkout main`
 
 ## Definition of Done
 
-- [ ] Every acceptance criterion explicitly verified (pass or fail)
+- [ ] Every acceptance criterion explicitly verified (pass, fail, or flagged as problematic)
 - [ ] All automated tests run and results recorded
 - [ ] App visually inspected at desktop viewport (mobile/tablet if UI changed)
 - [ ] Edge cases considered and tested where relevant
 - [ ] Business rules sync verified (if applicable)
 - [ ] QA report posted as a PR comment
-- [ ] Issue moved to the correct column ("In Review" or "In Development")
+- [ ] Issue moved to the correct column ("In Review", "In Development", or left in "Testing" for AC_PROBLEM)
 
 ## Handoff
 
@@ -153,4 +156,7 @@ Also switch back to the main branch: `git checkout main`
 > QA passed for issue #N. Run `/review #N` for code review.
 
 **If FAIL:**
-> QA found issues on #N — see the QA report on PR #X. Moved back to **In Development**. Run `/dev #N` to address the findings.
+> QA found code issues on #N — see the QA report on PR #X. Moved back to **In Development**.
+
+**If AC_PROBLEM:**
+> QA found acceptance criteria issues on #N — the ACs need revision before testing can complete. See the QA report on PR #X for details.

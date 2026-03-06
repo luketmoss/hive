@@ -48,7 +48,10 @@ Use this when the user wants an issue refined and ready for development.
 
 1. **Invoke `/pm`** with the issue number. Collect the acceptance criteria and scope.
 2. **Invoke `/ux`** with the issue number and the ACs from step 1. Ask it to review the proposed UX for usability and accessibility gaps.
-3. **Return to PM**: If UX flagged issues, invoke `/pm` again with the UX findings and ask it to update the ACs on the issue. If UX had no concerns, skip this step.
+3. **PM + UX negotiation**: Invoke `/pm` again with the UX findings. PM reviews each UX recommendation and decides:
+   - **Accept**: update the ACs on the issue to incorporate the feedback.
+   - **Defer**: the item is valid but out of scope for this issue. You (the orchestrator) create a new backlog issue for it (see **Deferred Items** below).
+   - **Reject**: PM explains why the recommendation doesn't apply. No action needed.
 4. Present the final ACs to the user and confirm the issue is ready.
 
 ### Full Pipeline
@@ -59,7 +62,8 @@ Use this when the user wants an issue taken from its current board state through
 2. **Refinement** (if in To Do/Refining): Run the Refinement Pipeline above.
 3. **Development** (if in Ready/In Development): Invoke `/dev` with the issue number.
 4. **QA** (if in Testing): Invoke `/qa` with the issue number.
-   - If QA **fails**: Invoke `/dev` with the QA failure report. Then re-invoke `/qa`. If it fails a second time, **stop and tell the user** — do not loop further.
+   - If QA **fails with code issues**: Invoke `/dev` with the QA failure report. Then re-invoke `/qa`. If it fails a second time, **stop and tell the user**.
+   - If QA **flags AC problems** (ACs are ambiguous, contradictory, or don't match real behavior): Invoke `/pm` with the QA + Dev findings to negotiate AC updates. PM decides what to accept, defer, or reject (same as refinement). Then re-invoke `/dev` and `/qa` with the updated ACs.
 5. **Code Review** (if in In Review): Invoke `/review` with the issue number. Tell the review agent **not to merge** — only post its verdict.
    - If review **requests changes**: Invoke `/dev` with the review feedback. Then re-invoke `/review`. If it requests changes a second time, **stop and tell the user**.
 6. **Approval Gate**: Present a summary of all agent results to the user. Wait for explicit approval before merging.
@@ -69,6 +73,19 @@ Use this when the user wants an issue taken from its current board state through
    gh pr merge <pr> --repo luketmoss/hive --squash --delete-branch
    ```
    Move the issue to **Done**.
+
+### Deferred Items
+
+When PM decides to defer a UX recommendation or a QA-discovered issue to a later iteration:
+
+1. Create a new issue with `/idea`, describing the deferred item and its origin.
+2. Add a comment on the **original issue** linking to the new one:
+   ```
+   gh issue comment <original> --repo luketmoss/hive --body "Deferred to #<new>: <one-line description>"
+   ```
+3. The new issue lands in **To Do** on the board automatically.
+
+This ensures deferred items are visible on the backlog with a clear trail back to where they came from.
 
 ### Conflict Resolution — Hard Limits
 
