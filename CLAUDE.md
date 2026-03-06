@@ -13,6 +13,9 @@ Family task management system using Google Sheets as data layer.
 - `cd frontend && npm run build` — production build to frontend/dist/
 - `cd frontend && npm test` — run frontend tests (vitest)
 
+## Environment
+- **Windows machine** — `jq` is NOT available. For JSON parsing in shell commands, use `gh` built-in `--jq` flags (e.g., `gh project item-list ... --format json --jq '...'` or `gh api ... --jq '...'`). Never pipe to a standalone `jq` command.
+
 ## Architecture Notes
 - Frontend uses direct `fetch()` to Google Sheets REST API (not gapi.client)
 - Auth: Google Identity Services (GIS) token model
