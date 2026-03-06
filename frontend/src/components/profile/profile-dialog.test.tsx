@@ -255,3 +255,77 @@ describe('ProfileDialog (Issue #40)', () => {
     });
   });
 });
+
+describe('ProfileDialog — Display name persistence (Issue #61)', () => {
+  // AC1: Display name persists across dialog open/close
+  describe('AC1: Dialog uses currentName prop (not user.name)', () => {
+    it('pre-fills with currentName even when it differs from user.name', () => {
+      // Simulate: user.name is Google OAuth name, currentName is Owners-sheet name
+      const props = {
+        ...defaultProps,
+        user: { ...mockUser, name: 'Google Name' },
+        currentName: 'Owners Sheet Name',
+      };
+      const { container } = render(<ProfileDialog {...props} />);
+      const nameInput = container.querySelector('#profile-name') as HTMLInputElement;
+      expect(nameInput.value).toBe('Owners Sheet Name');
+    });
+  });
+
+  // AC2 + AC5: onNameUpdated callback is called on successful save
+  describe('AC2/AC5: onNameUpdated callback updates AuthContext', () => {
+    it('calls onNameUpdated with new name on successful save', async () => {
+      mockUpdateDisplayName.mockResolvedValue(true);
+      const onNameUpdated = vi.fn();
+      const { container } = render(
+        <ProfileDialog {...defaultProps} onNameUpdated={onNameUpdated} />
+      );
+      const nameInput = container.querySelector('#profile-name') as HTMLInputElement;
+      const form = container.querySelector('form') as HTMLFormElement;
+
+      fireEvent.input(nameInput, { target: { value: 'Alice' } });
+      fireEvent.submit(form);
+
+      await vi.waitFor(() => {
+        expect(onNameUpdated).toHaveBeenCalledWith('Alice');
+      });
+    });
+
+    it('does not call onNameUpdated on save failure', async () => {
+      mockUpdateDisplayName.mockRejectedValue(new Error('fail'));
+      const onNameUpdated = vi.fn();
+      const { container } = render(
+        <ProfileDialog {...defaultProps} onNameUpdated={onNameUpdated} />
+      );
+      const form = container.querySelector('form') as HTMLFormElement;
+
+      fireEvent.submit(form);
+
+      await vi.waitFor(() => {
+        const errorEl = container.querySelector('#profile-name-error');
+        expect(errorEl).not.toBeNull();
+      });
+      expect(onNameUpdated).not.toHaveBeenCalled();
+    });
+
+    it('passes currentName as oldName to updateDisplayName', async () => {
+      mockUpdateDisplayName.mockResolvedValue(true);
+      const props = {
+        ...defaultProps,
+        currentName: 'Alice',
+      };
+      const { container } = render(<ProfileDialog {...props} />);
+      const nameInput = container.querySelector('#profile-name') as HTMLInputElement;
+      const form = container.querySelector('form') as HTMLFormElement;
+
+      fireEvent.input(nameInput, { target: { value: 'A' } });
+      fireEvent.submit(form);
+
+      await vi.waitFor(() => {
+        expect(mockUpdateDisplayName).toHaveBeenCalledWith(
+          'A', 'test@example.com', 'Alice', 'mock-token'
+        );
+      });
+    });
+  });
+});

@@ -11,10 +11,15 @@ import { FilterBar } from '../filters/filter-bar';
 import type { ItemStatus, ItemWithRow } from '../../api/types';
 
 export function KanbanBoard() {
-  const { user, logout, token } = useAuth();
+  const { user, logout, token, updateUserName } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
   const profileTriggerRef = useRef<HTMLButtonElement>(null);
   const statuses: ItemStatus[] = ['To Do', 'In Progress', 'Done'];
+
+  // Derive display name from Owners sheet (source of truth), falling back to Google account name
+  const displayName = user
+    ? (owners.value.find(o => o.google_account.toLowerCase() === user.email.toLowerCase())?.name || user.name)
+    : '';
 
   const handleDrop = (itemId: string, newStatus: ItemStatus) => {
     if (token) {
@@ -103,7 +108,7 @@ export function KanbanBoard() {
               aria-haspopup="dialog"
             >
               {user.picture && <img src={user.picture} alt="" class="user-avatar" />}
-              <span class="user-name">{user.name}</span>
+              <span class="user-name">{displayName}</span>
             </button>
           )}
           <button class="btn btn-ghost" onClick={logout}>Sign out</button>
@@ -159,12 +164,13 @@ export function KanbanBoard() {
       {showProfile && user && token && (
         <ProfileDialog
           user={user}
-          currentName={user.name}
+          currentName={displayName}
           token={token}
           onClose={() => {
             setShowProfile(false);
             profileTriggerRef.current?.focus();
           }}
+          onNameUpdated={updateUserName}
         />
       )}
     </div>

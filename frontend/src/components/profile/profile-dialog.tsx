@@ -8,9 +8,10 @@ interface ProfileDialogProps {
   currentName: string;
   token: string;
   onClose: () => void;
+  onNameUpdated?: (newName: string) => void;
 }
 
-export function ProfileDialog({ user, currentName, token, onClose }: ProfileDialogProps) {
+export function ProfileDialog({ user, currentName, token, onClose, onNameUpdated }: ProfileDialogProps) {
   const [name, setName] = useState(currentName);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -42,6 +43,7 @@ export function ProfileDialog({ user, currentName, token, onClose }: ProfileDial
 
     try {
       await updateDisplayName(cleaned, user.email, currentName, token);
+      onNameUpdated?.(cleaned);
       onClose();
     } catch (err: any) {
       setError(err.message || 'Failed to update display name');
