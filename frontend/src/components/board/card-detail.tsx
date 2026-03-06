@@ -24,6 +24,11 @@ export function CardDetail() {
   const [subtaskOwner, setSubtaskOwner] = useState(item.owner);
   const subtaskInputRef = useRef<HTMLInputElement>(null);
   const subtaskRowRef = useRef<HTMLDivElement>(null);
+  // Prevents the focusout handler from re-submitting after Enter already triggered submitSubtask
+  const subtaskSubmittedRef = useRef(false);
+  // Mirrors subtaskTitle state so submitSubtask always reads the current value,
+  // avoiding stale-closure problems when focusOut fires before re-render.
+  const subtaskTitleRef = useRef('');
 
   const close = useCallback(() => {
     // Return focus to the triggering card element (AC5)
@@ -68,6 +73,8 @@ export function CardDetail() {
   };
 
   const handleAddSubtask = () => {
+    subtaskSubmittedRef.current = false;
+    subtaskTitleRef.current = '';
     setAddingSubtask(true);
     setSubtaskTitle('');
     setSubtaskOwner(item.owner);
@@ -78,24 +85,32 @@ export function CardDetail() {
   };
 
   const submitSubtask = () => {
-    const trimmed = subtaskTitle.trim();
+    // Guard: Enter keydown unmounts the input row which fires focusout on the container,
+    // which would otherwise call submitSubtask a second time before state has cleared.
+    if (subtaskSubmittedRef.current) return;
+    subtaskSubmittedRef.current = true;
+    // Read from ref to avoid stale closure (focusOut fires before Preact re-renders)
+    const trimmed = subtaskTitleRef.current.trim();
     if (trimmed && token) {
       createItem({ title: trimmed, parent_id: item.id, owner: subtaskOwner, created_by: user?.email || '' }, actor, token);
     }
     setAddingSubtask(false);
     setSubtaskTitle('');
+    subtaskTitleRef.current = '';
   };
 
   const cancelSubtask = () => {
+    subtaskSubmittedRef.current = true; // prevent focusout from submitting on cancel
     setAddingSubtask(false);
     setSubtaskTitle('');
+    subtaskTitleRef.current = '';
   };
 
-  /** Focus-container: only cancel when focus leaves the entire creation row */
+  /** Focus-container: only submit when focus leaves the entire creation row */
   const handleCreationRowFocusOut = (e: FocusEvent) => {
     const container = subtaskRowRef.current;
     const related = e.relatedTarget as Node | null;
-    // If focus moved to another element inside the creation row, don't cancel
+    // If focus moved to another element inside the creation row, don't submit
     if (container && related && container.contains(related)) return;
     submitSubtask();
   };
@@ -324,8 +339,13 @@ export function CardDetail() {
                   type="text"
                   class="subtask-add-input"
                   placeholder="Sub-task title..."
+                  aria-label="Sub-task title"
                   value={subtaskTitle}
-                  onInput={(e) => setSubtaskTitle((e.target as HTMLInputElement).value)}
+                  onInput={(e) => {
+                    const v = (e.target as HTMLInputElement).value;
+                    subtaskTitleRef.current = v;
+                    setSubtaskTitle(v);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') { e.preventDefault(); submitSubtask(); }
                     if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }

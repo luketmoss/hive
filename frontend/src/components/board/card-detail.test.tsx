@@ -561,6 +561,148 @@ describe('CardDetail inline dialogs (Issue #9)', () => {
   });
 });
 
+describe('CardDetail subtask double-submit fix (Issue #54)', () => {
+  beforeEach(() => {
+    mockSelectedItemId = 'detail-test-1';
+    mockChildren = [];
+    mockItems = [];
+    vi.clearAllMocks();
+  });
+
+  // AC1: Enter creates exactly one sub-task — guard prevents focusout re-trigger.
+  // Note: @testing-library/preact's fireEvent.focusOut does not work with Preact in JSDOM
+  // because 'onfocusout' is not an IDL property of elements in JSDOM 28, causing it to
+  // dispatch an event with type 'FocusOut' (mixed case) which Preact's listener never sees.
+  // We use dispatchEvent(new FocusEvent('focusout', ...)) to dispatch the correct event.
+  it('AC1: pressing Enter creates exactly one sub-task, not two', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    const row = container.querySelector('.subtask-add-inline') as HTMLElement;
+
+    fireEvent.input(input, { target: { value: 'Buy milk' } });
+    fireEvent.keyDown(input, { key: 'Enter' }); // submits once, sets guard
+
+    // Simulate focusout on the row — the guard (subtaskSubmittedRef) must prevent a second submit
+    row.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+
+    expect(createItem).toHaveBeenCalledTimes(1);
+    expect(createItem).toHaveBeenCalledWith(
+      { title: 'Buy milk', parent_id: 'detail-test-1', owner: 'Luke', created_by: 'luke@example.com' },
+      'Luke',
+      'test-token'
+    );
+  });
+
+  // AC2: Focusout (without Enter) submits exactly once.
+  // Fire on the input so the event bubbles up to the row's onFocusOut handler.
+  // submitSubtask reads subtaskTitleRef (always current) not state (stale closure).
+  it('AC2: focusout submits exactly once when Enter was not pressed', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    fireEvent.input(input, { target: { value: 'Walk the dog' } });
+
+    // Dispatch 'focusout' on the input — it bubbles up to the row's Preact handler
+    input.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+
+    expect(createItem).toHaveBeenCalledTimes(1);
+    expect(createItem).toHaveBeenCalledWith(
+      { title: 'Walk the dog', parent_id: 'detail-test-1', owner: 'Luke', created_by: 'luke@example.com' },
+      'Luke',
+      'test-token'
+    );
+  });
+
+  // AC3: Escape sets the guard, so focusout afterwards does not create a sub-task
+  it('AC3: Escape cancels and subsequent focusout does not create a sub-task', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    const row = container.querySelector('.subtask-add-inline') as HTMLElement;
+
+    fireEvent.input(input, { target: { value: 'Should not save' } });
+    fireEvent.keyDown(input, { key: 'Escape' }); // cancels, sets guard
+
+    // Even if focusout fires, the guard prevents submission
+    row.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+
+    expect(createItem).not.toHaveBeenCalled();
+  });
+
+  // AC4: Guard resets between sessions — second sub-task also creates exactly once
+  it('AC4: adding a second sub-task after the first creates exactly one item per session', () => {
+    const { container } = renderCardDetail();
+
+    // First sub-task
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+    let input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    fireEvent.input(input, { target: { value: 'First task' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    // Second sub-task
+    const addBtn2 = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn2);
+    input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    fireEvent.input(input, { target: { value: 'Second task' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(createItem).toHaveBeenCalledTimes(2);
+    expect((createItem as ReturnType<typeof vi.fn>).mock.calls[0][0].title).toBe('First task');
+    expect((createItem as ReturnType<typeof vi.fn>).mock.calls[1][0].title).toBe('Second task');
+  });
+
+  // AC5: Empty input creates no sub-task on Enter or focusout
+  it('AC5: empty input does not create a sub-task on Enter', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(createItem).not.toHaveBeenCalled();
+  });
+
+  it('AC5: whitespace-only input does not create a sub-task on focusout', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    fireEvent.input(input, { target: { value: '   ' } });
+
+    const row = container.querySelector('.subtask-add-inline') as HTMLElement;
+    row.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+
+    expect(createItem).not.toHaveBeenCalled();
+  });
+
+  // AC6: Sub-task title input has accessible name
+  it('AC6: sub-task title input has aria-label independent of placeholder', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    expect(input.getAttribute('aria-label')).toBe('Sub-task title');
+    expect(input.getAttribute('placeholder')).toBe('Sub-task title...');
+  });
+});
+
 describe('CardDetail created_by display (Issue #23)', () => {
   beforeEach(() => {
     mockSelectedItemId = 'detail-test-1';
