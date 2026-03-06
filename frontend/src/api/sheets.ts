@@ -307,4 +307,25 @@ export async function cascadeLabelUpdate(
   });
 }
 
+/**
+ * Cascade rename an owner across all Items that reference the old name.
+ * Updates the owner column (E) for each matching row.
+ */
+export async function cascadeOwnerUpdate(
+  oldName: string,
+  newName: string,
+  token: string
+): Promise<void> {
+  return withReauth(token, async (t) => {
+    const rows = await sheetsGet('Items!A2:N', t);
+    for (let i = 0; i < rows.length; i++) {
+      const owner = rows[i][4] || '';
+      if (owner !== oldName) continue;
+      const sheetRow = i + 2;
+      // Update only the owner column (E = column 5)
+      await sheetsUpdate(`Items!E${sheetRow}`, [[newName]], t);
+    }
+  });
+}
+
 export { SheetsApiError };

@@ -15,6 +15,8 @@ vi.mock('../api/sheets', () => ({
   deleteLabelRow: vi.fn().mockResolvedValue(undefined),
   fetchLabelsWithRows: vi.fn().mockResolvedValue([]),
   cascadeLabelUpdate: vi.fn().mockResolvedValue(undefined),
+  cascadeOwnerUpdate: vi.fn().mockResolvedValue(undefined),
+  upsertOwner: vi.fn().mockResolvedValue(false),
   SheetsApiError: class extends Error {
     status: number;
     constructor(status: number, message: string) {
@@ -43,6 +45,8 @@ vi.mock('../demo/mock-api', () => ({
   deleteLabelRow: vi.fn().mockResolvedValue(undefined),
   fetchLabelsWithRows: vi.fn().mockResolvedValue([]),
   cascadeLabelUpdate: vi.fn().mockResolvedValue(undefined),
+  cascadeOwnerUpdate: vi.fn().mockResolvedValue(undefined),
+  upsertOwner: vi.fn().mockResolvedValue(false),
 }));
 
 import { loadBoard, NotAllowedError, deleteSubtask, reorderSubtasks } from './actions';

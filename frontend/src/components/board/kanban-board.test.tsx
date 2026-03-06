@@ -58,6 +58,9 @@ vi.mock('./card-detail', () => ({
 vi.mock('../forms/create-item-modal', () => ({
   CreateItemModal: () => <div data-testid="create-modal" />,
 }));
+vi.mock('../profile/profile-dialog', () => ({
+  ProfileDialog: () => <div data-testid="profile-dialog" />,
+}));
 
 const mockAuth: AuthState = {
   token: 'test-token',
@@ -127,6 +130,34 @@ describe('KanbanBoard empty/welcome state (Issue #11)', () => {
       emptyColumns.forEach(el => {
         expect(el.textContent).toBe('No items');
       });
+    });
+  });
+});
+
+describe('KanbanBoard profile trigger (Issue #40)', () => {
+  // AC1: Profile trigger in header
+  describe('AC1: Profile trigger is a button with proper ARIA', () => {
+    it('renders user-info as a <button> element', () => {
+      mockItems = [];
+      const { container } = renderBoard();
+      const trigger = container.querySelector('.user-info');
+      expect(trigger).not.toBeNull();
+      expect(trigger!.tagName).toBe('BUTTON');
+    });
+
+    it('has aria-haspopup="dialog"', () => {
+      mockItems = [];
+      const { container } = renderBoard();
+      const trigger = container.querySelector('.user-info');
+      expect(trigger!.getAttribute('aria-haspopup')).toBe('dialog');
+    });
+
+    it('shows user name with truncation class', () => {
+      mockItems = [];
+      const { container } = renderBoard();
+      const nameSpan = container.querySelector('.user-name');
+      expect(nameSpan).not.toBeNull();
+      expect(nameSpan!.textContent).toBe('Luke');
     });
   });
 });
