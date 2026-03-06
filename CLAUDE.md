@@ -43,17 +43,21 @@ When the user's request matches a custom skill, invoke it automatically — no s
 
 Use this when the user wants an issue refined and ready for development.
 
+**Steps 1-3 are autonomous — do NOT stop or wait for the user between them. Continue immediately from one step to the next.**
+
 1. **Invoke `/pm`** with the issue number. Collect the acceptance criteria and scope.
-2. **Invoke `/ux`** with the issue number and the ACs from step 1. Ask it to review the proposed UX for usability and accessibility gaps. **Tell it to post its findings as a comment on the GitHub issue.**
-3. **PM + UX negotiation**: Invoke `/pm` again with the UX findings. PM reviews each UX recommendation and decides:
+2. **Immediately invoke `/ux`** with the issue number and the ACs from step 1. Ask it to review the proposed UX for usability and accessibility gaps. **Tell it to post its findings as a comment on the GitHub issue.**
+3. **Immediately invoke `/pm` again** with the UX findings (PM + UX negotiation). PM reviews each UX recommendation and decides:
    - **Accept**: update the ACs on the issue to incorporate the feedback.
    - **Defer**: the item is valid but out of scope for this issue. You (the orchestrator) create a new backlog issue for it (see **Deferred Items** below).
    - **Reject**: PM explains why the recommendation doesn't apply. No action needed.
-4. Present the final ACs to the user and confirm the issue is ready.
+4. Present the final ACs to the user and confirm the issue is ready. **This is the only pause point in refinement.**
 
 ### Full Pipeline
 
 Use this when the user wants an issue taken from its current board state through to completion (or when they explicitly ask for the full pipeline).
+
+**Steps 1-5 are autonomous — do NOT stop or wait for the user between them. The only pause point is the Approval Gate at step 6.**
 
 1. **Check board state**: Look up the issue's current column to determine where to start.
 2. **Refinement** (if in To Do/Refining): Run the Refinement Pipeline above.
