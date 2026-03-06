@@ -16,7 +16,8 @@
       "mcp__Claude_Preview__preview_stop",
       "mcp__Claude_Preview__preview_list",
       "Edit(**)",
-      "Write(**)"
+      "Write(**)",
+      "Skill(*)"
     ],
     "deny": [
       "Bash(git push --force:*)",
