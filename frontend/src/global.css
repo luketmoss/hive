@@ -829,6 +829,12 @@ body {
   color: var(--color-text);
 }
 
+.form-hint {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-top: -2px;
+}
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;
