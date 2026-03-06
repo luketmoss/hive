@@ -152,17 +152,12 @@ EOF
 
 ## Post-Review Actions
 
+**Do NOT merge the PR.** Merging is handled by the orchestrator (or the user) after approval.
+
 **If APPROVED:**
-
-1. Squash merge the PR:
-   ```bash
-   gh pr merge <pr-number> --repo luketmoss/hive --squash --delete-branch
-   ```
-
-2. Move the issue to **"Done"** using the board movement helper.
+Move the issue to **"In Review"** (it should already be there) — no column change needed.
 
 **If CHANGES REQUESTED:**
-
 Move the issue back to **"In Development"** using the board movement helper.
 
 ## Definition of Done
@@ -170,13 +165,12 @@ Move the issue back to **"In Development"** using the board movement helper.
 - [ ] Full PR diff has been read and reviewed
 - [ ] All 6 checklist categories evaluated
 - [ ] Review comment posted on the PR with clear verdict
-- [ ] If approved: PR squash-merged, branch deleted, issue in "Done"
 - [ ] If changes requested: feedback posted, issue in "In Development"
 
 ## Handoff
 
 **If APPROVED:**
-> PR #X merged, issue #N moved to **Done**. The feature is shipped.
+> Code review passed for PR #X (issue #N). Ready for user approval and merge.
 
 **If CHANGES REQUESTED:**
 > Changes requested on PR #X — see review comments. Moved back to **In Development**. Run `/dev #N` to address the feedback.

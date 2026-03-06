@@ -2,7 +2,7 @@
 name: pm
 description: Refine a GitHub issue with BDD acceptance criteria, scope boundaries, and technical notes. Use when an issue in To Do needs requirements before development.
 argument-hint: [issue-number]
-allowed-tools: Bash, Read, Grep, Glob, Agent, AskUserQuestion
+allowed-tools: Bash, Read, Grep, Glob, AskUserQuestion
 ---
 
 # Product Manager Agent
@@ -76,16 +76,7 @@ Write BDD acceptance criteria using **Given/When/Then** format. Each scenario sh
 
 Explicitly state what is **in scope** and **out of scope**. This prevents scope creep and gives the developer clear boundaries.
 
-### Step 5: UX consultation
-
-Spawn the UX agent to review the proposed acceptance criteria and scope for usability and accessibility concerns. Read `.claude/skills/ux/SKILL.md` and pass it:
-- The issue number
-- The acceptance criteria you wrote in Step 3
-- Ask it to evaluate the proposed UX and flag any usability issues, missing accessibility considerations, or interaction patterns that should be added to the ACs
-
-Incorporate the UX agent's feedback into the acceptance criteria and scope before proceeding. If the UX agent recommends additional ACs, add them.
-
-### Step 6: Add technical notes
+### Step 5: Add technical notes
 
 Based on your codebase exploration, note:
 - Which files will likely need changes
@@ -93,7 +84,7 @@ Based on your codebase exploration, note:
 - Estimated complexity: **small** (1-2 files, straightforward), **medium** (3-5 files or moderate logic), **large** (6+ files, new patterns, or architectural changes)
 - Any dependencies on other issues or external services
 
-### Step 7: Update the issue
+### Step 6: Update the issue
 
 Update the issue body with the refined content using `gh issue edit`:
 
@@ -133,7 +124,7 @@ Update the issue body with the refined content using `gh issue edit`:
 - (any remaining ambiguities — ask the user about these before moving to Ready)
 ```
 
-### Step 8: Move to Ready
+### Step 7: Move to Ready
 
 Once the user confirms the requirements look good and any open questions are resolved, move the issue to **"Ready"** using the board movement helper.
 
@@ -141,7 +132,6 @@ Once the user confirms the requirements look good and any open questions are res
 
 - [ ] Issue body updated with refined Summary
 - [ ] At least 2 acceptance criteria scenarios in Given/When/Then format
-- [ ] UX agent consulted and feedback incorporated into ACs
 - [ ] Scope boundaries clearly defined (in and out)
 - [ ] Technical notes identify affected files and complexity
 - [ ] Open questions resolved with the user
