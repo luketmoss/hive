@@ -1,12 +1,13 @@
-import { useState, useRef } from 'preact/hooks';
+import { useState, useRef, useCallback } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode } from '../../state/board-store';
+import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog } from '../../state/board-store';
 import { moveItem } from '../../state/actions';
 import { Column } from './column';
 import { ListView } from './list-view';
 import { CardDetail } from './card-detail';
 import { CreateItemModal } from '../forms/create-item-modal';
 import { ProfileDialog } from '../profile/profile-dialog';
+import { ArchiveDialog } from '../archive/archive-dialog';
 import { FilterBar } from '../filters/filter-bar';
 import type { ItemStatus, ItemWithRow } from '../../api/types';
 
@@ -14,12 +15,22 @@ export function KanbanBoard() {
   const { user, logout, token, updateUserName } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
   const profileTriggerRef = useRef<HTMLButtonElement>(null);
+  const archiveTriggerRef = useRef<HTMLButtonElement>(null);
   const statuses: ItemStatus[] = ['To Do', 'In Progress', 'Done'];
 
   // Derive display name from Owners sheet (source of truth), falling back to Google account name
   const displayName = user
     ? (owners.value.find(o => o.google_account.toLowerCase() === user.email.toLowerCase())?.name || user.name)
     : '';
+
+  const handleOpenArchive = useCallback(() => {
+    showArchiveDialog.value = true;
+  }, []);
+
+  const handleCloseArchive = useCallback(() => {
+    showArchiveDialog.value = false;
+    archiveTriggerRef.current?.focus();
+  }, []);
 
   const handleDrop = (itemId: string, newStatus: ItemStatus) => {
     if (token) {
@@ -49,6 +60,12 @@ export function KanbanBoard() {
               items={columns.value[status]}
               onDrop={handleDrop}
               onMoveStatus={handleMoveStatus}
+              {...(status === 'Done' ? {
+                allDoneCount: allDoneItems.value.length,
+                hasArchived: hasArchivedItems.value,
+                archiveTriggerRef: (el: HTMLButtonElement | null) => { archiveTriggerRef.current = el; },
+                onOpenArchive: handleOpenArchive,
+              } : {})}
             />
           ))}
         </div>
@@ -161,6 +178,7 @@ export function KanbanBoard() {
 
       {selectedItem.value && <CardDetail />}
       {showCreateModal.value && <CreateItemModal />}
+      {showArchiveDialog.value && <ArchiveDialog onClose={handleCloseArchive} />}
       {showProfile && user && token && (
         <ProfileDialog
           user={user}

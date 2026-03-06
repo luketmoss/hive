@@ -36,6 +36,9 @@ vi.mock('../../state/board-store', () => ({
   getChildCount: () => ({ done: 0, total: 0 }),
   viewMode: mockViewMode,
   setViewMode: mockSetViewMode,
+  allDoneItems: { value: [] },
+  hasArchivedItems: { value: false },
+  showArchiveDialog: { value: false },
 }));
 
 vi.mock('../../state/actions', () => ({
@@ -56,6 +59,10 @@ vi.mock('./card-detail', () => ({
 
 vi.mock('../forms/create-item-modal', () => ({
   CreateItemModal: () => <div data-testid="create-modal" />,
+}));
+
+vi.mock('../archive/archive-dialog', () => ({
+  ArchiveDialog: () => <div data-testid="archive-dialog" />,
 }));
 
 // Import after mocks

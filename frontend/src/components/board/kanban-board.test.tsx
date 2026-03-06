@@ -37,6 +37,9 @@ vi.mock('../../state/board-store', () => ({
   getChildCount: () => ({ done: 0, total: 0 }),
   viewMode: { value: 'board' },
   setViewMode: () => {},
+  allDoneItems: { value: [] },
+  hasArchivedItems: { value: false },
+  showArchiveDialog: { value: false },
 }));
 
 vi.mock('../../state/actions', () => ({
@@ -60,6 +63,9 @@ vi.mock('../forms/create-item-modal', () => ({
 }));
 vi.mock('../profile/profile-dialog', () => ({
   ProfileDialog: () => <div data-testid="profile-dialog" />,
+}));
+vi.mock('../archive/archive-dialog', () => ({
+  ArchiveDialog: () => <div data-testid="archive-dialog" />,
 }));
 
 const mockAuth: AuthState = {
