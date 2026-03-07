@@ -27,10 +27,10 @@ Use this single command to move an issue to a board column. Replace `<ISSUE_NUMB
 
 ```bash
 gh project item-edit \
-  --id "$(gh project item-list 2 --owner luketmoss --format json | jq -r '.items[] | select(.content.number == <ISSUE_NUMBER>) | .id')" \
-  --project-id "$(gh project list --owner luketmoss --format json | jq -r '.projects[] | select(.number == 2) | .id')" \
-  --field-id "$(gh project field-list 2 --owner luketmoss --format json | jq -r '.fields[] | select(.name == "Status") | .id')" \
-  --single-select-option-id "$(gh project field-list 2 --owner luketmoss --format json | jq -r '.fields[] | select(.name == "Status") | .options[] | select(.name == "<COLUMN_NAME>") | .id')"
+  --id "$(gh project item-list 2 --owner luketmoss --format json --jq '.items[] | select(.content.number == <ISSUE_NUMBER>) | .id')" \
+  --project-id "$(gh project list --owner luketmoss --format json --jq '.projects[] | select(.number == 2) | .id')" \
+  --field-id "$(gh project field-list 2 --owner luketmoss --format json --jq '.fields[] | select(.name == "Status") | .id')" \
+  --single-select-option-id "$(gh project field-list 2 --owner luketmoss --format json --jq '.fields[] | select(.name == "Status") | .options[] | select(.name == "<COLUMN_NAME>") | .id')"
 ```
 
 ## How to Spawn Agents
@@ -76,7 +76,7 @@ gh api graphql -f query='query {
 For each sub-issue, look up its board column:
 
 ```bash
-gh project item-list 2 --owner luketmoss --format json | jq -r '.items[] | select(.content.number == <CHILD_NUMBER>) | .status'
+gh project item-list 2 --owner luketmoss --format json --jq '.items[] | select(.content.number == <CHILD_NUMBER>) | .status'
 ```
 
 ## Step 3: Sort and filter

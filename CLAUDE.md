@@ -140,6 +140,10 @@ When PM decides to defer a UX recommendation or a QA-discovered issue to a later
 
 This ensures deferred items are visible on the backlog with a clear trail back to where they came from.
 
+### Context Compaction Recovery
+
+If the conversation context is compacted mid-pipeline, **continue invoking skills normally**. Do NOT run remaining stages inline as the orchestrator — always delegate to the appropriate skill (`/qa`, `/review`, `/dev`, etc.) even after compaction. The conversation summary provides enough context for skill invocation. Doing work inline wastes orchestrator context and bypasses skill-specific guardrails.
+
 ### Conflict Resolution — Hard Limits
 
 You get exactly **2 attempts** per failing stage. Track this as a count:
