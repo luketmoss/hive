@@ -1,4 +1,4 @@
-import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl } from './board-store';
+import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl, permissions, currentUserEmail } from './board-store';
 import { validateStatusTransition, applyStatusSideEffects } from './rules';
 import {
   fetchAllItems as sheetsFetchAllItems,
@@ -17,6 +17,9 @@ import {
   upsertOwner as sheetsUpsertOwner,
   fetchBoards as sheetsFetchBoards,
   createBoardRow as sheetsCreateBoardRow,
+  fetchPermissions as sheetsFetchPermissions,
+  createPermissionRow as sheetsCreatePermissionRow,
+  deletePermissionRow as sheetsDeletePermissionRow,
 } from '../api/sheets';
 import {
   fetchAllItems as mockFetchAllItems,
@@ -35,6 +38,9 @@ import {
   upsertOwner as mockUpsertOwner,
   fetchBoards as mockFetchBoards,
   createBoardRow as mockCreateBoardRow,
+  fetchPermissions as mockFetchPermissions,
+  createPermissionRow as mockCreatePermissionRow,
+  deletePermissionRow as mockDeletePermissionRow,
 } from '../demo/mock-api';
 import { isDemoMode } from '../demo/is-demo-mode';
 import { ReauthFailedError } from '../auth/reauth';
@@ -72,6 +78,9 @@ function api() {
       upsertOwner: mockUpsertOwner,
       fetchBoards: mockFetchBoards,
       createBoardRow: mockCreateBoardRow,
+      fetchPermissions: mockFetchPermissions,
+      createPermissionRow: mockCreatePermissionRow,
+      deletePermissionRow: mockDeletePermissionRow,
     };
   }
   return {
@@ -91,6 +100,9 @@ function api() {
     upsertOwner: sheetsUpsertOwner,
     fetchBoards: sheetsFetchBoards,
     createBoardRow: sheetsCreateBoardRow,
+    fetchPermissions: sheetsFetchPermissions,
+    createPermissionRow: sheetsCreatePermissionRow,
+    deletePermissionRow: sheetsDeletePermissionRow,
   };
 }
 
@@ -110,6 +122,9 @@ const cascadeOwnerUpdate = (...args: Parameters<typeof sheetsCascadeOwnerUpdate>
 const upsertOwner = (...args: Parameters<typeof sheetsUpsertOwner>) => api().upsertOwner(...args);
 const fetchBoardsApi = (...args: Parameters<typeof sheetsFetchBoards>) => api().fetchBoards(...args);
 const createBoardRowApi = (...args: Parameters<typeof sheetsCreateBoardRow>) => api().createBoardRow(...args);
+const fetchPermissionsApi = (...args: Parameters<typeof sheetsFetchPermissions>) => api().fetchPermissions(...args);
+const createPermissionRowApi = (...args: Parameters<typeof sheetsCreatePermissionRow>) => api().createPermissionRow(...args);
+const deletePermissionRowApi = (...args: Parameters<typeof sheetsDeletePermissionRow>) => api().deletePermissionRow(...args);
 
 function generateUUID(): string {
   return crypto.randomUUID();
@@ -126,18 +141,47 @@ export class NotAllowedError extends Error {
 export async function loadBoard(token: string, user?: UserInfo | null) {
   loading.value = true;
   try {
-    const [itemsData, ownersData, labelsData, boardsData] = await Promise.all([
+    const [itemsData, ownersData, labelsData, boardsData, permsData] = await Promise.all([
       fetchAllItems(token),
       fetchOwners(token),
       fetchLabels(token),
       fetchBoardsApi(token),
+      fetchPermissionsApi(token),
     ]);
     items.value = itemsData;
     owners.value = ownersData;
     labels.value = labelsData;
     boards.value = boardsData;
 
-    // Initialize active board from URL or default to first board
+    // Set current user email for permission filtering
+    if (user) {
+      currentUserEmail.value = user.email;
+    }
+
+    // Migration (AC7): if boards exist but have no permission entries, create
+    // wildcard entries so existing boards remain accessible.
+    if (boardsData.length > 0 && permsData.length === 0) {
+      const migrationPerms = boardsData.map(b => ({
+        board_id: b.id,
+        user_email: '*',
+        role: 'member' as const,
+      }));
+      // Also grant owner role to board creators
+      const ownerPerms = boardsData.map(b => ({
+        board_id: b.id,
+        user_email: b.created_by,
+        role: 'owner' as const,
+      }));
+      const allPerms = [...ownerPerms, ...migrationPerms];
+      for (const perm of allPerms) {
+        await createPermissionRowApi(perm, token);
+      }
+      permissions.value = allPerms;
+    } else {
+      permissions.value = permsData;
+    }
+
+    // Initialize active board from URL or default to first accessible board
     if (boardsData.length > 0) {
       initActiveBoardFromUrl();
     }
@@ -725,8 +769,13 @@ export async function createBoard(
     );
   }
 
+  // Optimistic: add owner permission
+  const ownerPerm = { board_id: board.id, user_email: actor, role: 'owner' as const };
+  permissions.value = [...permissions.value, ownerPerm];
+
   try {
     await createBoardRowApi(board, token);
+    await createPermissionRowApi(ownerPerm, token);
 
     // Persist board_id for orphaned items
     for (const item of orphanedItems) {
@@ -734,12 +783,14 @@ export async function createBoard(
       await updateItemRow(item.sheetRow, updated, token);
     }
 
+    await appendAuditEntry(board.id, 'board_created', '', '', board.name, actor, token);
     switchBoard(board.id);
     showToast('Board created');
     return true;
   } catch (err: any) {
     // Rollback
     boards.value = boards.value.filter(b => b.id !== board.id);
+    permissions.value = permissions.value.filter(p => p.board_id !== board.id);
     if (orphanedItems.length > 0) {
       items.value = items.value.map(i =>
         orphanedItems.some(o => o.id === i.id) ? { ...i, board_id: '' } : i
@@ -749,5 +800,80 @@ export async function createBoard(
       showToast('Failed to create board: ' + err.message, 'error');
     }
     return false;
+  }
+}
+
+// --- Board sharing actions ---
+
+import type { BoardPermission } from '../api/types';
+
+export async function shareBoard(
+  boardId: string,
+  userEmail: string,
+  role: BoardPermission['role'],
+  actor: string,
+  token: string
+): Promise<boolean> {
+  // Check if already shared
+  const existing = permissions.value.find(
+    p => p.board_id === boardId && p.user_email.toLowerCase() === userEmail.toLowerCase()
+  );
+  if (existing) {
+    showToast('Already shared with this user', 'error');
+    return false;
+  }
+
+  const perm: BoardPermission = { board_id: boardId, user_email: userEmail, role };
+
+  // Optimistic update
+  permissions.value = [...permissions.value, perm];
+
+  try {
+    await createPermissionRowApi(perm, token);
+    await appendAuditEntry(boardId, 'board_shared', 'user_email', '', userEmail, actor, token);
+    return true;
+  } catch (err: any) {
+    permissions.value = permissions.value.filter(
+      p => !(p.board_id === boardId && p.user_email.toLowerCase() === userEmail.toLowerCase())
+    );
+    if (!isReauthFailure(err)) {
+      showToast('Failed to share board: ' + err.message, 'error');
+    }
+    return false;
+  }
+}
+
+export async function unshareBoard(
+  boardId: string,
+  userEmail: string,
+  actor: string,
+  token: string
+): Promise<boolean> {
+  const oldPerms = [...permissions.value];
+
+  // Optimistic update
+  permissions.value = permissions.value.filter(
+    p => !(p.board_id === boardId && p.user_email.toLowerCase() === userEmail.toLowerCase())
+  );
+
+  try {
+    await deletePermissionRowApi(boardId, userEmail, token);
+    await appendAuditEntry(boardId, 'board_unshared', 'user_email', userEmail, '', actor, token);
+    return true;
+  } catch (err: any) {
+    permissions.value = oldPerms;
+    if (!isReauthFailure(err)) {
+      showToast('Failed to remove member: ' + err.message, 'error');
+    }
+    return false;
+  }
+}
+
+export async function refreshPermissions(token: string) {
+  try {
+    permissions.value = await fetchPermissionsApi(token);
+  } catch (err: any) {
+    if (isReauthFailure(err)) return;
+    console.error('Permission refresh failed:', err);
   }
 }

@@ -2,7 +2,7 @@
 // Covers all board features: multiple statuses, owners, labels,
 // subtasks, overdue dates, scheduled dates, long titles, unassigned items.
 
-import type { ItemWithRow, Owner, Label, Board } from '../api/types';
+import type { ItemWithRow, Owner, Label, Board, BoardPermission } from '../api/types';
 
 // Helper to produce ISO date strings relative to "now" at module load time.
 // Using a fixed reference keeps data deterministic within a single page load.
@@ -39,6 +39,17 @@ export const MOCK_LABELS: Label[] = [
 export const MOCK_BOARDS: Board[] = [
   { id: 'board-family', name: 'Family Board', created_at: daysAgo(30), created_by: 'mom@family.com' },
   { id: 'board-work', name: 'Work Projects', created_at: daysAgo(14), created_by: 'dad@family.com' },
+];
+
+// --- Permissions ---
+// Family Board: demo user is owner, shared with all (*).
+// Work Projects: Dad is owner, Mom is member, demo user has no access.
+export const MOCK_PERMISSIONS: BoardPermission[] = [
+  { board_id: 'board-family', user_email: 'demo@hive.local', role: 'owner' },
+  { board_id: 'board-family', user_email: 'mom@family.com', role: 'member' },
+  { board_id: 'board-family', user_email: '*', role: 'member' },
+  { board_id: 'board-work', user_email: 'dad@family.com', role: 'owner' },
+  { board_id: 'board-work', user_email: 'mom@family.com', role: 'member' },
 ];
 
 // --- Items ---

@@ -19,6 +19,9 @@ vi.mock('../api/sheets', () => ({
   upsertOwner: vi.fn().mockResolvedValue(false),
   fetchBoards: vi.fn().mockResolvedValue([]),
   createBoardRow: vi.fn().mockResolvedValue(undefined),
+  fetchPermissions: vi.fn().mockResolvedValue([]),
+  createPermissionRow: vi.fn().mockResolvedValue(undefined),
+  deletePermissionRow: vi.fn().mockResolvedValue(undefined),
   SheetsApiError: class extends Error {
     status: number;
     constructor(status: number, message: string) {
@@ -51,10 +54,13 @@ vi.mock('../demo/mock-api', () => ({
   upsertOwner: vi.fn().mockResolvedValue(false),
   fetchBoards: vi.fn().mockResolvedValue([]),
   createBoardRow: vi.fn().mockResolvedValue(undefined),
+  fetchPermissions: vi.fn().mockResolvedValue([]),
+  createPermissionRow: vi.fn().mockResolvedValue(undefined),
+  deletePermissionRow: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { loadBoard, NotAllowedError, deleteSubtask, reorderSubtasks, createItemWithSubtasks } from './actions';
-import { owners, loading, items, activeBoardId } from './board-store';
+import { owners, loading, items, activeBoardId, permissions, currentUserEmail } from './board-store';
 import * as sheetsApi from '../api/sheets';
 import type { ItemWithRow } from '../api/types';
 
