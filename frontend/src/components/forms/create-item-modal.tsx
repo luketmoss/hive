@@ -1,9 +1,10 @@
-import { useState, useRef } from 'preact/hooks';
+import { useState, useRef, useCallback } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
 import { showCreateModal, owners, labels as labelsStore } from '../../state/board-store';
 import { createItem, createItemWithSubtasks } from '../../state/actions';
 import type { StagedSubtask } from '../../state/actions';
 import { LabelPickerManager } from '../labels/label-picker-manager';
+import { useFocusTrap } from '../../hooks/use-focus-trap';
 import { getContrastTextColor } from '../../utils/color';
 
 export function CreateItemModal() {
@@ -18,7 +19,8 @@ export function CreateItemModal() {
   const [subtaskInput, setSubtaskInput] = useState('');
   const subtaskInputRef = useRef<HTMLInputElement>(null);
 
-  const close = () => { showCreateModal.value = false; };
+  const close = useCallback(() => { showCreateModal.value = false; }, []);
+  const trapRef = useFocusTrap(close);
 
   const handleSubmit = (e: Event) => {
     e.preventDefault();
@@ -75,7 +77,7 @@ export function CreateItemModal() {
   };
 
   return (
-    <div class="modal-overlay" onClick={(e) => {
+    <div class="modal-overlay" ref={trapRef} onClick={(e) => {
       if ((e.target as HTMLElement).classList.contains('modal-overlay')) close();
     }}>
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="create-modal-title">

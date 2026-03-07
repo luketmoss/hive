@@ -69,6 +69,7 @@ export function ArchiveDialog({ onClose }: ArchiveDialogProps) {
               placeholder="Search completed items…"
               aria-label="Search completed items"
               class="archive-search-input"
+              data-autofocus
             />
             {search && (
               <button

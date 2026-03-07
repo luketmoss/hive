@@ -116,6 +116,7 @@ export function ProfileDialog({ user, currentName, token, onClose, onNameUpdated
             <input
               id="profile-name"
               type="text"
+              data-autofocus
               value={name}
               onInput={handleInput}
               aria-invalid={error ? 'true' : undefined}
