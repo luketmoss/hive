@@ -174,14 +174,23 @@ export function switchBoard(boardId: string) {
   }
 }
 
-/** Read active board from URL query param, falling back to first board. */
+/** Read active board from URL query param, falling back to first accessible board. */
 export function initActiveBoardFromUrl() {
   const params = new URLSearchParams(window.location.search);
   const boardParam = params.get('board');
-  if (boardParam && boards.value.some(b => b.id === boardParam)) {
+  // Filter to boards the current user can access (AC3)
+  const email = currentUserEmail.value.toLowerCase();
+  const available = email
+    ? boards.value.filter(b =>
+        permissions.value.some(p =>
+          p.board_id === b.id && (p.user_email === '*' || p.user_email.toLowerCase() === email)
+        )
+      )
+    : boards.value;
+  if (boardParam && available.some(b => b.id === boardParam)) {
     activeBoardId.value = boardParam;
-  } else if (boards.value.length > 0) {
-    activeBoardId.value = boards.value[0].id;
+  } else if (available.length > 0) {
+    activeBoardId.value = available[0].id;
   }
   // Update document title
   const board = boards.value.find(b => b.id === activeBoardId.value);
