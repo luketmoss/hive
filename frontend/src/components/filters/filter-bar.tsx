@@ -6,32 +6,48 @@ export function FilterBar() {
   return (
     <div class="filter-bar">
       <div class="filter-group">
-        <select
-          aria-label="Filter by owner"
-          value={filterOwner.value || ''}
-          onChange={(e) => {
-            filterOwner.value = (e.target as HTMLSelectElement).value || null;
-          }}
-        >
-          <option value="">All owners</option>
-          {owners.value.map(o => (
-            <option key={o.name} value={o.name}>{o.name}</option>
-          ))}
-        </select>
+        {/* AC1, AC9: Owner chips in a labeled group */}
+        <div role="group" aria-label="Filter by owner" class="filter-chip-group">
+          <span class="filter-chip-group-label">Owner:</span>
+          {owners.value.map(o => {
+            const active = filterOwner.value === o.name;
+            return (
+              <button
+                key={o.name}
+                class={`filter-chip filter-chip-owner${active ? ' filter-chip-active' : ''}`}
+                aria-pressed={active ? 'true' : 'false'}
+                onClick={() => {
+                  filterOwner.value = active ? null : o.name;
+                }}
+              >
+                {o.name}
+              </button>
+            );
+          })}
+        </div>
 
-        <select
-          aria-label="Filter by label"
-          value={filterLabel.value || ''}
-          onChange={(e) => {
-            filterLabel.value = (e.target as HTMLSelectElement).value || null;
-          }}
-        >
-          <option value="">All labels</option>
-          {labelsStore.value.map(l => (
-            <option key={l.label} value={l.label}>{l.label}</option>
-          ))}
-        </select>
+        {/* AC2, AC9: Label chips in a labeled group */}
+        <div role="group" aria-label="Filter by label" class="filter-chip-group">
+          <span class="filter-chip-group-label">Label:</span>
+          {labelsStore.value.map(l => {
+            const active = filterLabel.value === l.label;
+            return (
+              <button
+                key={l.label}
+                class={`filter-chip filter-chip-label${active ? ' filter-chip-active' : ''}`}
+                aria-pressed={active ? 'true' : 'false'}
+                style={`--label-color: ${l.color}`}
+                onClick={() => {
+                  filterLabel.value = active ? null : l.label;
+                }}
+              >
+                {l.label}
+              </button>
+            );
+          })}
+        </div>
 
+        {/* AC6: Group-by remains a select */}
         <select
           aria-label="Group items by"
           value={groupBy.value}
@@ -44,6 +60,7 @@ export function FilterBar() {
           <option value="label">Group by label</option>
         </select>
 
+        {/* AC4, AC5: Clear filters button */}
         {hasFilters && (
           <button
             class="btn btn-ghost btn-sm"
