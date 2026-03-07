@@ -32,3 +32,5 @@ npm-debug.log*
 .claude/*
 !.claude/skills/
 !.claude/settings.json
+!.claude/retrospectives/
+.claude/retrospectives/*.md
