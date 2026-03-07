@@ -230,6 +230,99 @@ export async function createItem(
   }
 }
 
+export interface StagedSubtask {
+  title: string;
+  owner: string;
+}
+
+export async function createItemWithSubtasks(
+  data: Partial<Item>,
+  subtasks: StagedSubtask[],
+  actor: string,
+  token: string
+) {
+  if (!data.title?.trim()) {
+    showToast('Title is required', 'error');
+    return;
+  }
+
+  const status: ItemStatus = data.status ?? 'To Do';
+  if (status === 'In Progress' && !data.owner) {
+    showToast('Owner required for In Progress items', 'error');
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const maxOrder = items.value
+    .filter(i => i.status === status)
+    .reduce((max, i) => Math.max(max, i.sort_order), 0);
+
+  const parentId = generateUUID();
+  const parent: Item = {
+    id: parentId,
+    title: data.title.trim(),
+    description: data.description || '',
+    status,
+    owner: data.owner || '',
+    due_date: data.due_date || '',
+    scheduled_date: data.scheduled_date || '',
+    labels: data.labels || '',
+    parent_id: data.parent_id || '',
+    created_at: now,
+    updated_at: now,
+    completed_at: status === 'Done' ? now : '',
+    sort_order: maxOrder + 1,
+    created_by: data.created_by || '',
+    board_id: data.board_id || activeBoardId.value,
+  };
+
+  // Filter out blank subtasks and build child items
+  const validSubtasks = subtasks.filter(s => s.title.trim());
+  const children: Item[] = validSubtasks.map((s, i) => ({
+    id: generateUUID(),
+    title: s.title.trim(),
+    description: '',
+    status: 'To Do' as ItemStatus,
+    owner: s.owner || '',
+    due_date: '',
+    scheduled_date: '',
+    labels: '',
+    parent_id: parentId,
+    created_at: now,
+    updated_at: now,
+    completed_at: '',
+    sort_order: i + 1,
+    created_by: data.created_by || '',
+    board_id: data.board_id || activeBoardId.value,
+  }));
+
+  // Optimistic update — add parent and all children
+  const allNew: ItemWithRow[] = [parent, ...children].map(item => ({ ...item, sheetRow: -1 }));
+  items.value = [...items.value, ...allNew];
+
+  try {
+    // Create parent first
+    await createItemRow(parent, token);
+    await appendAuditEntry(parent.id, 'created', '', '', parent.title, actor, token);
+
+    // Create children sequentially
+    for (const child of children) {
+      await createItemRow(child, token);
+      await appendAuditEntry(child.id, 'created', '', '', child.title, actor, token);
+    }
+
+    await refreshItems(token);
+    showToast('Item created');
+  } catch (err: any) {
+    // Rollback all
+    const ids = new Set(allNew.map(i => i.id));
+    items.value = items.value.filter(i => !ids.has(i.id));
+    if (!isReauthFailure(err)) {
+      showToast('Failed to create item: ' + err.message, 'error');
+    }
+  }
+}
+
 export async function moveItem(
   itemId: string,
   newStatus: ItemStatus,
