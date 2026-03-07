@@ -349,10 +349,47 @@ export async function fetchBoards(token: string): Promise<Board[]> {
   }
 }
 
+/** Create the Boards tab with a header row if it doesn't exist yet. */
+async function ensureBoardsTab(token: string): Promise<void> {
+  const url = `${BASE}/${SPREADSHEET_ID}:batchUpdate`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      requests: [{ addSheet: { properties: { title: 'Boards' } } }],
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    // If the tab already exists, that's fine — ignore the error
+    if (text.includes('already exists')) return;
+    throw new SheetsApiError(res.status, text);
+  }
+  // Add header row
+  await sheetsUpdate('Boards!A1:D1', [['ID', 'Name', 'Created At', 'Created By']], token);
+}
+
 export async function createBoardRow(board: Board, token: string): Promise<void> {
-  return withReauth(token, (t) => sheetsAppend('Boards!A:D', [[
-    board.id, board.name, board.created_at, board.created_by,
-  ]], t));
+  return withReauth(token, async (t) => {
+    try {
+      await sheetsAppend('Boards!A:D', [[
+        board.id, board.name, board.created_at, board.created_by,
+      ]], t);
+    } catch (err) {
+      // If Boards tab doesn't exist, create it and retry
+      if (err instanceof SheetsApiError && err.status === 400) {
+        await ensureBoardsTab(t);
+        await sheetsAppend('Boards!A:D', [[
+          board.id, board.name, board.created_at, board.created_by,
+        ]], t);
+        return;
+      }
+      throw err;
+    }
+  });
 }
 
 export { SheetsApiError };
