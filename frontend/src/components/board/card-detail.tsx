@@ -335,53 +335,58 @@ export function CardDetail() {
             )}
             {addingSubtask && (
               <div
-                class="subtask-add-inline"
+                class="subtask-add-wrapper"
                 ref={subtaskRowRef}
                 onFocusOut={handleCreationRowFocusOut}
               >
-                <input
-                  ref={subtaskInputRef}
-                  type="text"
-                  class="subtask-add-input"
-                  placeholder="Sub-task title..."
-                  aria-label="Sub-task title"
-                  value={subtaskTitle}
-                  onInput={(e) => {
-                    const v = (e.target as HTMLInputElement).value;
-                    subtaskTitleRef.current = v;
-                    setSubtaskTitle(v);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') { e.preventDefault(); submitSubtask(); }
-                    if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }
-                  }}
-                />
-                <select
-                  class="subtask-add-owner"
-                  value={subtaskOwner}
-                  aria-label="Owner for new sub-task"
-                  onChange={(e) => setSubtaskOwner((e.target as HTMLSelectElement).value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }
-                  }}
-                >
-                  <option value="">Unassigned</option>
-                  {owners.value.map(o => (
-                    <option key={o.name} value={o.name}>{o.name}</option>
-                  ))}
-                </select>
-                <button
-                  class="btn-icon subtask-action-btn subtask-add-confirm"
-                  aria-label="Add sub-task"
-                  aria-disabled={!subtaskTitle.trim() ? 'true' : undefined}
-                  style={!subtaskTitle.trim() ? 'opacity: 0.4; cursor: not-allowed;' : undefined}
-                  onClick={() => { if (subtaskTitle.trim()) submitSubtask(); }}
-                >&#10003;</button>
-                <button
-                  class="btn-icon subtask-action-btn"
-                  aria-label="Cancel adding sub-task"
-                  onClick={() => cancelSubtask()}
-                >&#10005;</button>
+                <div class="subtask-add-inline">
+                  <input
+                    ref={subtaskInputRef}
+                    type="text"
+                    class="subtask-add-input"
+                    placeholder="Sub-task title..."
+                    aria-label="Sub-task title"
+                    aria-describedby="subtask-add-hint"
+                    value={subtaskTitle}
+                    onInput={(e) => {
+                      const v = (e.target as HTMLInputElement).value;
+                      subtaskTitleRef.current = v;
+                      setSubtaskTitle(v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { e.preventDefault(); submitSubtask(); }
+                      if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }
+                    }}
+                  />
+                  <select
+                    class="subtask-add-owner"
+                    value={subtaskOwner}
+                    aria-label="Owner for new sub-task"
+                    aria-describedby="subtask-add-hint"
+                    onChange={(e) => setSubtaskOwner((e.target as HTMLSelectElement).value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }
+                    }}
+                  >
+                    <option value="">Unassigned</option>
+                    {owners.value.map(o => (
+                      <option key={o.name} value={o.name}>{o.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    class="btn-icon subtask-action-btn subtask-add-confirm"
+                    aria-label="Add sub-task"
+                    aria-disabled={!subtaskTitle.trim() ? 'true' : undefined}
+                    style={!subtaskTitle.trim() ? 'opacity: 0.4; cursor: not-allowed;' : undefined}
+                    onClick={() => { if (subtaskTitle.trim()) submitSubtask(); }}
+                  >&#10003;</button>
+                  <button
+                    class="btn-icon subtask-action-btn"
+                    aria-label="Cancel adding sub-task"
+                    onClick={() => cancelSubtask()}
+                  >&#10005;</button>
+                </div>
+                <span id="subtask-add-hint" class="subtask-add-hint">Enter to add · Esc to cancel</span>
               </div>
             )}
           </div>
