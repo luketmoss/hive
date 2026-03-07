@@ -23,6 +23,8 @@ export function ProfileDialog({ user, currentName, token, onClose, onNameUpdated
 
   const trapRef = useFocusTrap(handleClose);
 
+  const cleanedLength = name.replace(/[\x00-\x1f\x7f]/g, '').trim().length;
+
   const validate = (value: string): string => {
     const cleaned = value.replace(/[\x00-\x1f\x7f]/g, '').trim();
     if (!cleaned) return 'Display name cannot be empty';
@@ -92,11 +94,11 @@ export function ProfileDialog({ user, currentName, token, onClose, onNameUpdated
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div class="profile-avatar-section">
-            {user.picture && (
+          {user.picture && (
+            <div class="profile-avatar-section">
               <img src={user.picture} alt="" class="profile-avatar" />
-            )}
-          </div>
+            </div>
+          )}
 
           <div class="form-field">
             <label for="profile-email">Email</label>
@@ -117,13 +119,22 @@ export function ProfileDialog({ user, currentName, token, onClose, onNameUpdated
               value={name}
               onInput={handleInput}
               aria-invalid={error ? 'true' : undefined}
-              aria-describedby={error ? 'profile-name-error' : undefined}
+              aria-describedby={['profile-name-counter', error ? 'profile-name-error' : ''].filter(Boolean).join(' ')}
             />
-            {error && (
-              <div id="profile-name-error" class="profile-error" role="alert">
-                {error}
-              </div>
-            )}
+            <div class="profile-name-status">
+              {error && (
+                <div id="profile-name-error" class="profile-error" role="alert">
+                  {error}
+                </div>
+              )}
+              <span
+                id="profile-name-counter"
+                class={`char-counter${cleanedLength > 50 ? ' char-counter-danger' : cleanedLength > 40 ? ' char-counter-warning' : ''}`}
+                aria-live={cleanedLength > 40 ? 'polite' : 'off'}
+              >
+                {cleanedLength}/50
+              </span>
+            </div>
           </div>
 
           <div class="modal-footer">

@@ -12,6 +12,7 @@
   --color-done: #e8f5e9;
   --color-danger: #d32f2f;
   --color-danger-hover: #b71c1c;
+  --color-warning: #a05d00;
   --color-overdue: #ef5350;
   --radius: 8px;
   --radius-sm: 4px;
@@ -237,7 +238,29 @@ body {
 .profile-error {
   font-size: 12px;
   color: var(--color-danger);
+  margin-top: 0;
+}
+
+.profile-name-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
   margin-top: 2px;
+  min-height: 18px;
+}
+
+.char-counter {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-left: auto;
+}
+
+.char-counter-warning {
+  color: var(--color-warning);
+}
+
+.char-counter-danger {
+  color: var(--color-danger);
 }
 
 .board-main {
@@ -862,11 +885,21 @@ body {
 }
 
 /* === Inline subtask add === */
-.subtask-add-inline {
+.subtask-add-wrapper {
   margin-top: 4px;
+}
+
+.subtask-add-inline {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.subtask-add-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
 }
 
 .subtask-add-input {
@@ -1562,5 +1595,30 @@ body {
     width: 44px;
     height: 44px;
     font-size: 16px;
+  }
+}
+
+/* === Profile dialog compact on mobile (#64) === */
+@media (max-width: 480px) {
+  .profile-avatar-section {
+    padding: 4px 0 8px;
+  }
+
+  .profile-avatar {
+    width: 48px;
+    height: 48px;
+  }
+
+  .profile-dialog .modal-header {
+    padding: 12px 16px;
+  }
+
+  .profile-dialog form {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .profile-dialog form input[type="text"] {
+    min-height: 44px;
   }
 }

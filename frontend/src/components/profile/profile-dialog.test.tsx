@@ -204,7 +204,8 @@ describe('ProfileDialog (Issue #40)', () => {
       fireEvent.submit(form);
 
       expect(nameInput.getAttribute('aria-invalid')).toBe('true');
-      expect(nameInput.getAttribute('aria-describedby')).toBe('profile-name-error');
+      // aria-describedby includes both counter and error
+      expect(nameInput.getAttribute('aria-describedby')).toBe('profile-name-counter profile-name-error');
     });
   });
 
@@ -326,6 +327,158 @@ describe('ProfileDialog — Display name persistence (Issue #61)', () => {
           'A', 'test@example.com', 'Alice', 'mock-token'
         );
       });
+    });
+  });
+});
+
+describe('ProfileDialog — Mobile compacting (Issue #64)', () => {
+  describe('AC1: Avatar conditional rendering', () => {
+    it('renders avatar section when user has a picture', () => {
+      const { container } = render(<ProfileDialog {...defaultProps} />);
+      const avatarSection = container.querySelector('.profile-avatar-section');
+      expect(avatarSection).not.toBeNull();
+      const img = container.querySelector('.profile-avatar') as HTMLImageElement;
+      expect(img).not.toBeNull();
+      expect(img.src).toBe('https://example.com/pic.jpg');
+    });
+
+    it('does not render avatar section when user has no picture', () => {
+      const props = {
+        ...defaultProps,
+        user: { ...mockUser, picture: '' },
+      };
+      const { container } = render(<ProfileDialog {...props} />);
+      const avatarSection = container.querySelector('.profile-avatar-section');
+      expect(avatarSection).toBeNull();
+    });
+
+    it('does not render avatar section when picture is undefined', () => {
+      const props = {
+        ...defaultProps,
+        user: { email: 'test@example.com', name: 'Test User' } as UserInfo,
+      };
+      const { container } = render(<ProfileDialog {...props} />);
+      const avatarSection = container.querySelector('.profile-avatar-section');
+      expect(avatarSection).toBeNull();
+    });
+  });
+
+  describe('AC2: Dialog has profile-dialog class for CSS targeting', () => {
+    it('dialog element has profile-dialog class', () => {
+      const { container } = render(<ProfileDialog {...defaultProps} />);
+      const dialog = container.querySelector('[role="dialog"]');
+      expect(dialog!.classList.contains('profile-dialog')).toBe(true);
+    });
+  });
+});
+
+describe('ProfileDialog — Character counter (Issue #65)', () => {
+  describe('AC1: Counter is always visible', () => {
+    it('displays character counter with current count and limit', () => {
+      const { container } = render(<ProfileDialog {...defaultProps} />);
+      const counter = container.querySelector('#profile-name-counter');
+      expect(counter).not.toBeNull();
+      // "Test User" = 9 chars
+      expect(counter!.textContent).toBe('9/50');
+    });
+
+    it('counter is inside profile-name-status container', () => {
+      const { container } = render(<ProfileDialog {...defaultProps} />);
+      const status = container.querySelector('.profile-name-status');
+      expect(status).not.toBeNull();
+      const counter = status!.querySelector('#profile-name-counter');
+      expect(counter).not.toBeNull();
+    });
+  });
+
+  describe('AC2: Counter updates on input (uses cleaned length)', () => {
+    it('updates count when user types', () => {
+      const { container } = render(<ProfileDialog {...defaultProps} />);
+      const nameInput = container.querySelector('#profile-name') as HTMLInputElement;
+      const counter = container.querySelector('#profile-name-counter');
+
+      fireEvent.input(nameInput, { target: { value: 'Hello World' } });
+      expect(counter!.textContent).toBe('11/50');
+    });
+
+    it('strips control characters and trims for count', () => {
+      const { container } = render(<ProfileDialog {...defaultProps} />);
+      const nameInput = container.querySelector('#profile-name') as HTMLInputElement;
+      const counter = container.querySelector('#profile-name-counter');
+
+      // "  Alice  " has leading/trailing spaces — cleaned length is 5
+      fireEvent.input(nameInput, { target: { value: '  Alice  ' } });
+      expect(counter!.textContent).toBe('5/50');
+    });
+  });
+
+  describe('AC3: Warning state at >40 characters', () => {
+    it('adds char-counter-warning class when cleaned length exceeds 40', () => {
+      const { container } = render(<ProfileDialog {...defaultProps} />);
+      const nameInput = container.querySelector('#profile-name') as HTMLInputElement;
+      const counter = container.querySelector('#profile-name-counter');
+
+      fireEvent.input(nameInput, { target: { value: 'A'.repeat(41) } });
+      expect(counter!.classList.contains('char-counter-warning')).toBe(true);
+      expect(counter!.classList.contains('char-counter-danger')).toBe(false);
+    });
+
+    it('does not add warning class at exactly 40 characters', () => {
+      const { container } = render(<ProfileDialog {...defaultProps} />);
+      const nameInput = container.querySelector('#profile-name') as HTMLInputElement;
+      const counter = container.querySelector('#profile-name-counter');
+
+      fireEvent.input(nameInput, { target: { value: 'A'.repeat(40) } });
+      expect(counter!.classList.contains('char-counter-warning')).toBe(false);
+    });
+  });
+
+  describe('AC4: Danger state at >50 characters', () => {
+    it('adds char-counter-danger class when cleaned length exceeds 50', () => {
+      const { container } = render(<ProfileDialog {...defaultProps} />);
+      const nameInput = container.querySelector('#profile-name') as HTMLInputElement;
+      const counter = container.querySelector('#profile-name-counter');
+
+      fireEvent.input(nameInput, { target: { value: 'A'.repeat(51) } });
+      expect(counter!.classList.contains('char-counter-danger')).toBe(true);
+      expect(counter!.classList.contains('char-counter-warning')).toBe(false);
+    });
+  });
+
+  describe('AC5: Accessibility — aria-describedby and aria-live', () => {
+    it('input aria-describedby includes counter id', () => {
+      const { container } = render(<ProfileDialog {...defaultProps} />);
+      const nameInput = container.querySelector('#profile-name') as HTMLInputElement;
+      const describedBy = nameInput.getAttribute('aria-describedby') || '';
+      expect(describedBy).toContain('profile-name-counter');
+    });
+
+    it('counter has aria-live="off" when under 41 characters', () => {
+      const { container } = render(<ProfileDialog {...defaultProps} />);
+      const counter = container.querySelector('#profile-name-counter');
+      expect(counter!.getAttribute('aria-live')).toBe('off');
+    });
+
+    it('counter has aria-live="polite" when over 40 characters', () => {
+      const { container } = render(<ProfileDialog {...defaultProps} />);
+      const nameInput = container.querySelector('#profile-name') as HTMLInputElement;
+      const counter = container.querySelector('#profile-name-counter');
+
+      fireEvent.input(nameInput, { target: { value: 'A'.repeat(41) } });
+      expect(counter!.getAttribute('aria-live')).toBe('polite');
+    });
+
+    it('aria-describedby includes both counter and error when validation fails', () => {
+      const { container } = render(<ProfileDialog {...defaultProps} />);
+      const nameInput = container.querySelector('#profile-name') as HTMLInputElement;
+      const form = container.querySelector('form') as HTMLFormElement;
+
+      fireEvent.input(nameInput, { target: { value: '' } });
+      fireEvent.submit(form);
+
+      const describedBy = nameInput.getAttribute('aria-describedby') || '';
+      expect(describedBy).toContain('profile-name-counter');
+      expect(describedBy).toContain('profile-name-error');
     });
   });
 });

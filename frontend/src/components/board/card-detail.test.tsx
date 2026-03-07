@@ -1067,3 +1067,90 @@ describe('CardDetail Add/Cancel buttons (Issue #58)', () => {
     expect(buttons[1].getAttribute('aria-label')).toBe('Cancel adding sub-task');
   });
 });
+
+describe('CardDetail keyboard hint (Issue #60)', () => {
+  beforeEach(() => {
+    mockSelectedItemId = 'detail-test-1';
+    mockChildren = [];
+    mockItems = [];
+    vi.clearAllMocks();
+  });
+
+  // AC1: Hint text visible when creation row is open
+  it('AC1: shows keyboard hint when creation row is open', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const hint = container.querySelector('#subtask-add-hint');
+    expect(hint).not.toBeNull();
+    expect(hint!.textContent).toBe('Enter to add · Esc to cancel');
+  });
+
+  // AC2: Hint styled as secondary text
+  it('AC2: hint has correct CSS class', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const hint = container.querySelector('.subtask-add-hint');
+    expect(hint).not.toBeNull();
+  });
+
+  // AC3: Hint disappears when creation row closes
+  it('AC3: hint disappears after Enter submits', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+    expect(container.querySelector('#subtask-add-hint')).not.toBeNull();
+
+    const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    fireEvent.input(input, { target: { value: 'Test' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(container.querySelector('#subtask-add-hint')).toBeNull();
+  });
+
+  it('AC3: hint disappears after Escape cancels', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+    expect(container.querySelector('#subtask-add-hint')).not.toBeNull();
+
+    const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    fireEvent.keyDown(input, { key: 'Escape' });
+
+    expect(container.querySelector('#subtask-add-hint')).toBeNull();
+  });
+
+  // AC4: Screen reader accessibility — aria-describedby on input and select
+  it('AC4: input and owner select both reference hint via aria-describedby', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    expect(input.getAttribute('aria-describedby')).toBe('subtask-add-hint');
+
+    const select = container.querySelector('.subtask-add-owner') as HTMLSelectElement;
+    expect(select.getAttribute('aria-describedby')).toBe('subtask-add-hint');
+  });
+
+  // Wrapper contains both the row and the hint
+  it('hint is inside the wrapper div (not inside the flex row)', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const wrapper = container.querySelector('.subtask-add-wrapper');
+    expect(wrapper).not.toBeNull();
+    expect(wrapper!.querySelector('.subtask-add-inline')).not.toBeNull();
+    expect(wrapper!.querySelector('.subtask-add-hint')).not.toBeNull();
+  });
+});
