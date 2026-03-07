@@ -332,15 +332,21 @@ export async function cascadeOwnerUpdate(
 // --- Board operations ---
 
 export async function fetchBoards(token: string): Promise<Board[]> {
-  return withReauth(token, async (t) => {
-    const rows = await sheetsGet('Boards!A2:D', t);
-    return rows.map(row => ({
-      id: row[0] || '',
-      name: row[1] || '',
-      created_at: row[2] || '',
-      created_by: row[3] || '',
-    }));
-  });
+  try {
+    return await withReauth(token, async (t) => {
+      const rows = await sheetsGet('Boards!A2:D', t);
+      return rows.map(row => ({
+        id: row[0] || '',
+        name: row[1] || '',
+        created_at: row[2] || '',
+        created_by: row[3] || '',
+      }));
+    });
+  } catch (err) {
+    // Boards tab may not exist yet — return empty array so the app works without it
+    if (err instanceof SheetsApiError && err.status === 400) return [];
+    throw err;
+  }
 }
 
 export async function createBoardRow(board: Board, token: string): Promise<void> {
