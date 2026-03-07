@@ -14,7 +14,18 @@ export function BoardSwitcher() {
     switchBoard(value);
   };
 
-  if (boards.value.length === 0) return null;
+  if (boards.value.length === 0) {
+    return (
+      <div class="board-switcher" data-testid="board-switcher">
+        <button
+          class="btn btn-primary"
+          onClick={() => { showCreateBoardModal.value = true; }}
+        >
+          + New Board
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div class="board-switcher" data-testid="board-switcher">
