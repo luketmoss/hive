@@ -2,7 +2,7 @@
 // Covers all board features: multiple statuses, owners, labels,
 // subtasks, overdue dates, scheduled dates, long titles, unassigned items.
 
-import type { ItemWithRow, Owner, Label } from '../api/types';
+import type { ItemWithRow, Owner, Label, Board } from '../api/types';
 
 // Helper to produce ISO date strings relative to "now" at module load time.
 // Using a fixed reference keeps data deterministic within a single page load.
@@ -35,6 +35,12 @@ export const MOCK_LABELS: Label[] = [
   { label: 'Fun', color: '#26c6da' },
 ];
 
+// --- Boards ---
+export const MOCK_BOARDS: Board[] = [
+  { id: 'board-family', name: 'Family Board', created_at: daysAgo(30), created_by: 'mom@family.com' },
+  { id: 'board-work', name: 'Work Projects', created_at: daysAgo(14), created_by: 'dad@family.com' },
+];
+
 // --- Items ---
 // IDs are static UUIDs for reproducibility.
 export const MOCK_ITEMS: ItemWithRow[] = [
@@ -54,6 +60,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     completed_at: '',
     sort_order: 1,
     created_by: 'mom@family.com',
+    board_id: 'board-family',
     sheetRow: 2,
   },
   // Subtask 1a: Buy vegetables — Done
@@ -72,6 +79,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     completed_at: daysAgo(2),
     sort_order: 1,
     created_by: 'mom@family.com',
+    board_id: 'board-family',
     sheetRow: 3,
   },
   // Subtask 1b: Buy cleaning supplies — Done
@@ -90,6 +98,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     completed_at: daysAgo(2),
     sort_order: 2,
     created_by: 'mom@family.com',
+    board_id: 'board-family',
     sheetRow: 4,
   },
   // Subtask 1c: Pick up prescription — To Do, assigned to Dad
@@ -108,6 +117,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     completed_at: '',
     sort_order: 3,
     created_by: 'mom@family.com',
+    board_id: 'board-family',
     sheetRow: 5,
   },
 
@@ -127,6 +137,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     completed_at: '',
     sort_order: 1,
     created_by: 'dad@family.com',
+    board_id: 'board-family',
     sheetRow: 6,
   },
 
@@ -146,6 +157,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     completed_at: '',
     sort_order: 2,
     created_by: 'kiddo@family.com',
+    board_id: 'board-family',
     sheetRow: 7,
   },
 
@@ -165,6 +177,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     completed_at: '',
     sort_order: 2,
     created_by: 'mom@family.com',
+    board_id: 'board-family',
     sheetRow: 8,
   },
 
@@ -184,6 +197,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     completed_at: daysAgo(7),
     sort_order: 1,
     created_by: 'dad@family.com',
+    board_id: 'board-family',
     sheetRow: 9,
   },
 
@@ -203,6 +217,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     completed_at: '',
     sort_order: 3,
     created_by: 'mom@family.com',
+    board_id: 'board-family',
     sheetRow: 10,
   },
 
@@ -222,6 +237,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     completed_at: '',
     sort_order: 4,
     created_by: 'kiddo@family.com',
+    board_id: 'board-family',
     sheetRow: 11,
   },
 
@@ -241,6 +257,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     completed_at: '',
     sort_order: 3,
     created_by: 'mom@family.com',
+    board_id: 'board-work',
     sheetRow: 12,
   },
 
@@ -260,6 +277,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     completed_at: daysAgo(30),
     sort_order: 2,
     created_by: 'dad@family.com',
+    board_id: 'board-family',
     sheetRow: 13,
   },
 
@@ -279,6 +297,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     completed_at: daysAgo(2),
     sort_order: 3,
     created_by: 'mom@family.com',
+    board_id: 'board-family',
     sheetRow: 17,
   },
 
@@ -298,6 +317,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     completed_at: '',
     sort_order: 5,
     created_by: 'dad@family.com',
+    board_id: 'board-family',
     sheetRow: 14,
   },
 
@@ -317,6 +337,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     completed_at: '',
     sort_order: 6,
     created_by: 'kiddo@family.com',
+    board_id: 'board-family',
     sheetRow: 15,
   },
 
@@ -336,6 +357,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     completed_at: '',
     sort_order: 4,
     created_by: 'mom@family.com',
+    board_id: 'board-work',
     sheetRow: 16,
   },
 ];

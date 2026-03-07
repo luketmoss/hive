@@ -1,7 +1,7 @@
 // Google Sheets REST API wrapper using direct fetch.
 // No gapi.client dependency — smaller, more control.
 
-import type { Item, ItemWithRow, Owner, Label } from './types';
+import type { Item, ItemWithRow, Owner, Label, Board } from './types';
 import { attemptReauth } from '../auth/reauth';
 
 const SPREADSHEET_ID = import.meta.env.VITE_SPREADSHEET_ID;
@@ -114,6 +114,7 @@ function rowToItem(row: any[]): Item {
     completed_at: row[11] || '',
     sort_order: Number(row[12]) || 0,
     created_by: row[13] || '',
+    board_id: row[14] || '',
   };
 }
 
@@ -122,7 +123,7 @@ function itemToRow(item: Item): any[] {
     item.id, item.title, item.description, item.status,
     item.owner, item.due_date, item.scheduled_date, item.labels,
     item.parent_id, item.created_at, item.updated_at, item.completed_at,
-    item.sort_order, item.created_by,
+    item.sort_order, item.created_by, item.board_id,
   ];
 }
 
@@ -130,7 +131,7 @@ function itemToRow(item: Item): any[] {
 
 export async function fetchAllItems(token: string): Promise<ItemWithRow[]> {
   return withReauth(token, async (t) => {
-    const rows = await sheetsGet('Items!A2:N', t);
+    const rows = await sheetsGet('Items!A2:O', t);
     return rows.map((row, i) => ({
       ...rowToItem(row),
       sheetRow: i + 2, // 1-based, header is row 1
@@ -159,11 +160,11 @@ export async function fetchLabels(token: string): Promise<Label[]> {
 }
 
 export async function createItemRow(item: Item, token: string): Promise<void> {
-  return withReauth(token, (t) => sheetsAppend('Items!A:N', [itemToRow(item)], t));
+  return withReauth(token, (t) => sheetsAppend('Items!A:O', [itemToRow(item)], t));
 }
 
 export async function updateItemRow(sheetRow: number, item: Item, token: string): Promise<void> {
-  return withReauth(token, (t) => sheetsUpdate(`Items!A${sheetRow}:N${sheetRow}`, [itemToRow(item)], t));
+  return withReauth(token, (t) => sheetsUpdate(`Items!A${sheetRow}:O${sheetRow}`, [itemToRow(item)], t));
 }
 
 export async function deleteItemRow(sheetRow: number, token: string): Promise<void> {
@@ -285,7 +286,7 @@ export async function cascadeLabelUpdate(
   token: string
 ): Promise<void> {
   return withReauth(token, async (t) => {
-    const rows = await sheetsGet('Items!A2:N', t);
+    const rows = await sheetsGet('Items!A2:O', t);
     for (let i = 0; i < rows.length; i++) {
       const labelsStr = rows[i][7] || '';
       const labelsList = labelsStr.split(',').map((l: string) => l.trim()).filter(Boolean);
@@ -317,7 +318,7 @@ export async function cascadeOwnerUpdate(
   token: string
 ): Promise<void> {
   return withReauth(token, async (t) => {
-    const rows = await sheetsGet('Items!A2:N', t);
+    const rows = await sheetsGet('Items!A2:O', t);
     for (let i = 0; i < rows.length; i++) {
       const owner = rows[i][4] || '';
       if (owner !== oldName) continue;
@@ -326,6 +327,26 @@ export async function cascadeOwnerUpdate(
       await sheetsUpdate(`Items!E${sheetRow}`, [[newName]], t);
     }
   });
+}
+
+// --- Board operations ---
+
+export async function fetchBoards(token: string): Promise<Board[]> {
+  return withReauth(token, async (t) => {
+    const rows = await sheetsGet('Boards!A2:D', t);
+    return rows.map(row => ({
+      id: row[0] || '',
+      name: row[1] || '',
+      created_at: row[2] || '',
+      created_by: row[3] || '',
+    }));
+  });
+}
+
+export async function createBoardRow(board: Board, token: string): Promise<void> {
+  return withReauth(token, (t) => sheetsAppend('Boards!A:D', [[
+    board.id, board.name, board.created_at, board.created_by,
+  ]], t));
 }
 
 export { SheetsApiError };

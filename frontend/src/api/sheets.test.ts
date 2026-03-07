@@ -248,6 +248,7 @@ describe('withReauth: mid-session 401 retries API call (AC4)', () => {
       id: 'id-1', title: 'Test', description: '', status: 'To Do' as const,
       owner: '', due_date: '', scheduled_date: '', labels: '', parent_id: '',
       created_at: '', updated_at: '', completed_at: '', sort_order: 1, created_by: '',
+      board_id: '',
     };
 
     // First call: 401 (expired token mid-session)
@@ -277,6 +278,7 @@ describe('withReauth: mid-session reauth failure (AC5)', () => {
       id: 'id-1', title: 'Test', description: '', status: 'To Do' as const,
       owner: '', due_date: '', scheduled_date: '', labels: '', parent_id: '',
       created_at: '', updated_at: '', completed_at: '', sort_order: 1, created_by: '',
+      board_id: '',
     };
 
     // First call: 401

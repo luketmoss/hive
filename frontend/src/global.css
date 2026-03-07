@@ -537,6 +537,48 @@ body {
   white-space: nowrap;
 }
 
+/* === Board Switcher === */
+.board-switcher {
+  display: flex;
+  align-items: center;
+  padding: 8px 20px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.board-switcher-select {
+  padding: 6px 12px;
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--color-primary);
+  background: var(--color-surface);
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.board-switcher-select:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Board name meta row (error + char counter) */
+.board-name-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 2px;
+  min-height: 18px;
+}
+
+.form-error {
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
 /* === Filter Bar === */
 .filter-bar {
   display: flex;
@@ -1538,6 +1580,12 @@ body {
   .board-main:has(.list-view) {
     overflow-x: hidden;
     overflow-y: auto;
+  }
+
+  /* Board switcher: touch-friendly on mobile */
+  .board-switcher-select {
+    min-height: 44px;
+    font-size: 16px;
   }
 
   /* AC1: Filter selects have proper touch targets on mobile */

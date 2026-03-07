@@ -40,6 +40,9 @@ vi.mock('../../state/board-store', () => ({
   allDoneItems: { value: [] },
   hasArchivedItems: { value: false },
   showArchiveDialog: { value: false },
+  boards: { value: [] },
+  boardItems: { get value() { return mockItems; } },
+  showCreateBoardModal: { value: false },
 }));
 
 vi.mock('../../state/actions', () => ({
@@ -60,6 +63,12 @@ vi.mock('./card-detail', () => ({
 }));
 vi.mock('../forms/create-item-modal', () => ({
   CreateItemModal: () => <div data-testid="create-modal" />,
+}));
+vi.mock('./board-switcher', () => ({
+  BoardSwitcher: () => null,
+}));
+vi.mock('./create-board-modal', () => ({
+  CreateBoardModal: () => null,
 }));
 vi.mock('../profile/profile-dialog', () => ({
   ProfileDialog: () => <div data-testid="profile-dialog" />,
@@ -102,7 +111,7 @@ describe('KanbanBoard empty/welcome state (Issue #11)', () => {
         id: '1', title: 'Task', description: '', status: 'To Do',
         owner: '', due_date: '', scheduled_date: '', labels: '',
         parent_id: '', created_at: '', updated_at: '', completed_at: '',
-        sort_order: 1, created_by: '', sheetRow: 2,
+        sort_order: 1, created_by: '', board_id: '', sheetRow: 2,
       }];
       const { container } = renderBoard();
       const welcome = container.querySelector('[data-testid="board-welcome"]');
@@ -124,7 +133,7 @@ describe('KanbanBoard empty/welcome state (Issue #11)', () => {
         id: '1', title: 'Task', description: '', status: 'To Do',
         owner: '', due_date: '', scheduled_date: '', labels: '',
         parent_id: '', created_at: '', updated_at: '', completed_at: '',
-        sort_order: 1, created_by: '', sheetRow: 2,
+        sort_order: 1, created_by: '', board_id: '', sheetRow: 2,
       }];
       const { container } = renderBoard();
       // Board should show columns, not welcome

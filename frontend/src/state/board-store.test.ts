@@ -17,6 +17,7 @@ function makeItem(overrides: Partial<ItemWithRow>): ItemWithRow {
     completed_at: new Date().toISOString(),
     sort_order: 1,
     created_by: 'test@test.com',
+    board_id: '',
     sheetRow: 2,
     ...overrides,
   };

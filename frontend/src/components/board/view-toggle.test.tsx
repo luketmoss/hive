@@ -39,10 +39,21 @@ vi.mock('../../state/board-store', () => ({
   allDoneItems: { value: [] },
   hasArchivedItems: { value: false },
   showArchiveDialog: { value: false },
+  boards: { value: [] },
+  boardItems: { get value() { return mockItemsRef.current; } },
+  showCreateBoardModal: { value: false },
 }));
 
 vi.mock('../../state/actions', () => ({
   moveItem: vi.fn(),
+}));
+
+vi.mock('./board-switcher', () => ({
+  BoardSwitcher: () => null,
+}));
+
+vi.mock('./create-board-modal', () => ({
+  CreateBoardModal: () => null,
 }));
 
 vi.mock('../filters/filter-bar', () => ({
@@ -99,7 +110,7 @@ describe('View Toggle (Issue #13)', () => {
         id: '1', title: 'Task A', description: '', status: 'To Do',
         owner: '', due_date: '', scheduled_date: '', labels: '',
         parent_id: '', created_at: '', updated_at: '', completed_at: '',
-        sort_order: 1, created_by: '', sheetRow: 2,
+        sort_order: 1, created_by: '', board_id: '', sheetRow: 2,
       },
     ];
   });

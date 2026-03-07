@@ -17,6 +17,8 @@ vi.mock('../api/sheets', () => ({
   cascadeLabelUpdate: vi.fn().mockResolvedValue(undefined),
   cascadeOwnerUpdate: vi.fn().mockResolvedValue(undefined),
   upsertOwner: vi.fn().mockResolvedValue(false),
+  fetchBoards: vi.fn().mockResolvedValue([]),
+  createBoardRow: vi.fn().mockResolvedValue(undefined),
   SheetsApiError: class extends Error {
     status: number;
     constructor(status: number, message: string) {
@@ -47,6 +49,8 @@ vi.mock('../demo/mock-api', () => ({
   cascadeLabelUpdate: vi.fn().mockResolvedValue(undefined),
   cascadeOwnerUpdate: vi.fn().mockResolvedValue(undefined),
   upsertOwner: vi.fn().mockResolvedValue(false),
+  fetchBoards: vi.fn().mockResolvedValue([]),
+  createBoardRow: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { loadBoard, NotAllowedError, deleteSubtask, reorderSubtasks } from './actions';
@@ -129,6 +133,7 @@ function makeItem(overrides: Partial<ItemWithRow> = {}): ItemWithRow {
     completed_at: '',
     sort_order: 1,
     created_by: 'luke@example.com',
+    board_id: '',
     sheetRow: 2,
     ...overrides,
   };
