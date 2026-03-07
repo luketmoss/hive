@@ -778,6 +778,11 @@ body {
   line-height: 1;
 }
 
+/* #58: Add confirm button gets primary color hover for visual differentiation */
+.subtask-add-confirm:not([aria-disabled="true"]):hover {
+  color: var(--color-primary);
+}
+
 /* === Inline delete confirmation === */
 .delete-confirm-inline {
   display: flex;
@@ -1448,14 +1453,26 @@ body {
     gap: 10px;
   }
 
-  /* Sub-task action buttons: always visible on mobile/tablet */
-  .subtask-actions {
-    opacity: 1;
+  /* #59 AC2: Sub-task rows wrap action buttons to second row on mobile */
+  .subtask-item {
+    flex-wrap: wrap;
+    min-height: 44px;
   }
 
-  /* Sub-task rows: 44px min-height for touch targets on mobile */
-  .subtask-item {
-    min-height: 44px;
+  /* #59 AC2: Action buttons right-align when wrapped to second row */
+  .subtask-actions {
+    opacity: 1;
+    margin-left: auto;
+  }
+
+  /* #59 AC3: Constrain owner select width on mobile */
+  .subtask-owner-select {
+    max-width: 80px;
+  }
+
+  /* #58 AC6: Constrain creation row owner select on mobile */
+  .subtask-add-owner {
+    max-width: 80px;
   }
 
   /* Sub-task creation row: 44px min-height for touch targets on mobile */
