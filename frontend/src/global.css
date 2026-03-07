@@ -595,14 +595,7 @@ body {
   align-items: center;
 }
 
-.filter-bar select {
-  padding: 6px 10px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  background: var(--color-surface);
-  color: var(--color-text);
-}
+/* Legacy .filter-bar select removed in #77 — group-by is now chip toggles */
 
 /* #28: Filter chip groups */
 .filter-chip-group {
@@ -661,6 +654,24 @@ body {
 .filter-chip-label.filter-chip-active {
   background: var(--label-color, #999);
   color: white;
+}
+
+/* #77 AC7: Visual separator before group-by section */
+.filter-chip-group-separator {
+  margin-left: 12px;
+}
+
+/* #77 AC8: Group-by chip — outlined active style (distinct from filled filter chips) */
+.filter-chip-group-by.filter-chip-active {
+  border-color: var(--color-text);
+  color: var(--color-text);
+  background: transparent;
+  border-width: 2px;
+  font-weight: 600;
+}
+
+.filter-chip-group-by.filter-chip-active:hover {
+  background: color-mix(in srgb, var(--color-text) 10%, transparent);
 }
 
 /* #28 AC8: Visible focus indicator for keyboard users */
@@ -1588,11 +1599,7 @@ body {
     font-size: 16px;
   }
 
-  /* AC1: Filter selects have proper touch targets on mobile */
-  .filter-bar select {
-    min-height: 44px;
-    font-size: 16px;
-  }
+  /* Legacy mobile .filter-bar select removed in #77 */
 
   /* #28 AC7: Filter chips meet 44px min touch target on mobile */
   .filter-chip {
