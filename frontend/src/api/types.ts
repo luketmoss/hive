@@ -18,6 +18,7 @@ export interface Item {
   completed_at: string;
   sort_order: number;
   created_by: string;
+  board_id: string;
 }
 
 export interface ItemWithRow extends Item {
@@ -33,6 +34,13 @@ export interface Owner {
 export interface Label {
   label: string;
   color: string;
+}
+
+export interface Board {
+  id: string;
+  name: string;
+  created_at: string;
+  created_by: string;
 }
 
 export interface UserInfo {

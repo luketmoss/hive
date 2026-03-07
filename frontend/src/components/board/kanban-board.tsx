@@ -1,11 +1,13 @@
 import { useState, useRef, useCallback } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog } from '../../state/board-store';
+import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, boardItems } from '../../state/board-store';
 import { moveItem } from '../../state/actions';
 import { Column } from './column';
 import { ListView } from './list-view';
 import { CardDetail } from './card-detail';
 import { CreateItemModal } from '../forms/create-item-modal';
+import { CreateBoardModal } from './create-board-modal';
+import { BoardSwitcher } from './board-switcher';
 import { ProfileDialog } from '../profile/profile-dialog';
 import { ArchiveDialog } from '../archive/archive-dialog';
 import { FilterBar } from '../filters/filter-bar';
@@ -44,8 +46,8 @@ export function KanbanBoard() {
     }
   };
 
-  // Check if the entire board is empty (zero items total, ignoring filters)
-  const isBoardEmpty = items.value.length === 0;
+  // Check if the current board is empty (zero items for this board, ignoring filters)
+  const isBoardEmpty = boardItems.value.length === 0;
 
   // Swimlane grouping
   const renderSwimlanes = () => {
@@ -132,6 +134,8 @@ export function KanbanBoard() {
         </div>
       </header>
 
+      {boards.value.length > 0 && <BoardSwitcher />}
+
       <FilterBar />
 
       <div class="view-toggle-bar" data-testid="view-toggle-bar">
@@ -178,6 +182,7 @@ export function KanbanBoard() {
 
       {selectedItem.value && <CardDetail />}
       {showCreateModal.value && <CreateItemModal />}
+      {showCreateBoardModal.value && <CreateBoardModal />}
       {showArchiveDialog.value && <ArchiveDialog onClose={handleCloseArchive} />}
       {showProfile && user && token && (
         <ProfileDialog

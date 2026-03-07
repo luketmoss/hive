@@ -41,6 +41,7 @@ function makeItem(overrides: Partial<ItemWithRow> = {}): ItemWithRow {
     completed_at: '',
     sort_order: 1,
     created_by: '',
+    board_id: '',
     sheetRow: 2,
     ...overrides,
   };

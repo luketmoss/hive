@@ -52,6 +52,7 @@ describe('Mock API layer (AC5)', () => {
       completed_at: '',
       sort_order: 100,
       created_by: 'test@example.com',
+      board_id: '',
     };
     await createItemRow(newItem, 'demo-token');
     const after = await fetchAllItems('demo-token');
@@ -107,6 +108,7 @@ describe('Mock API layer (AC5)', () => {
       id: 'test-http', title: 'Test', description: '', status: 'To Do',
       owner: '', due_date: '', scheduled_date: '', labels: '', parent_id: '',
       created_at: '', updated_at: '', completed_at: '', sort_order: 0, created_by: '',
+      board_id: '',
     };
     await createItemRow(newItem, 'demo-token');
     await updateItemRow(2, newItem, 'demo-token');

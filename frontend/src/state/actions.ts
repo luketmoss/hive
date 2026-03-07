@@ -1,4 +1,4 @@
-import { items, showToast } from './board-store';
+import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl } from './board-store';
 import { validateStatusTransition, applyStatusSideEffects } from './rules';
 import {
   fetchAllItems as sheetsFetchAllItems,
@@ -15,6 +15,8 @@ import {
   cascadeLabelUpdate as sheetsCascadeLabelUpdate,
   cascadeOwnerUpdate as sheetsCascadeOwnerUpdate,
   upsertOwner as sheetsUpsertOwner,
+  fetchBoards as sheetsFetchBoards,
+  createBoardRow as sheetsCreateBoardRow,
 } from '../api/sheets';
 import {
   fetchAllItems as mockFetchAllItems,
@@ -31,6 +33,8 @@ import {
   cascadeLabelUpdate as mockCascadeLabelUpdate,
   cascadeOwnerUpdate as mockCascadeOwnerUpdate,
   upsertOwner as mockUpsertOwner,
+  fetchBoards as mockFetchBoards,
+  createBoardRow as mockCreateBoardRow,
 } from '../demo/mock-api';
 import { isDemoMode } from '../demo/is-demo-mode';
 import { ReauthFailedError } from '../auth/reauth';
@@ -66,6 +70,8 @@ function api() {
       cascadeLabelUpdate: mockCascadeLabelUpdate,
       cascadeOwnerUpdate: mockCascadeOwnerUpdate,
       upsertOwner: mockUpsertOwner,
+      fetchBoards: mockFetchBoards,
+      createBoardRow: mockCreateBoardRow,
     };
   }
   return {
@@ -83,6 +89,8 @@ function api() {
     cascadeLabelUpdate: sheetsCascadeLabelUpdate,
     cascadeOwnerUpdate: sheetsCascadeOwnerUpdate,
     upsertOwner: sheetsUpsertOwner,
+    fetchBoards: sheetsFetchBoards,
+    createBoardRow: sheetsCreateBoardRow,
   };
 }
 
@@ -100,6 +108,8 @@ const fetchLabelsWithRows = (...args: Parameters<typeof sheetsFetchLabelsWithRow
 const cascadeLabelUpdate = (...args: Parameters<typeof sheetsCascadeLabelUpdate>) => api().cascadeLabelUpdate(...args);
 const cascadeOwnerUpdate = (...args: Parameters<typeof sheetsCascadeOwnerUpdate>) => api().cascadeOwnerUpdate(...args);
 const upsertOwner = (...args: Parameters<typeof sheetsUpsertOwner>) => api().upsertOwner(...args);
+const fetchBoardsApi = (...args: Parameters<typeof sheetsFetchBoards>) => api().fetchBoards(...args);
+const createBoardRowApi = (...args: Parameters<typeof sheetsCreateBoardRow>) => api().createBoardRow(...args);
 
 function generateUUID(): string {
   return crypto.randomUUID();
@@ -116,14 +126,21 @@ export class NotAllowedError extends Error {
 export async function loadBoard(token: string, user?: UserInfo | null) {
   loading.value = true;
   try {
-    const [itemsData, ownersData, labelsData] = await Promise.all([
+    const [itemsData, ownersData, labelsData, boardsData] = await Promise.all([
       fetchAllItems(token),
       fetchOwners(token),
       fetchLabels(token),
+      fetchBoardsApi(token),
     ]);
     items.value = itemsData;
     owners.value = ownersData;
     labels.value = labelsData;
+    boards.value = boardsData;
+
+    // Initialize active board from URL or default to first board
+    if (boardsData.length > 0) {
+      initActiveBoardFromUrl();
+    }
 
     // Allowlist check: the Owners sheet is the source of truth for who can
     // use the board. If the signed-in user's email isn't listed, reject.
@@ -191,6 +208,7 @@ export async function createItem(
     completed_at: status === 'Done' ? now : '',
     sort_order: maxOrder + 1,
     created_by: data.created_by || '',
+    board_id: data.board_id || activeBoardId.value,
   };
 
   // Optimistic update
@@ -571,5 +589,48 @@ export async function deleteLabel(
     if (!isReauthFailure(err)) {
       showToast('Failed to delete label: ' + err.message, 'error');
     }
+  }
+}
+
+// --- Board actions ---
+
+import type { Board } from '../api/types';
+import { switchBoard } from './board-store';
+
+export async function createBoard(
+  name: string,
+  actor: string,
+  token: string
+): Promise<boolean> {
+  const trimmed = name.trim();
+  if (!trimmed) return false;
+  if (trimmed.length > 30) return false;
+
+  // Check for duplicate name
+  if (boards.value.some(b => b.name.toLowerCase() === trimmed.toLowerCase())) {
+    return false;
+  }
+
+  const board: Board = {
+    id: generateUUID(),
+    name: trimmed,
+    created_at: new Date().toISOString(),
+    created_by: actor,
+  };
+
+  // Optimistic update
+  boards.value = [...boards.value, board];
+
+  try {
+    await createBoardRowApi(board, token);
+    switchBoard(board.id);
+    showToast('Board created');
+    return true;
+  } catch (err: any) {
+    boards.value = boards.value.filter(b => b.id !== board.id);
+    if (!isReauthFailure(err)) {
+      showToast('Failed to create board: ' + err.message, 'error');
+    }
+    return false;
   }
 }

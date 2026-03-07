@@ -1,11 +1,31 @@
 import { signal, computed } from '@preact/signals';
-import type { ItemWithRow, Owner, Label, ItemStatus } from '../api/types';
+import type { ItemWithRow, Owner, Label, ItemStatus, Board } from '../api/types';
 
 // --- Core data ---
 export const items = signal<ItemWithRow[]>([]);
 export const owners = signal<Owner[]>([]);
 export const labels = signal<Label[]>([]);
+export const boards = signal<Board[]>([]);
+export const activeBoardId = signal<string>('');
 export const loading = signal(true);
+
+/** The currently active board object. */
+export const activeBoard = computed(() =>
+  boards.value.find(b => b.id === activeBoardId.value) ?? null
+);
+
+/** Items scoped to the active board (plus their children). */
+export const boardItems = computed(() => {
+  const bid = activeBoardId.value;
+  if (!bid) return items.value;
+  // Include items on this board, plus children whose parent is on this board
+  const boardRoots = new Set(
+    items.value.filter(i => i.board_id === bid && !i.parent_id).map(i => i.id)
+  );
+  return items.value.filter(i =>
+    (i.board_id === bid) || (i.parent_id && boardRoots.has(i.parent_id))
+  );
+});
 
 // --- Filters ---
 export const filterOwner = signal<string | null>(null);
@@ -40,7 +60,7 @@ export function setViewMode(mode: ViewMode) {
 
 // --- Derived ---
 export const filteredItems = computed(() => {
-  let result = items.value;
+  let result = boardItems.value;
 
   if (filterOwner.value) {
     result = result.filter(i => i.owner === filterOwner.value);
@@ -93,6 +113,45 @@ export const allDoneItemsSorted = computed(() =>
 
 // --- UI state for archive dialog ---
 export const showArchiveDialog = signal(false);
+
+// --- UI state for board creation ---
+export const showCreateBoardModal = signal(false);
+
+/** Switch to a different board. Resets filters and selection but preserves view mode. */
+export function switchBoard(boardId: string) {
+  activeBoardId.value = boardId;
+  filterOwner.value = null;
+  filterLabel.value = null;
+  groupBy.value = 'none';
+  selectedItemId.value = null;
+
+  // Update URL with board param
+  const url = new URL(window.location.href);
+  url.searchParams.set('board', boardId);
+  window.history.replaceState(null, '', url.toString());
+
+  // Update document title
+  const board = boards.value.find(b => b.id === boardId);
+  if (board) {
+    document.title = `Hive \u2014 ${board.name}`;
+  }
+}
+
+/** Read active board from URL query param, falling back to first board. */
+export function initActiveBoardFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const boardParam = params.get('board');
+  if (boardParam && boards.value.some(b => b.id === boardParam)) {
+    activeBoardId.value = boardParam;
+  } else if (boards.value.length > 0) {
+    activeBoardId.value = boards.value[0].id;
+  }
+  // Update document title
+  const board = boards.value.find(b => b.id === activeBoardId.value);
+  if (board) {
+    document.title = `Hive \u2014 ${board.name}`;
+  }
+}
 
 export const columns = computed(() => ({
   'To Do': rootItems.value.filter(i => i.status === 'To Do').sort(bySortOrder),
