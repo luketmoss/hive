@@ -24,6 +24,7 @@ export function CardDetail() {
   const [subtaskOwner, setSubtaskOwner] = useState(item.owner);
   const subtaskInputRef = useRef<HTMLInputElement>(null);
   const subtaskRowRef = useRef<HTMLDivElement>(null);
+  const addSubtaskBtnRef = useRef<HTMLButtonElement>(null);
   // Prevents the focusout handler from re-submitting after Enter already triggered submitSubtask
   const subtaskSubmittedRef = useRef(false);
   // Mirrors subtaskTitle state so submitSubtask always reads the current value,
@@ -97,6 +98,8 @@ export function CardDetail() {
     setAddingSubtask(false);
     setSubtaskTitle('');
     subtaskTitleRef.current = '';
+    // Return focus to the "+ Add" trigger button after the row unmounts (#58 AC1/AC3)
+    requestAnimationFrame(() => addSubtaskBtnRef.current?.focus());
   };
 
   const cancelSubtask = () => {
@@ -104,6 +107,8 @@ export function CardDetail() {
     setAddingSubtask(false);
     setSubtaskTitle('');
     subtaskTitleRef.current = '';
+    // Return focus to the "+ Add" trigger button (#58 AC2/AC3)
+    requestAnimationFrame(() => addSubtaskBtnRef.current?.focus());
   };
 
   /** Focus-container: only submit when focus leaves the entire creation row */
@@ -274,7 +279,7 @@ export function CardDetail() {
             <div class="detail-subtasks-header">
               <label>Sub-tasks ({children.length})</label>
               {!addingSubtask && (
-                <button class="btn btn-sm" onClick={handleAddSubtask}>+ Add</button>
+                <button ref={addSubtaskBtnRef} class="btn btn-sm" onClick={handleAddSubtask}>+ Add</button>
               )}
             </div>
             {children.length > 0 && (
@@ -365,6 +370,18 @@ export function CardDetail() {
                     <option key={o.name} value={o.name}>{o.name}</option>
                   ))}
                 </select>
+                <button
+                  class="btn-icon subtask-action-btn subtask-add-confirm"
+                  aria-label="Add sub-task"
+                  aria-disabled={!subtaskTitle.trim() ? 'true' : undefined}
+                  style={!subtaskTitle.trim() ? 'opacity: 0.4; cursor: not-allowed;' : undefined}
+                  onClick={() => { if (subtaskTitle.trim()) submitSubtask(); }}
+                >&#10003;</button>
+                <button
+                  class="btn-icon subtask-action-btn"
+                  aria-label="Cancel adding sub-task"
+                  onClick={() => cancelSubtask()}
+                >&#10005;</button>
               </div>
             )}
           </div>

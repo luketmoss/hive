@@ -957,3 +957,113 @@ describe('CardDetail sub-task owner editing (Issue #24)', () => {
     });
   });
 });
+
+describe('CardDetail Add/Cancel buttons (Issue #58)', () => {
+  beforeEach(() => {
+    mockSelectedItemId = 'detail-test-1';
+    mockChildren = [];
+    mockItems = [];
+    vi.clearAllMocks();
+  });
+
+  // AC1: Add button submits the sub-task
+  it('AC1: Add button creates sub-task when title is non-empty', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    fireEvent.input(input, { target: { value: 'New subtask via button' } });
+
+    // Click the Add (checkmark) button
+    const confirmBtn = container.querySelector('[aria-label="Add sub-task"]') as HTMLElement;
+    expect(confirmBtn).not.toBeNull();
+    fireEvent.click(confirmBtn);
+
+    expect(createItem).toHaveBeenCalledWith(
+      { title: 'New subtask via button', parent_id: 'detail-test-1', owner: 'Luke', created_by: 'luke@example.com' },
+      'Luke',
+      'test-token'
+    );
+    // Creation row should close
+    expect(container.querySelector('.subtask-add-input')).toBeNull();
+  });
+
+  // AC2: Cancel button closes without creating
+  it('AC2: Cancel button closes creation row without creating sub-task', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    fireEvent.input(input, { target: { value: 'Should not save' } });
+
+    // Click the Cancel (X) button
+    const cancelBtn = container.querySelector('[aria-label="Cancel adding sub-task"]') as HTMLElement;
+    expect(cancelBtn).not.toBeNull();
+    fireEvent.click(cancelBtn);
+
+    expect(createItem).not.toHaveBeenCalled();
+    expect(container.querySelector('.subtask-add-input')).toBeNull();
+    // + Add button should return
+    expect(container.querySelector('.detail-subtasks-header .btn-sm')).not.toBeNull();
+  });
+
+  // AC4: Add button is disabled when input is empty
+  it('AC4: Add button is disabled when input is empty', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const confirmBtn = container.querySelector('[aria-label="Add sub-task"]') as HTMLElement;
+    expect(confirmBtn.getAttribute('aria-disabled')).toBe('true');
+
+    // Clicking disabled button should not create anything
+    fireEvent.click(confirmBtn);
+    expect(createItem).not.toHaveBeenCalled();
+    // Row should stay open
+    expect(container.querySelector('.subtask-add-input')).not.toBeNull();
+  });
+
+  it('AC4: Add button becomes enabled when text is entered', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    fireEvent.input(input, { target: { value: 'Some text' } });
+
+    const confirmBtn = container.querySelector('[aria-label="Add sub-task"]') as HTMLElement;
+    expect(confirmBtn.getAttribute('aria-disabled')).toBeNull();
+  });
+
+  // AC5: Buttons have accessible names
+  it('AC5: Add and Cancel buttons have aria-label', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const confirmBtn = container.querySelector('[aria-label="Add sub-task"]');
+    const cancelBtn = container.querySelector('[aria-label="Cancel adding sub-task"]');
+    expect(confirmBtn).not.toBeNull();
+    expect(cancelBtn).not.toBeNull();
+  });
+
+  // AC1/AC2: Button order is Add first, Cancel second
+  it('Buttons are ordered: Add (left) then Cancel (right)', () => {
+    const { container } = renderCardDetail();
+
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const buttons = container.querySelectorAll('.subtask-add-inline .subtask-action-btn');
+    expect(buttons.length).toBe(2);
+    expect(buttons[0].getAttribute('aria-label')).toBe('Add sub-task');
+    expect(buttons[1].getAttribute('aria-label')).toBe('Cancel adding sub-task');
+  });
+});
