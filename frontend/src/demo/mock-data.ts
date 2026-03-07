@@ -42,9 +42,11 @@ export const MOCK_BOARDS: Board[] = [
 ];
 
 // --- Permissions ---
-// Family Board shared with all (*), Work Projects only shared with Dad and Mom
+// Family Board: demo user is owner, shared with all (*).
+// Work Projects: Dad is owner, Mom is member, demo user has no access.
 export const MOCK_PERMISSIONS: BoardPermission[] = [
-  { board_id: 'board-family', user_email: 'mom@family.com', role: 'owner' },
+  { board_id: 'board-family', user_email: 'demo@hive.local', role: 'owner' },
+  { board_id: 'board-family', user_email: 'mom@family.com', role: 'member' },
   { board_id: 'board-family', user_email: '*', role: 'member' },
   { board_id: 'board-work', user_email: 'dad@family.com', role: 'owner' },
   { board_id: 'board-work', user_email: 'mom@family.com', role: 'member' },
