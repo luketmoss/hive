@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'preact/hooks';
+import { useState, useEffect, useRef, useCallback } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
 import { showShareModal, activeBoard, activeBoardId, permissions, owners } from '../../state/board-store';
 import { shareBoard, unshareBoard } from '../../state/actions';
@@ -25,12 +25,12 @@ export function ShareModal() {
     triggerRef.current = document.activeElement;
   }, []);
 
-  const close = () => {
+  const close = useCallback(() => {
     showShareModal.value = false;
     if (triggerRef.current instanceof HTMLElement) {
       triggerRef.current.focus();
     }
-  };
+  }, []);
 
   const containerRef = useFocusTrap(close);
 

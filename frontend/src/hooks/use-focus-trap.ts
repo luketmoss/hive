@@ -10,12 +10,14 @@ const FOCUSABLE_SELECTOR =
  */
 export function useFocusTrap(onEscape?: () => void) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const onEscapeRef = useRef(onEscape);
+  onEscapeRef.current = onEscape;
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // Focus the first focusable element within the container
+    // Focus the first focusable element within the container (once on mount)
     const focusableEls = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
     if (focusableEls.length > 0) {
       focusableEls[0].focus();
@@ -24,7 +26,7 @@ export function useFocusTrap(onEscape?: () => void) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        onEscape?.();
+        onEscapeRef.current?.();
         return;
       }
 
@@ -53,7 +55,7 @@ export function useFocusTrap(onEscape?: () => void) {
 
     container.addEventListener('keydown', handleKeyDown);
     return () => container.removeEventListener('keydown', handleKeyDown);
-  }, [onEscape]);
+  }, []);
 
   return containerRef;
 }
