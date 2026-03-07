@@ -618,16 +618,40 @@ export async function createBoard(
     created_by: actor,
   };
 
+  // Check if this is the first board — orphaned items need adopting
+  const isFirstBoard = boards.value.length === 0;
+  const orphanedItems = isFirstBoard
+    ? items.value.filter(i => !i.board_id)
+    : [];
+
   // Optimistic update
   boards.value = [...boards.value, board];
+  if (orphanedItems.length > 0) {
+    items.value = items.value.map(i =>
+      !i.board_id ? { ...i, board_id: board.id } : i
+    );
+  }
 
   try {
     await createBoardRowApi(board, token);
+
+    // Persist board_id for orphaned items
+    for (const item of orphanedItems) {
+      const updated = { ...item, board_id: board.id };
+      await updateItemRow(item.sheetRow, updated, token);
+    }
+
     switchBoard(board.id);
     showToast('Board created');
     return true;
   } catch (err: any) {
+    // Rollback
     boards.value = boards.value.filter(b => b.id !== board.id);
+    if (orphanedItems.length > 0) {
+      items.value = items.value.map(i =>
+        orphanedItems.some(o => o.id === i.id) ? { ...i, board_id: '' } : i
+      );
+    }
     if (!isReauthFailure(err)) {
       showToast('Failed to create board: ' + err.message, 'error');
     }
