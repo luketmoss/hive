@@ -32,16 +32,7 @@ export function CardDetail() {
   const subtaskTitleRef = useRef('');
 
   const close = useCallback(() => {
-    // Return focus to the triggering card element (AC5)
-    const triggerId = selectedItemId.value;
     selectedItemId.value = null;
-    // Use requestAnimationFrame to allow the DOM to update after panel closes
-    requestAnimationFrame(() => {
-      if (triggerId) {
-        const cardEl = document.querySelector<HTMLElement>(`[data-item-id="${triggerId}"]`);
-        cardEl?.focus();
-      }
-    });
   }, []);
 
   // Focus trap (AC3) + Escape to close (AC4)

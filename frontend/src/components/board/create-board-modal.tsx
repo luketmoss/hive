@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'preact/hooks';
+import { useState, useCallback } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
 import { showCreateBoardModal, boards } from '../../state/board-store';
 import { createBoard } from '../../state/actions';
+import { useFocusTrap } from '../../hooks/use-focus-trap';
 
 const MAX_NAME_LENGTH = 30;
 
@@ -10,23 +11,12 @@ export function CreateBoardModal() {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const triggerRef = useRef<Element | null>(null);
 
-  useEffect(() => {
-    // Store the element that had focus when modal opened
-    triggerRef.current = document.activeElement;
-    // Focus input on mount
-    inputRef.current?.focus();
+  const close = useCallback(() => {
+    showCreateBoardModal.value = false;
   }, []);
 
-  const close = () => {
-    showCreateBoardModal.value = false;
-    // Return focus to trigger element
-    if (triggerRef.current instanceof HTMLElement) {
-      triggerRef.current.focus();
-    }
-  };
+  const trapRef = useFocusTrap(close);
 
   const validate = (value: string): string => {
     const trimmed = value.trim();
@@ -62,20 +52,13 @@ export function CreateBoardModal() {
     if (error) setError(validate(value));
   };
 
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      e.stopPropagation();
-      close();
-    }
-  };
-
   return (
     <div
       class="modal-overlay"
+      ref={trapRef}
       onClick={(e) => {
         if ((e.target as HTMLElement).classList.contains('modal-overlay')) close();
       }}
-      onKeyDown={handleKeyDown}
     >
       <div class="modal create-board-modal" role="dialog" aria-label="Create new board" aria-modal="true">
         <div class="modal-header">
@@ -88,8 +71,8 @@ export function CreateBoardModal() {
             <label for="board-name">Board Name</label>
             <input
               id="board-name"
-              ref={inputRef}
               type="text"
+              data-autofocus
               value={name}
               onInput={handleInput}
               placeholder="e.g., Home Tasks"

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'preact/hooks';
+import { useState, useCallback } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
 import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, boardItems } from '../../state/board-store';
 import { moveItem } from '../../state/actions';
@@ -17,8 +17,6 @@ import type { ItemStatus, ItemWithRow } from '../../api/types';
 export function KanbanBoard() {
   const { user, logout, token, updateUserName } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
-  const profileTriggerRef = useRef<HTMLButtonElement>(null);
-  const archiveTriggerRef = useRef<HTMLButtonElement>(null);
   const statuses: ItemStatus[] = ['To Do', 'In Progress', 'Done'];
 
   // Derive display name from Owners sheet (source of truth), falling back to Google account name
@@ -32,7 +30,6 @@ export function KanbanBoard() {
 
   const handleCloseArchive = useCallback(() => {
     showArchiveDialog.value = false;
-    archiveTriggerRef.current?.focus();
   }, []);
 
   const handleDrop = (itemId: string, newStatus: ItemStatus) => {
@@ -66,7 +63,6 @@ export function KanbanBoard() {
               {...(status === 'Done' ? {
                 allDoneCount: allDoneItems.value.length,
                 hasArchived: hasArchivedItems.value,
-                archiveTriggerRef: (el: HTMLButtonElement | null) => { archiveTriggerRef.current = el; },
                 onOpenArchive: handleOpenArchive,
               } : {})}
             />
@@ -123,7 +119,6 @@ export function KanbanBoard() {
           {user && (
             <button
               class="user-info"
-              ref={profileTriggerRef}
               onClick={() => setShowProfile(true)}
               aria-haspopup="dialog"
             >
@@ -193,7 +188,6 @@ export function KanbanBoard() {
           token={token}
           onClose={() => {
             setShowProfile(false);
-            profileTriggerRef.current?.focus();
           }}
           onNameUpdated={updateUserName}
         />

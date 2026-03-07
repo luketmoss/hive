@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'preact/hooks';
+import { useState, useCallback } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
 import { showShareModal, activeBoard, activeBoardId, permissions, owners } from '../../state/board-store';
 import { shareBoard, unshareBoard } from '../../state/actions';
@@ -11,7 +11,6 @@ export function ShareModal() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null);
-  const triggerRef = useRef<Element | null>(null);
 
   const boardId = activeBoardId.value;
   const boardName = activeBoard.value?.name || 'board';
@@ -21,16 +20,9 @@ export function ShareModal() {
   const hasWildcard = boardPerms.some(p => p.user_email === '*');
   const memberPerms = boardPerms.filter(p => p.user_email !== '*');
 
-  useEffect(() => {
-    triggerRef.current = document.activeElement;
-  }, []);
-
-  const close = () => {
+  const close = useCallback(() => {
     showShareModal.value = false;
-    if (triggerRef.current instanceof HTMLElement) {
-      triggerRef.current.focus();
-    }
-  };
+  }, []);
 
   const containerRef = useFocusTrap(close);
 
@@ -146,6 +138,7 @@ export function ShareModal() {
                 <input
                   id="share-email"
                   type="email"
+                  data-autofocus
                   value={email}
                   onInput={handleInput}
                   placeholder="Enter email address"
