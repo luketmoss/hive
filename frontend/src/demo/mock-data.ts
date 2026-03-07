@@ -263,6 +263,25 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     sheetRow: 13,
   },
 
+  // 9b. Organize pantry — Done (recently, within 7 days)
+  {
+    id: 'demo-013',
+    title: 'Organize pantry',
+    description: 'Sorted canned goods, tossed expired items, added shelf labels.',
+    status: 'Done',
+    owner: 'Mom',
+    due_date: '',
+    scheduled_date: '',
+    labels: 'Home',
+    parent_id: '',
+    created_at: daysAgo(5),
+    updated_at: daysAgo(2),
+    completed_at: daysAgo(2),
+    sort_order: 3,
+    created_by: 'mom@family.com',
+    sheetRow: 17,
+  },
+
   // 10. Clean garage — To Do, scheduled only (no due date)
   {
     id: 'demo-010',

@@ -60,11 +60,44 @@ export const rootItems = computed(() =>
 );
 
 const bySortOrder = (a: ItemWithRow, b: ItemWithRow) => a.sort_order - b.sort_order;
+const byCompletedAtDesc = (a: ItemWithRow, b: ItemWithRow) => {
+  const aTime = a.completed_at ? new Date(a.completed_at).getTime() : 0;
+  const bTime = b.completed_at ? new Date(b.completed_at).getTime() : 0;
+  return bTime - aTime;
+};
+
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** All root Done items (unfiltered by date). */
+export const allDoneItems = computed(() =>
+  rootItems.value.filter(i => i.status === 'Done')
+);
+
+/** Root Done items completed within the last 7 days. */
+export const recentDoneItems = computed(() => {
+  const cutoff = Date.now() - SEVEN_DAYS_MS;
+  return allDoneItems.value
+    .filter(i => i.completed_at && new Date(i.completed_at).getTime() >= cutoff)
+    .sort(bySortOrder);
+});
+
+/** True when there are Done items older than 7 days (archived). */
+export const hasArchivedItems = computed(() =>
+  allDoneItems.value.length > recentDoneItems.value.length
+);
+
+/** All Done items sorted by completed_at descending, for the archive dialog. */
+export const allDoneItemsSorted = computed(() =>
+  allDoneItems.value.slice().sort(byCompletedAtDesc)
+);
+
+// --- UI state for archive dialog ---
+export const showArchiveDialog = signal(false);
 
 export const columns = computed(() => ({
   'To Do': rootItems.value.filter(i => i.status === 'To Do').sort(bySortOrder),
   'In Progress': rootItems.value.filter(i => i.status === 'In Progress').sort(bySortOrder),
-  'Done': rootItems.value.filter(i => i.status === 'Done').sort(bySortOrder),
+  'Done': recentDoneItems.value,
 }));
 
 export const selectedItem = computed(() =>
