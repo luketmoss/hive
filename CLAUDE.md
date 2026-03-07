@@ -35,6 +35,8 @@ See the spec at the project root or the plan file for full column definitions.
 
 ## Agent Routing
 
+**Issue tracker: GitHub only.** All issue references (#N or bare numbers) mean GitHub issues in `luketmoss/hive`. Never use Atlassian/Jira MCP tools for issue lookups, board management, or project queries — use `gh` CLI exclusively.
+
 When the user's request matches a custom skill, invoke it automatically — no slash command needed:
 - Bug report, feature idea, or new request → `/idea`
 - UX or accessibility audit (no issue context) → `/ux`
