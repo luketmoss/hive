@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, fireEvent, cleanup } from '@testing-library/preact';
+import { useState } from 'preact/hooks';
 import { useFocusTrap } from './use-focus-trap';
 
 afterEach(() => {
@@ -35,6 +36,24 @@ function NativeAutofocusHarness({ onEscape }: { onEscape?: () => void }) {
       <button data-testid="btn-first">First</button>
       <input data-testid="input-native-autofocus" type="text" autoFocus />
       <button data-testid="btn-last">Last</button>
+    </div>
+  );
+}
+
+/** Harness that re-renders on input change (simulates the ShareModal bug) */
+function ReRenderHarness({ onEscape }: { onEscape?: () => void }) {
+  const [value, setValue] = useState('');
+  const ref = useFocusTrap(onEscape);
+  return (
+    <div ref={ref} data-testid="trap-container">
+      <button data-testid="btn-close">Close</button>
+      <input
+        data-testid="input-email"
+        type="text"
+        value={value}
+        onInput={(e) => setValue((e.target as HTMLInputElement).value)}
+      />
+      <button data-testid="btn-submit">Submit</button>
     </div>
   );
 }
@@ -178,5 +197,39 @@ describe('useFocusTrap', () => {
       expect(document.activeElement).toBe(getByTestId('input-autofocus'));
       expect(document.activeElement).not.toBe(getByTestId('btn-first'));
     });
+  });
+
+  it('does not steal focus from input when component re-renders (AC1)', () => {
+    const { getByTestId } = render(<ReRenderHarness onEscape={() => {}} />);
+    const emailInput = getByTestId('input-email');
+
+    // Focus the input (simulating user click)
+    emailInput.focus();
+    expect(document.activeElement).toBe(emailInput);
+
+    // Simulate typing which triggers re-render via state change
+    fireEvent.input(emailInput, { target: { value: 't' } });
+    expect(document.activeElement).toBe(emailInput);
+
+    fireEvent.input(emailInput, { target: { value: 'te' } });
+    expect(document.activeElement).toBe(emailInput);
+
+    fireEvent.input(emailInput, { target: { value: 'tes' } });
+    expect(document.activeElement).toBe(emailInput);
+  });
+
+  it('uses latest onEscape callback even after re-renders (AC3)', () => {
+    const onEscape1 = vi.fn();
+    const { getByTestId, rerender } = render(<TestHarness onEscape={onEscape1} />);
+    const container = getByTestId('trap-container');
+
+    // Re-render with a new callback
+    const onEscape2 = vi.fn();
+    rerender(<TestHarness onEscape={onEscape2} />);
+
+    // Press Escape — should call the latest callback
+    fireEvent.keyDown(container, { key: 'Escape' });
+    expect(onEscape1).not.toHaveBeenCalled();
+    expect(onEscape2).toHaveBeenCalledTimes(1);
   });
 });

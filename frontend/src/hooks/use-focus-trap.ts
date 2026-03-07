@@ -17,6 +17,8 @@ const FOCUSABLE_SELECTOR =
 export function useFocusTrap(onEscape?: () => void) {
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
+  const onEscapeRef = useRef(onEscape);
+  onEscapeRef.current = onEscape;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -39,7 +41,7 @@ export function useFocusTrap(onEscape?: () => void) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        onEscape?.();
+        onEscapeRef.current?.();
         return;
       }
 
@@ -75,7 +77,7 @@ export function useFocusTrap(onEscape?: () => void) {
         triggerRef.current.focus();
       }
     };
-  }, [onEscape]);
+  }, []);
 
   return containerRef;
 }
