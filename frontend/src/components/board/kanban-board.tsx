@@ -1,12 +1,13 @@
 import { useState, useRef, useCallback } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, boardItems } from '../../state/board-store';
+import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, boardItems } from '../../state/board-store';
 import { moveItem } from '../../state/actions';
 import { Column } from './column';
 import { ListView } from './list-view';
 import { CardDetail } from './card-detail';
 import { CreateItemModal } from '../forms/create-item-modal';
 import { CreateBoardModal } from './create-board-modal';
+import { ShareModal } from './share-modal';
 import { BoardSwitcher } from './board-switcher';
 import { ProfileDialog } from '../profile/profile-dialog';
 import { ArchiveDialog } from '../archive/archive-dialog';
@@ -183,6 +184,7 @@ export function KanbanBoard() {
       {selectedItem.value && <CardDetail />}
       {showCreateModal.value && <CreateItemModal />}
       {showCreateBoardModal.value && <CreateBoardModal />}
+      {showShareModal.value && <ShareModal />}
       {showArchiveDialog.value && <ArchiveDialog onClose={handleCloseArchive} />}
       {showProfile && user && token && (
         <ProfileDialog

@@ -3,8 +3,8 @@
 // entirely in-memory using @preact/signals. No HTTP requests are made.
 
 import { signal } from '@preact/signals';
-import type { Item, ItemWithRow, Owner, Label, Board } from '../api/types';
-import { MOCK_ITEMS, MOCK_OWNERS, MOCK_LABELS, MOCK_BOARDS } from './mock-data';
+import type { Item, ItemWithRow, Owner, Label, Board, BoardPermission } from '../api/types';
+import { MOCK_ITEMS, MOCK_OWNERS, MOCK_LABELS, MOCK_BOARDS, MOCK_PERMISSIONS } from './mock-data';
 
 // In-memory state — deep-clone from static data so writes don't mutate the originals.
 const mockItemsState = signal<ItemWithRow[]>(structuredClone(MOCK_ITEMS));
@@ -12,12 +12,14 @@ const mockLabelsState = signal<Array<Label & { sheetRow: number }>>(
   structuredClone(MOCK_LABELS).map((l, i) => ({ ...l, sheetRow: i + 2 }))
 );
 const mockBoardsState = signal<Board[]>(structuredClone(MOCK_BOARDS));
+const mockPermissionsState = signal<BoardPermission[]>(structuredClone(MOCK_PERMISSIONS));
 
 /** Reset in-memory state back to the original mock data (for page refresh behavior). */
 export function resetMockState(): void {
   mockItemsState.value = structuredClone(MOCK_ITEMS);
   mockLabelsState.value = structuredClone(MOCK_LABELS).map((l, i) => ({ ...l, sheetRow: i + 2 }));
   mockBoardsState.value = structuredClone(MOCK_BOARDS);
+  mockPermissionsState.value = structuredClone(MOCK_PERMISSIONS);
 }
 
 // --- Read operations ---
@@ -133,4 +135,20 @@ export async function fetchBoards(_token: string): Promise<Board[]> {
 
 export async function createBoardRow(board: Board, _token: string): Promise<void> {
   mockBoardsState.value = [...mockBoardsState.value, board];
+}
+
+// --- Permission operations (in-memory) ---
+
+export async function fetchPermissions(_token: string): Promise<BoardPermission[]> {
+  return mockPermissionsState.value;
+}
+
+export async function createPermissionRow(perm: BoardPermission, _token: string): Promise<void> {
+  mockPermissionsState.value = [...mockPermissionsState.value, perm];
+}
+
+export async function deletePermissionRow(boardId: string, userEmail: string, _token: string): Promise<void> {
+  mockPermissionsState.value = mockPermissionsState.value.filter(
+    p => !(p.board_id === boardId && p.user_email.toLowerCase() === userEmail.toLowerCase())
+  );
 }

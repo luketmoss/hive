@@ -42,6 +42,12 @@ vi.mock('../../state/board-store', () => ({
   boards: { value: [] },
   boardItems: { get value() { return mockItemsRef.current; } },
   showCreateBoardModal: { value: false },
+  showShareModal: { value: false },
+  accessibleBoards: { value: [] },
+  activeBoard: { value: null },
+  userBoardRole: { value: null },
+  permissions: { value: [] },
+  currentUserEmail: { value: '' },
 }));
 
 vi.mock('../../state/actions', () => ({
@@ -54,6 +60,10 @@ vi.mock('./board-switcher', () => ({
 
 vi.mock('./create-board-modal', () => ({
   CreateBoardModal: () => null,
+}));
+
+vi.mock('./share-modal', () => ({
+  ShareModal: () => null,
 }));
 
 vi.mock('../filters/filter-bar', () => ({

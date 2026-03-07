@@ -1,7 +1,7 @@
 // Google Sheets REST API wrapper using direct fetch.
 // No gapi.client dependency — smaller, more control.
 
-import type { Item, ItemWithRow, Owner, Label, Board } from './types';
+import type { Item, ItemWithRow, Owner, Label, Board, BoardPermission } from './types';
 import { attemptReauth } from '../auth/reauth';
 
 const SPREADSHEET_ID = import.meta.env.VITE_SPREADSHEET_ID;
@@ -389,6 +389,84 @@ export async function createBoardRow(board: Board, token: string): Promise<void>
       }
       throw err;
     }
+  });
+}
+
+// --- Permissions operations ---
+
+export async function fetchPermissions(token: string): Promise<BoardPermission[]> {
+  try {
+    return await withReauth(token, async (t) => {
+      const rows = await sheetsGet('Permissions!A2:C', t);
+      return rows.map(row => ({
+        board_id: row[0] || '',
+        user_email: row[1] || '',
+        role: (row[2] || 'member') as BoardPermission['role'],
+      }));
+    });
+  } catch (err) {
+    // Permissions tab may not exist yet — return empty so the app works without it
+    if (err instanceof SheetsApiError && err.status === 400) return [];
+    throw err;
+  }
+}
+
+/** Create the Permissions tab with a header row if it doesn't exist yet. */
+async function ensurePermissionsTab(token: string): Promise<void> {
+  const url = `${BASE}/${SPREADSHEET_ID}:batchUpdate`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      requests: [{ addSheet: { properties: { title: 'Permissions' } } }],
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    if (text.includes('already exists')) return;
+    throw new SheetsApiError(res.status, text);
+  }
+  await sheetsUpdate('Permissions!A1:C1', [['Board ID', 'User Email', 'Role']], token);
+}
+
+export async function createPermissionRow(perm: BoardPermission, token: string): Promise<void> {
+  return withReauth(token, async (t) => {
+    try {
+      await sheetsAppend('Permissions!A:C', [[perm.board_id, perm.user_email, perm.role]], t);
+    } catch (err) {
+      if (err instanceof SheetsApiError && err.status === 400) {
+        await ensurePermissionsTab(t);
+        await sheetsAppend('Permissions!A:C', [[perm.board_id, perm.user_email, perm.role]], t);
+        return;
+      }
+      throw err;
+    }
+  });
+}
+
+export async function deletePermissionRow(boardId: string, userEmail: string, token: string): Promise<void> {
+  return withReauth(token, async (t) => {
+    // Find the row to delete
+    const rows = await sheetsGet('Permissions!A2:C', t);
+    const rowIndex = rows.findIndex(
+      row => row[0] === boardId && (row[1] || '').toLowerCase() === userEmail.toLowerCase()
+    );
+    if (rowIndex < 0) return;
+
+    // Get Permissions sheet ID
+    const url = `${BASE}/${SPREADSHEET_ID}?fields=sheets.properties`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${t}` },
+    });
+    const data = await res.json();
+    const permSheet = data.sheets?.find(
+      (s: any) => s.properties.title === 'Permissions'
+    );
+    const sheetId = permSheet?.properties?.sheetId ?? 0;
+    await sheetsDeleteRow(sheetId, rowIndex + 2, t); // +2: 1-based + header
   });
 }
 

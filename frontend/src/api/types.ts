@@ -43,6 +43,14 @@ export interface Board {
   created_by: string;
 }
 
+export type PermissionRole = 'owner' | 'member';
+
+export interface BoardPermission {
+  board_id: string;
+  user_email: string;
+  role: PermissionRole;
+}
+
 export interface UserInfo {
   email: string;
   name: string;

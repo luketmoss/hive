@@ -1,18 +1,52 @@
 import { signal, computed } from '@preact/signals';
-import type { ItemWithRow, Owner, Label, ItemStatus, Board } from '../api/types';
+import type { ItemWithRow, Owner, Label, ItemStatus, Board, BoardPermission, PermissionRole } from '../api/types';
 
 // --- Core data ---
 export const items = signal<ItemWithRow[]>([]);
 export const owners = signal<Owner[]>([]);
 export const labels = signal<Label[]>([]);
 export const boards = signal<Board[]>([]);
+export const permissions = signal<BoardPermission[]>([]);
 export const activeBoardId = signal<string>('');
 export const loading = signal(true);
+export const currentUserEmail = signal<string>('');
 
 /** The currently active board object. */
 export const activeBoard = computed(() =>
   boards.value.find(b => b.id === activeBoardId.value) ?? null
 );
+
+/** Boards the current user has access to (via direct permission or wildcard). */
+export const accessibleBoards = computed(() => {
+  const email = currentUserEmail.value.toLowerCase();
+  if (!email) return boards.value; // No user context = show all (fallback)
+  return boards.value.filter(b => {
+    return permissions.value.some(p =>
+      p.board_id === b.id && (p.user_email === '*' || p.user_email.toLowerCase() === email)
+    );
+  });
+});
+
+/** The current user's role on the active board. */
+export const userBoardRole = computed((): PermissionRole | null => {
+  const email = currentUserEmail.value.toLowerCase();
+  const bid = activeBoardId.value;
+  if (!email || !bid) return null;
+
+  // Check for direct permission first (may be 'owner')
+  const direct = permissions.value.find(
+    p => p.board_id === bid && p.user_email.toLowerCase() === email
+  );
+  if (direct) return direct.role;
+
+  // Check for wildcard
+  const wildcard = permissions.value.find(
+    p => p.board_id === bid && p.user_email === '*'
+  );
+  if (wildcard) return 'member'; // Wildcard always grants member
+
+  return null;
+});
 
 /** Items scoped to the active board (plus their children). */
 export const boardItems = computed(() => {
@@ -116,6 +150,9 @@ export const showArchiveDialog = signal(false);
 
 // --- UI state for board creation ---
 export const showCreateBoardModal = signal(false);
+
+// --- UI state for share modal ---
+export const showShareModal = signal(false);
 
 /** Switch to a different board. Resets filters and selection but preserves view mode. */
 export function switchBoard(boardId: string) {
