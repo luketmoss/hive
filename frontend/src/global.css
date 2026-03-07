@@ -1453,10 +1453,15 @@ body {
     gap: 10px;
   }
 
-  /* #59 AC2: Sub-task rows wrap action buttons to second row on mobile */
+  /* #59 AC1+AC2: Sub-task rows wrap action buttons to second row on mobile */
   .subtask-item {
     flex-wrap: wrap;
     min-height: 44px;
+  }
+
+  /* #59 AC1: Ensure title gets at least 120px, forcing actions to wrap */
+  .subtask-title {
+    min-width: 120px;
   }
 
   /* #59 AC2: Action buttons right-align when wrapped to second row */
