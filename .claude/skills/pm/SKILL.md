@@ -30,10 +30,10 @@ Use this single command to move an issue to a board column. Replace `<ISSUE_NUMB
 
 ```bash
 gh project item-edit \
-  --id "$(gh project item-list 2 --owner luketmoss --format json | jq -r '.items[] | select(.content.number == <ISSUE_NUMBER>) | .id')" \
-  --project-id "$(gh project list --owner luketmoss --format json | jq -r '.projects[] | select(.number == 2) | .id')" \
-  --field-id "$(gh project field-list 2 --owner luketmoss --format json | jq -r '.fields[] | select(.name == "Status") | .id')" \
-  --single-select-option-id "$(gh project field-list 2 --owner luketmoss --format json | jq -r '.fields[] | select(.name == "Status") | .options[] | select(.name == "<COLUMN_NAME>") | .id')"
+  --id "$(gh project item-list 2 --owner luketmoss --format json --jq '.items[] | select(.content.number == <ISSUE_NUMBER>) | .id')" \
+  --project-id "$(gh project list --owner luketmoss --format json --jq '.projects[] | select(.number == 2) | .id')" \
+  --field-id "$(gh project field-list 2 --owner luketmoss --format json --jq '.fields[] | select(.name == "Status") | .id')" \
+  --single-select-option-id "$(gh project field-list 2 --owner luketmoss --format json --jq '.fields[] | select(.name == "Status") | .options[] | select(.name == "<COLUMN_NAME>") | .id')"
 ```
 
 ## Project Context
@@ -71,6 +71,11 @@ Write BDD acceptance criteria using **Given/When/Then** format. Each scenario sh
 - The primary happy path
 - Key alternate paths
 - Important edge cases or error conditions
+
+**Migration & backward compatibility check:** Does this feature add new Sheet tabs, columns, or fields? If yes, include a migration AC:
+- **Given** the feature is deployed to an existing installation with pre-existing data
+- **When** the user loads the app for the first time after the change
+- **Then** all existing data remains accessible and functional without manual intervention
 
 ### Step 4: Define scope
 
@@ -132,6 +137,7 @@ Once the user confirms the requirements look good and any open questions are res
 
 - [ ] Issue body updated with refined Summary
 - [ ] At least 2 acceptance criteria scenarios in Given/When/Then format
+- [ ] Migration AC included if new tabs, columns, or fields are introduced
 - [ ] Scope boundaries clearly defined (in and out)
 - [ ] Technical notes identify affected files and complexity
 - [ ] Open questions resolved with the user
@@ -139,6 +145,7 @@ Once the user confirms the requirements look good and any open questions are res
 
 ## Handoff
 
-When complete, tell the user:
+When complete, output a brief status line:
+> PM complete — Issue #N: <AC count> ACs defined, moved to Ready.
 
-> Issue #N refined and moved to **Ready**. When you're ready to implement, run `/dev #N`.
+Do NOT suggest next steps or address the user. The orchestrator will decide what happens next.

@@ -39,10 +39,10 @@ Use this single command to move an issue to a board column. Replace `<ISSUE_NUMB
 
 ```bash
 gh project item-edit \
-  --id "$(gh project item-list 2 --owner luketmoss --format json | jq -r '.items[] | select(.content.number == <ISSUE_NUMBER>) | .id')" \
-  --project-id "$(gh project list --owner luketmoss --format json | jq -r '.projects[] | select(.number == 2) | .id')" \
-  --field-id "$(gh project field-list 2 --owner luketmoss --format json | jq -r '.fields[] | select(.name == "Status") | .id')" \
-  --single-select-option-id "$(gh project field-list 2 --owner luketmoss --format json | jq -r '.fields[] | select(.name == "Status") | .options[] | select(.name == "<COLUMN_NAME>") | .id')"
+  --id "$(gh project item-list 2 --owner luketmoss --format json --jq '.items[] | select(.content.number == <ISSUE_NUMBER>) | .id')" \
+  --project-id "$(gh project list --owner luketmoss --format json --jq '.projects[] | select(.number == 2) | .id')" \
+  --field-id "$(gh project field-list 2 --owner luketmoss --format json --jq '.fields[] | select(.name == "Status") | .id')" \
+  --single-select-option-id "$(gh project field-list 2 --owner luketmoss --format json --jq '.fields[] | select(.name == "Status") | .options[] | select(.name == "<COLUMN_NAME>") | .id')"
 ```
 
 ## Review Checklist
@@ -85,7 +85,10 @@ Work through each category systematically. Read the full diff and relevant sourc
 - Read both files side by side and verify the logic matches
 
 ### 6. Build Verification
-Run these and confirm they pass:
+
+If QA has already passed on this branch (check for a PASS QA report on the PR), you may skip the full build verification and instead just run `cd frontend && npm test && cd ../apps-script && npm test` as a sanity check.
+
+Otherwise, run the full suite:
 ```bash
 cd frontend && npm test
 cd apps-script && npm test
@@ -174,8 +177,12 @@ Move the issue back to **"In Development"** using the board movement helper.
 
 ## Handoff
 
+When complete, output a brief status line matching the verdict:
+
 **If APPROVED:**
-> Code review passed for PR #X (issue #N). Ready for user approval and merge.
+> Review complete — PR #X (issue #N): APPROVED. All checks pass.
 
 **If CHANGES REQUESTED:**
-> Changes requested on PR #X — see review comments. Moved back to **In Development**. Run `/dev #N` to address the feedback.
+> Review complete — PR #X (issue #N): CHANGES REQUESTED. <summary of blocking issues>. Moved to In Development.
+
+Do NOT suggest next steps or address the user. The orchestrator will decide what happens next.

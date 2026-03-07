@@ -84,6 +84,7 @@ The issue will default to the "To Do" column.
 
 ## Handoff
 
-When complete, tell the user:
+When complete, output a brief status line:
+> Idea captured — Issue #N created in To Do.
 
-> Issue #N created in **To Do**. When you're ready to refine it, run `/pm #N`.
+Do NOT suggest next steps or address the user. The orchestrator will decide what happens next.

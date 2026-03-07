@@ -31,10 +31,10 @@ Use this single command to move an issue to a board column. Replace `<ISSUE_NUMB
 
 ```bash
 gh project item-edit \
-  --id "$(gh project item-list 2 --owner luketmoss --format json | jq -r '.items[] | select(.content.number == <ISSUE_NUMBER>) | .id')" \
-  --project-id "$(gh project list --owner luketmoss --format json | jq -r '.projects[] | select(.number == 2) | .id')" \
-  --field-id "$(gh project field-list 2 --owner luketmoss --format json | jq -r '.fields[] | select(.name == "Status") | .id')" \
-  --single-select-option-id "$(gh project field-list 2 --owner luketmoss --format json | jq -r '.fields[] | select(.name == "Status") | .options[] | select(.name == "<COLUMN_NAME>") | .id')"
+  --id "$(gh project item-list 2 --owner luketmoss --format json --jq '.items[] | select(.content.number == <ISSUE_NUMBER>) | .id')" \
+  --project-id "$(gh project list --owner luketmoss --format json --jq '.projects[] | select(.number == 2) | .id')" \
+  --field-id "$(gh project field-list 2 --owner luketmoss --format json --jq '.fields[] | select(.name == "Status") | .id')" \
+  --single-select-option-id "$(gh project field-list 2 --owner luketmoss --format json --jq '.fields[] | select(.name == "Status") | .options[] | select(.name == "<COLUMN_NAME>") | .id')"
 ```
 
 ## Process
@@ -73,6 +73,8 @@ Go through **each** acceptance criterion from the issue. For each one:
 
 ### Step 4: Visual and functional testing
 
+**Focus visual testing on UI-specific ACs.** If an AC is about logic, data, or behavior (e.g., "items are filtered by X"), verify via unit tests and code review in Steps 2-3. Reserve visual/preview testing for ACs about appearance, layout, interaction, and responsive behavior. This reduces context usage and speeds up the QA stage.
+
 1. Start the preview: use `preview_start` with the "frontend" server config
 2. Navigate to demo mode: run `preview_eval` with `window.location.href = 'http://localhost:5173/hive/?demo=true'` — the app requires Google OAuth, so demo mode is required for preview testing. Wait briefly, then use `preview_snapshot` to confirm the board loaded (you should see columns and cards, not a login page). If demo mode fails to load after 2 attempts, fall back to a **code-level visual review** (read the JSX/CSS and verify markup, styles, and responsive behavior match the ACs).
 3. Take screenshots: `preview_screenshot` to capture the current state
@@ -83,6 +85,7 @@ Go through **each** acceptance criterion from the issue. For each one:
 ### Step 5: Edge case testing
 
 Think about scenarios NOT covered by the acceptance criteria. Review the code for how these are handled:
+- **Fresh install / empty state** — if this feature introduces a new data model (tab, entity type, field), test with zero instances. Verify the UI handles the empty state and the bootstrapping flow works. If demo mode masks this (pre-loaded mock data), note it as an untested risk in the report.
 - **Empty states** — what happens with no data?
 - **Long content** — very long titles, descriptions, labels
 - **Special characters** — quotes, HTML entities, emoji
@@ -157,11 +160,15 @@ Also switch back to the main branch: `git checkout main`
 
 ## Handoff
 
+When complete, output a brief status line matching the verdict:
+
 **If PASS:**
-> QA passed for issue #N. Run `/review #N` for code review.
+> QA complete — Issue #N: PASS. <X/Y> ACs verified, moved to In Review.
 
 **If FAIL:**
-> QA found code issues on #N — see the QA report on PR #X. Moved back to **In Development**.
+> QA complete — Issue #N: FAIL. <summary of failures>. Moved to In Development.
 
 **If AC_PROBLEM:**
-> QA found acceptance criteria issues on #N — the ACs need revision before testing can complete. See the QA report on PR #X for details.
+> QA complete — Issue #N: AC_PROBLEM. <summary of AC issues>. Left in Testing.
+
+Do NOT suggest next steps or address the user. The orchestrator will decide what happens next.

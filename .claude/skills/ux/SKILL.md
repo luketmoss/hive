@@ -151,4 +151,7 @@ gh project item-add 2 --owner luketmoss --url <issue-url>
 
 ## Handoff
 
-> UX review complete. Findings posted to #N. Address critical items before shipping.
+When complete, output a brief status line:
+> UX complete — Issue #N: <finding count> findings posted (<critical count> critical, <recommended count> recommended).
+
+Do NOT suggest next steps or address the user. The orchestrator will decide what happens next.

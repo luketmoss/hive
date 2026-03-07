@@ -30,10 +30,10 @@ Use this single command to move an issue to a board column. Replace `<ISSUE_NUMB
 
 ```bash
 gh project item-edit \
-  --id "$(gh project item-list 2 --owner luketmoss --format json | jq -r '.items[] | select(.content.number == <ISSUE_NUMBER>) | .id')" \
-  --project-id "$(gh project list --owner luketmoss --format json | jq -r '.projects[] | select(.number == 2) | .id')" \
-  --field-id "$(gh project field-list 2 --owner luketmoss --format json | jq -r '.fields[] | select(.name == "Status") | .id')" \
-  --single-select-option-id "$(gh project field-list 2 --owner luketmoss --format json | jq -r '.fields[] | select(.name == "Status") | .options[] | select(.name == "<COLUMN_NAME>") | .id')"
+  --id "$(gh project item-list 2 --owner luketmoss --format json --jq '.items[] | select(.content.number == <ISSUE_NUMBER>) | .id')" \
+  --project-id "$(gh project list --owner luketmoss --format json --jq '.projects[] | select(.number == 2) | .id')" \
+  --field-id "$(gh project field-list 2 --owner luketmoss --format json --jq '.fields[] | select(.name == "Status") | .id')" \
+  --single-select-option-id "$(gh project field-list 2 --owner luketmoss --format json --jq '.fields[] | select(.name == "Status") | .options[] | select(.name == "<COLUMN_NAME>") | .id')"
 ```
 
 ## Tech Stack Reference
@@ -87,6 +87,11 @@ For each acceptance criterion:
 1. Write a test case that captures the Given/When/Then scenario
 2. Implement the code to make the test pass
 3. Verify the test passes
+
+**Backward compatibility check:** If this feature adds new columns, tabs, or fields:
+- What happens to existing rows/items that don't have this field?
+- Does the UI handle the zero-instances case?
+- Is there migration or bootstrapping logic needed?
 
 Key testing patterns:
 - Frontend tests: `frontend/src/**/*.test.ts` — use Vitest with Preact testing utilities
@@ -167,6 +172,7 @@ Move the issue to **"Testing"** using the board movement helper.
 
 ## Handoff
 
-When complete, tell the user:
+When complete, output a brief status line:
+> Dev complete — PR #X opened for issue #N, moved to Testing.
 
-> PR #X opened for issue #N, moved to **Testing**. When you're ready to verify, run `/qa #N`.
+Do NOT suggest next steps or address the user. The orchestrator will decide what happens next.

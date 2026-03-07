@@ -47,6 +47,8 @@ When the user's request matches a custom skill, invoke it automatically — no s
 
 **You (the main Claude instance) are the orchestrator.** You invoke skills in order, pass results between them, and ensure no step is skipped. Individual skills do their one job and return results to you. They do NOT call each other.
 
+**Context passing:** Read the issue once at the start of the pipeline. When invoking each skill, include the current ACs and scope in your prompt so the skill has immediate context. Skills may still read the issue for verification, but this reduces redundant API calls.
+
 ### Refinement Pipeline
 
 Use this when the user wants an issue refined and ready for development.
