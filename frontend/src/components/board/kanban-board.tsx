@@ -134,7 +134,7 @@ export function KanbanBoard() {
         </div>
       </header>
 
-      {boards.value.length > 0 && <BoardSwitcher />}
+      <BoardSwitcher />
 
       <FilterBar />
 
