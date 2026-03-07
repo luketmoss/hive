@@ -678,6 +678,13 @@ body {
   white-space: nowrap;
 }
 
+.share-owner-badge {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  margin-left: 6px;
+}
+
 .share-member-role {
   font-size: 12px;
   color: var(--color-text-secondary);
@@ -1896,6 +1903,12 @@ body {
     width: 44px;
     height: 44px;
     font-size: 16px;
+  }
+
+  /* #90 AC4: Share modal Add button meets 44px WCAG 2.5.8 touch target */
+  .share-input-row .btn-primary {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
 
