@@ -2,11 +2,13 @@ import { filterOwner, filterLabel, groupBy, owners, labels as labelsStore } from
 
 export function FilterBar() {
   const hasFilters = filterOwner.value || filterLabel.value;
+  const hasGrouping = groupBy.value !== 'none';
+  const showReset = hasFilters || hasGrouping;
 
   return (
     <div class="filter-bar">
       <div class="filter-group">
-        {/* AC1, AC9: Owner chips in a labeled group */}
+        {/* #28 AC1, AC9: Owner chips in a labeled group */}
         <div role="group" aria-label="Filter by owner" class="filter-chip-group">
           <span class="filter-chip-group-label">Owner:</span>
           {owners.value.map(o => {
@@ -26,7 +28,7 @@ export function FilterBar() {
           })}
         </div>
 
-        {/* AC2, AC9: Label chips in a labeled group */}
+        {/* #28 AC2, AC9: Label chips in a labeled group */}
         <div role="group" aria-label="Filter by label" class="filter-chip-group">
           <span class="filter-chip-group-label">Label:</span>
           {labelsStore.value.map(l => {
@@ -47,29 +49,38 @@ export function FilterBar() {
           })}
         </div>
 
-        {/* AC6: Group-by remains a select */}
-        <select
-          aria-label="Group items by"
-          value={groupBy.value}
-          onChange={(e) => {
-            groupBy.value = (e.target as HTMLSelectElement).value as any;
-          }}
-        >
-          <option value="none">No grouping</option>
-          <option value="owner">Group by owner</option>
-          <option value="label">Group by label</option>
-        </select>
+        {/* #77 AC1–AC5: Group-by chip toggles */}
+        <div role="group" aria-label="Group by" class="filter-chip-group filter-chip-group-separator">
+          <span class="filter-chip-group-label">Group:</span>
+          {(['owner', 'label'] as const).map(mode => {
+            const active = groupBy.value === mode;
+            const label = mode === 'owner' ? 'Owner' : 'Label';
+            return (
+              <button
+                key={mode}
+                class={`filter-chip filter-chip-group-by${active ? ' filter-chip-active' : ''}`}
+                aria-pressed={active ? 'true' : 'false'}
+                onClick={() => {
+                  groupBy.value = active ? 'none' : mode;
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
 
-        {/* AC4, AC5: Clear filters button */}
-        {hasFilters && (
+        {/* #77 AC9: Reset button — clears filters and grouping */}
+        {showReset && (
           <button
             class="btn btn-ghost btn-sm"
             onClick={() => {
               filterOwner.value = null;
               filterLabel.value = null;
+              groupBy.value = 'none';
             }}
           >
-            Clear filters
+            {hasGrouping ? 'Reset all' : 'Clear filters'}
           </button>
         )}
       </div>
