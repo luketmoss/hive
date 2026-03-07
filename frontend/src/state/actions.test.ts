@@ -53,8 +53,8 @@ vi.mock('../demo/mock-api', () => ({
   createBoardRow: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { loadBoard, NotAllowedError, deleteSubtask, reorderSubtasks } from './actions';
-import { owners, loading, items } from './board-store';
+import { loadBoard, NotAllowedError, deleteSubtask, reorderSubtasks, createItemWithSubtasks } from './actions';
+import { owners, loading, items, activeBoardId } from './board-store';
 import * as sheetsApi from '../api/sheets';
 import type { ItemWithRow } from '../api/types';
 
@@ -244,5 +244,130 @@ describe('reorderSubtasks', () => {
     const rolledBackB = items.value.find(i => i.id === 'sub-b');
     expect(rolledBackA!.sort_order).toBe(1);
     expect(rolledBackB!.sort_order).toBe(2);
+  });
+});
+
+describe('createItemWithSubtasks', () => {
+  const mockCreateItemRow = vi.mocked(sheetsApi.createItemRow);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    items.value = [];
+    activeBoardId.value = 'board-1';
+    mockFetchAllItems.mockResolvedValue([]);
+  });
+
+  it('creates parent and children, adds all to items optimistically', async () => {
+    await createItemWithSubtasks(
+      { title: 'Grocery shopping', owner: 'Mom', created_by: 'mom@test.com' },
+      [{ title: 'Buy milk', owner: 'Mom' }, { title: 'Buy eggs', owner: 'Dad' }],
+      'Mom',
+      'test-token'
+    );
+
+    // createItemRow called 3 times (parent + 2 children)
+    expect(mockCreateItemRow).toHaveBeenCalledTimes(3);
+
+    // appendAuditEntry called 3 times
+    expect(mockAppendAuditEntry).toHaveBeenCalledTimes(3);
+
+    // Parent created first
+    const parentCall = mockCreateItemRow.mock.calls[0][0];
+    expect(parentCall.title).toBe('Grocery shopping');
+    expect(parentCall.owner).toBe('Mom');
+    expect(parentCall.parent_id).toBe('');
+
+    // Children reference parent
+    const child1 = mockCreateItemRow.mock.calls[1][0];
+    const child2 = mockCreateItemRow.mock.calls[2][0];
+    expect(child1.title).toBe('Buy milk');
+    expect(child1.parent_id).toBe(parentCall.id);
+    expect(child1.owner).toBe('Mom');
+    expect(child2.title).toBe('Buy eggs');
+    expect(child2.parent_id).toBe(parentCall.id);
+    expect(child2.owner).toBe('Dad');
+  });
+
+  it('assigns sequential sort_order to children', async () => {
+    await createItemWithSubtasks(
+      { title: 'Parent', created_by: '' },
+      [{ title: 'A', owner: '' }, { title: 'B', owner: '' }, { title: 'C', owner: '' }],
+      'web',
+      'test-token'
+    );
+
+    const child1 = mockCreateItemRow.mock.calls[1][0];
+    const child2 = mockCreateItemRow.mock.calls[2][0];
+    const child3 = mockCreateItemRow.mock.calls[3][0];
+    expect(child1.sort_order).toBe(1);
+    expect(child2.sort_order).toBe(2);
+    expect(child3.sort_order).toBe(3);
+  });
+
+  it('filters out blank-titled subtasks', async () => {
+    await createItemWithSubtasks(
+      { title: 'Parent', created_by: '' },
+      [{ title: 'Valid', owner: '' }, { title: '   ', owner: '' }, { title: '', owner: '' }],
+      'web',
+      'test-token'
+    );
+
+    // Only parent + 1 valid child
+    expect(mockCreateItemRow).toHaveBeenCalledTimes(2);
+  });
+
+  it('children inherit board_id from active board', async () => {
+    activeBoardId.value = 'my-board-42';
+
+    await createItemWithSubtasks(
+      { title: 'Parent', created_by: '' },
+      [{ title: 'Child', owner: '' }],
+      'web',
+      'test-token'
+    );
+
+    const parent = mockCreateItemRow.mock.calls[0][0];
+    const child = mockCreateItemRow.mock.calls[1][0];
+    expect(parent.board_id).toBe('my-board-42');
+    expect(child.board_id).toBe('my-board-42');
+  });
+
+  it('rolls back all items on API failure', async () => {
+    mockCreateItemRow
+      .mockResolvedValueOnce(undefined) // parent succeeds
+      .mockRejectedValueOnce(new Error('Network error')); // first child fails
+
+    await createItemWithSubtasks(
+      { title: 'Parent', created_by: '' },
+      [{ title: 'Child', owner: '' }],
+      'web',
+      'test-token'
+    );
+
+    // All items (parent + child) should be rolled back
+    expect(items.value).toHaveLength(0);
+  });
+
+  it('does nothing if title is empty', async () => {
+    await createItemWithSubtasks(
+      { title: '  ', created_by: '' },
+      [{ title: 'Child', owner: '' }],
+      'web',
+      'test-token'
+    );
+
+    expect(mockCreateItemRow).not.toHaveBeenCalled();
+  });
+
+  it('children default to "To Do" status', async () => {
+    await createItemWithSubtasks(
+      { title: 'Parent', created_by: '' },
+      [{ title: 'Child', owner: '' }],
+      'web',
+      'test-token'
+    );
+
+    const child = mockCreateItemRow.mock.calls[1][0];
+    expect(child.status).toBe('To Do');
   });
 });
