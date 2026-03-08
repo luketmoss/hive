@@ -1163,6 +1163,36 @@ body {
   border-color: var(--color-overdue);
 }
 
+/* #86 AC2: "Set date" affordance for dateless sub-tasks — hidden until hover/focus */
+.subtask-date-add {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  font-size: 11px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  line-height: 1.4;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.subtask-item:hover .subtask-date-add,
+.subtask-item:focus-within .subtask-date-add {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.subtask-date-add:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  border-style: solid;
+}
+
 .subtask-date-input {
   font-size: 12px;
   padding: 2px 4px;
@@ -2140,6 +2170,15 @@ body {
   }
 
   .subtask-date-badge {
+    min-height: 44px;
+    padding: 4px 10px;
+    font-size: 13px;
+  }
+
+  /* #86 AC5: Add-affordance always visible on mobile, 44px touch target */
+  .subtask-date-add {
+    opacity: 1;
+    pointer-events: auto;
     min-height: 44px;
     padding: 4px 10px;
     font-size: 13px;

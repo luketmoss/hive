@@ -756,12 +756,11 @@ function SubtaskDates({ child, onSave }: {
     );
   }
 
-  // No dates and not editing — show nothing (AC1: "sub-tasks with no dates set show no date indicators")
-  if (!hasDue && !hasSched) return null;
-
+  // Always render the container — date badges for set dates, add-affordance buttons for unset ones.
+  // Add-affordances are opacity:0 by default, revealed on subtask-item hover/focus (AC2).
   return (
     <span class="subtask-dates">
-      {hasDue && (
+      {hasDue ? (
         <button
           class={`subtask-date-badge ${dueOverdue ? 'subtask-date-overdue' : ''}`}
           aria-label={`Due date: ${formatCompactDate(child.due_date)}${dueOverdue ? ', overdue' : ''}. Click to edit.`}
@@ -769,14 +768,30 @@ function SubtaskDates({ child, onSave }: {
         >
           Due: {formatCompactDate(child.due_date)}
         </button>
+      ) : (
+        <button
+          class="subtask-date-add"
+          aria-label={`Add due date for ${child.title}`}
+          onClick={(e) => { e.stopPropagation(); setEditingField('due_date'); }}
+        >
+          Due +
+        </button>
       )}
-      {hasSched && (
+      {hasSched ? (
         <button
           class="subtask-date-badge"
           aria-label={`Scheduled date: ${formatCompactDate(child.scheduled_date)}. Click to edit.`}
           onClick={(e) => { e.stopPropagation(); setEditingField('scheduled_date'); }}
         >
           Sched: {formatCompactDate(child.scheduled_date)}
+        </button>
+      ) : (
+        <button
+          class="subtask-date-add"
+          aria-label={`Add scheduled date for ${child.title}`}
+          onClick={(e) => { e.stopPropagation(); setEditingField('scheduled_date'); }}
+        >
+          Sched +
         </button>
       )}
     </span>

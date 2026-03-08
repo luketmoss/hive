@@ -1281,12 +1281,16 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
       expect(badges[1].textContent).toContain('Mar 15');
     });
 
-    it('shows no date indicators for sub-tasks without dates', () => {
+    it('shows no date indicator badges for sub-tasks without dates', () => {
       mockChildren = [childNoDates];
       mockItems = [childNoDates];
       const { container } = renderCardDetail();
+      // No date badges (the compact "Due: Mar 8" display elements)
       const badges = container.querySelectorAll('.subtask-date-badge');
       expect(badges.length).toBe(0);
+      // Add-affordance buttons are present (hidden via CSS, but in DOM)
+      const addBtns = container.querySelectorAll('.subtask-date-add');
+      expect(addBtns.length).toBe(2);
     });
 
     it('shows overdue styling on past-due sub-task due dates', () => {
@@ -1363,6 +1367,52 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
       const label = dueBadge.getAttribute('aria-label') || '';
       expect(label).toContain('Due date:');
       expect(label).toContain('Click to edit');
+    });
+
+    it('clicking "Due +" affordance opens due date editor for dateless sub-task', () => {
+      mockChildren = [childNoDates];
+      mockItems = [childNoDates];
+      const { container } = renderCardDetail();
+      const dueAddBtn = container.querySelector('.subtask-date-add[aria-label^="Add due date"]') as HTMLElement;
+      expect(dueAddBtn).not.toBeNull();
+      fireEvent.click(dueAddBtn);
+      const dateInput = container.querySelector('.subtask-date-input') as HTMLInputElement;
+      expect(dateInput).not.toBeNull();
+      expect(dateInput.getAttribute('aria-label')).toContain('Due date');
+    });
+
+    it('clicking "Sched +" affordance opens scheduled date editor for dateless sub-task', () => {
+      mockChildren = [childNoDates];
+      mockItems = [childNoDates];
+      const { container } = renderCardDetail();
+      const schedAddBtn = container.querySelector('.subtask-date-add[aria-label^="Add scheduled date"]') as HTMLElement;
+      expect(schedAddBtn).not.toBeNull();
+      fireEvent.click(schedAddBtn);
+      const dateInput = container.querySelector('.subtask-date-input') as HTMLInputElement;
+      expect(dateInput).not.toBeNull();
+      expect(dateInput.getAttribute('aria-label')).toContain('Scheduled date');
+    });
+
+    it('shows "Sched +" affordance when sub-task has due date but no scheduled date', () => {
+      const childDueOnly = { ...childWithDates, scheduled_date: '' };
+      mockChildren = [childDueOnly];
+      mockItems = [childDueOnly];
+      const { container } = renderCardDetail();
+      // Due badge (not affordance) for existing due date
+      expect(container.querySelector('.subtask-date-badge')).not.toBeNull();
+      // Sched+ affordance for missing scheduled date
+      const schedAdd = container.querySelector('.subtask-date-add[aria-label^="Add scheduled date"]');
+      expect(schedAdd).not.toBeNull();
+    });
+
+    it('shows no add-affordance buttons when both dates are set', () => {
+      const { container } = renderCardDetail();
+      // childWithDates has both dates set — no affordance buttons
+      const addBtns = container.querySelectorAll('.subtask-date-add');
+      // Only childNoDates (second child) would have affordances, childWithDates has none
+      // childWithDates → 0 affordances; childNoDates → 2 affordances
+      // With both children in default beforeEach: 2 affordances total (from childNoDates only)
+      expect(addBtns.length).toBe(2);
     });
   });
 
