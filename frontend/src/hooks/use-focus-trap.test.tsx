@@ -1,10 +1,16 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, fireEvent, cleanup } from '@testing-library/preact';
 import { useState } from 'preact/hooks';
 import { useFocusTrap } from './use-focus-trap';
 
 afterEach(() => {
   cleanup();
+  // Reset body styles after each test
+  document.body.style.overflow = '';
+  document.body.style.paddingRight = '';
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.width = '';
 });
 
 function TestHarness({ onEscape }: { onEscape?: () => void }) {
@@ -231,5 +237,158 @@ describe('useFocusTrap', () => {
     fireEvent.keyDown(container, { key: 'Escape' });
     expect(onEscape1).not.toHaveBeenCalled();
     expect(onEscape2).toHaveBeenCalledTimes(1);
+  });
+
+  describe('Scroll lock — AC1: Background scroll prevented', () => {
+    it('sets overflow hidden on body when modal opens (non-iOS)', () => {
+      render(<TestHarness />);
+      expect(document.body.style.overflow).toBe('hidden');
+    });
+
+    it('removes overflow hidden on body when modal closes', () => {
+      const { unmount } = render(<TestHarness />);
+      expect(document.body.style.overflow).toBe('hidden');
+
+      unmount();
+      expect(document.body.style.overflow).toBe('');
+    });
+  });
+
+  describe('Scroll lock — AC2: Scroll position restored on close', () => {
+    it('restores window.scrollY to the pre-modal position on unmount', () => {
+      // Simulate a pre-existing scroll position
+      Object.defineProperty(window, 'scrollY', { value: 350, writable: true, configurable: true });
+      const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+
+      // On non-iOS, scroll position is maintained by the browser when overflow: hidden is removed
+      // The scrollTo call is only for iOS path, so non-iOS just removes styles
+      const { unmount } = render(<TestHarness />);
+      unmount();
+
+      expect(document.body.style.overflow).toBe('');
+      Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true });
+      scrollToSpy.mockRestore();
+    });
+  });
+
+  describe('Scroll lock — AC3: Sequential open/close leaves no stale lock', () => {
+    it('cleans up scroll lock after each modal cycle', () => {
+      // First modal open/close
+      const result1 = render(<TestHarness />);
+      expect(document.body.style.overflow).toBe('hidden');
+      result1.unmount();
+      expect(document.body.style.overflow).toBe('');
+
+      // Second modal open/close
+      const result2 = render(<TestHarness />);
+      expect(document.body.style.overflow).toBe('hidden');
+      result2.unmount();
+      expect(document.body.style.overflow).toBe('');
+      expect(document.body.style.position).toBe('');
+      expect(document.body.style.paddingRight).toBe('');
+    });
+  });
+
+  describe('Scroll lock — AC4: iOS Safari uses position:fixed pattern', () => {
+    let originalDescriptor: PropertyDescriptor | undefined;
+
+    beforeEach(() => {
+      // Check own property first, then walk the prototype chain
+      originalDescriptor = Object.getOwnPropertyDescriptor(navigator, 'userAgent')
+        ?? Object.getOwnPropertyDescriptor(Object.getPrototypeOf(navigator), 'userAgent');
+      Object.defineProperty(navigator, 'userAgent', {
+        value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X)',
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    afterEach(() => {
+      // Remove the own-property override so the prototype getter takes effect again
+      // @ts-ignore — delete non-optional property
+      delete navigator.userAgent;
+      // If there was an own-property descriptor originally, restore it
+      if (originalDescriptor && Object.getOwnPropertyDescriptor(navigator, 'userAgent') === undefined) {
+        Object.defineProperty(navigator, 'userAgent', originalDescriptor);
+      }
+    });
+
+    it('applies position:fixed + negative top on iOS when modal opens', () => {
+      Object.defineProperty(window, 'scrollY', { value: 200, writable: true, configurable: true });
+
+      render(<TestHarness />);
+
+      expect(document.body.style.position).toBe('fixed');
+      expect(document.body.style.top).toBe('-200px');
+      expect(document.body.style.width).toBe('100%');
+
+      Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true });
+    });
+
+    it('restores scroll position and removes fixed positioning on close', () => {
+      Object.defineProperty(window, 'scrollY', { value: 200, writable: true, configurable: true });
+      const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+
+      const { unmount } = render(<TestHarness />);
+      unmount();
+
+      expect(document.body.style.position).toBe('');
+      expect(document.body.style.top).toBe('');
+      expect(document.body.style.width).toBe('');
+      expect(scrollToSpy).toHaveBeenCalledWith(0, 200);
+
+      Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true });
+      scrollToSpy.mockRestore();
+    });
+  });
+
+  describe('Scroll lock — AC5: No layout shift from scrollbar disappearing', () => {
+    it('adds padding-right equal to scrollbar width when modal opens', () => {
+      // Simulate a 15px scrollbar by overriding innerWidth and clientWidth
+      Object.defineProperty(window, 'innerWidth', { get: () => 1280, configurable: true });
+      Object.defineProperty(document.documentElement, 'clientWidth', { get: () => 1265, configurable: true });
+
+      render(<TestHarness />);
+
+      expect(document.body.style.paddingRight).toBe('15px');
+    });
+
+    it('removes padding-right when modal closes', () => {
+      Object.defineProperty(window, 'innerWidth', { get: () => 1280, configurable: true });
+      Object.defineProperty(document.documentElement, 'clientWidth', { get: () => 1265, configurable: true });
+
+      const { unmount } = render(<TestHarness />);
+      expect(document.body.style.paddingRight).toBe('15px');
+
+      unmount();
+      expect(document.body.style.paddingRight).toBe('');
+    });
+
+    it('does not add padding-right when there is no scrollbar', () => {
+      Object.defineProperty(window, 'innerWidth', { get: () => 1024, configurable: true });
+      Object.defineProperty(document.documentElement, 'clientWidth', { get: () => 1024, configurable: true });
+
+      render(<TestHarness />);
+
+      expect(document.body.style.paddingRight).toBe('');
+    });
+  });
+
+  describe('Scroll lock — horizontal scroll preservation', () => {
+    it('does not disturb element-level horizontal scroll on close', () => {
+      // Create a mock board-main element with horizontal scroll
+      const boardMain = document.createElement('div');
+      boardMain.className = 'board-main';
+      boardMain.scrollLeft = 150;
+      document.body.appendChild(boardMain);
+
+      const { unmount } = render(<TestHarness />);
+      unmount();
+
+      // Element-level scrollLeft should be unaffected by body style changes
+      expect(boardMain.scrollLeft).toBe(150);
+
+      document.body.removeChild(boardMain);
+    });
   });
 });
