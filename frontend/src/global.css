@@ -711,6 +711,55 @@ body {
   color: var(--color-text-secondary);
 }
 
+/* === Shortcuts Help Overlay === */
+
+.shortcuts-help {
+  width: 400px;
+}
+
+.shortcuts-group {
+  margin-bottom: 16px;
+}
+
+.shortcuts-group:last-child {
+  margin-bottom: 0;
+}
+
+.shortcuts-group-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+  margin: 0 0 8px;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+
+.shortcut-keys {
+  display: inline-block;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-width: 24px;
+  text-align: center;
+}
+
+.shortcut-desc {
+  font-size: 14px;
+  color: var(--color-text);
+}
+
 .btn-sm {
   padding: 2px 8px;
   font-size: 12px;

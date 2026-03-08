@@ -36,8 +36,10 @@ export function BoardSwitcher() {
         onChange={handleChange}
         aria-label="Select board"
       >
-        {accessibleBoards.value.map(b => (
-          <option key={b.id} value={b.id}>{b.name}</option>
+        {accessibleBoards.value.map((b, i) => (
+          <option key={b.id} value={b.id}>
+            {i < 9 ? `${b.name} (Ctrl+${i + 1})` : b.name}
+          </option>
         ))}
         <option value="__new__">+ New Board...</option>
       </select>
