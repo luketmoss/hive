@@ -1,5 +1,11 @@
 import { boards, activeBoardId, switchBoard, showCreateBoardModal, showShareModal, accessibleBoards, activeBoard, userBoardRole } from '../../state/board-store';
 
+/** Format the option label for a board: icon (if set) + name. */
+function boardOptionLabel(name: string, icon?: string, shortcut?: string): string {
+  const prefix = icon ? `${icon} ` : '';
+  return shortcut ? `${prefix}${name} (${shortcut})` : `${prefix}${name}`;
+}
+
 export function BoardSwitcher() {
   const handleChange = (e: Event) => {
     const value = (e.target as HTMLSelectElement).value;
@@ -26,10 +32,19 @@ export function BoardSwitcher() {
   }
 
   const boardName = activeBoard.value?.name || 'board';
+  const boardColor = activeBoard.value?.color || '';
   const isOwner = userBoardRole.value === 'owner';
 
   return (
     <div class="board-switcher" data-testid="board-switcher">
+      {boardColor && (
+        <span
+          class="board-color-dot"
+          style={`background: ${boardColor};`}
+          aria-hidden="true"
+          data-testid="board-color-dot"
+        />
+      )}
       <select
         class="board-switcher-select"
         value={activeBoardId.value}
@@ -38,7 +53,7 @@ export function BoardSwitcher() {
       >
         {accessibleBoards.value.map((b, i) => (
           <option key={b.id} value={b.id}>
-            {i < 9 ? `${b.name} (Ctrl+${i + 1})` : b.name}
+            {boardOptionLabel(b.name, b.icon, i < 9 ? `Ctrl+${i + 1}` : undefined)}
           </option>
         ))}
         <option value="__new__">+ New Board...</option>

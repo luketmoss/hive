@@ -1,8 +1,10 @@
 import { useState, useCallback } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
 import { showShareModal, activeBoard, activeBoardId, permissions, owners } from '../../state/board-store';
-import { shareBoard, unshareBoard } from '../../state/actions';
+import { shareBoard, unshareBoard, updateBoardAppearance } from '../../state/actions';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
+import { ColorPicker } from '../shared/color-picker';
+import { IconPicker } from '../shared/icon-picker';
 
 export function ShareModal() {
   const { token, user } = useAuth();
@@ -11,9 +13,21 @@ export function ShareModal() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null);
+  const [color, setColor] = useState(activeBoard.value?.color || '');
+  const [icon, setIcon] = useState(activeBoard.value?.icon || '');
 
   const boardId = activeBoardId.value;
   const boardName = activeBoard.value?.name || 'board';
+
+  const handleColorChange = async (newColor: string) => {
+    setColor(newColor);
+    if (token) await updateBoardAppearance(boardId, newColor, icon, token);
+  };
+
+  const handleIconChange = async (newIcon: string) => {
+    setIcon(newIcon);
+    if (token) await updateBoardAppearance(boardId, color, newIcon, token);
+  };
 
   // Permissions for this board
   const boardPerms = permissions.value.filter(p => p.board_id === boardId);
@@ -117,6 +131,17 @@ export function ShareModal() {
 
         <form onSubmit={handleAddMember}>
           <div class="modal-body">
+            {/* Board appearance — color and icon (AC4) */}
+            <div class="form-field">
+              <label>Color</label>
+              <ColorPicker value={color} onChange={handleColorChange} />
+            </div>
+
+            <div class="form-field">
+              <label>Icon</label>
+              <IconPicker value={icon} onChange={handleIconChange} />
+            </div>
+
             {/* Share with all toggle (AC5) */}
             <div class="share-all-toggle">
               <label class="share-toggle-label">

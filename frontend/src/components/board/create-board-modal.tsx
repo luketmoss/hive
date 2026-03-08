@@ -3,12 +3,16 @@ import { useAuth } from '../../auth/auth-context';
 import { showCreateBoardModal, boards } from '../../state/board-store';
 import { createBoard } from '../../state/actions';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
+import { ColorPicker } from '../shared/color-picker';
+import { IconPicker } from '../shared/icon-picker';
 
 const MAX_NAME_LENGTH = 30;
 
 export function CreateBoardModal() {
   const { token, user } = useAuth();
   const [name, setName] = useState('');
+  const [color, setColor] = useState('');
+  const [icon, setIcon] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -38,7 +42,7 @@ export function CreateBoardModal() {
     if (!token) return;
 
     setSubmitting(true);
-    const success = await createBoard(name, user?.email || '', token);
+    const success = await createBoard(name, user?.email || '', token, color, icon);
     setSubmitting(false);
 
     if (success) {
@@ -88,6 +92,16 @@ export function CreateBoardModal() {
                 {name.length}/{MAX_NAME_LENGTH}
               </span>
             </div>
+          </div>
+
+          <div class="form-field">
+            <label>Color</label>
+            <ColorPicker value={color} onChange={setColor} />
+          </div>
+
+          <div class="form-field">
+            <label>Icon</label>
+            <IconPicker value={icon} onChange={setIcon} />
           </div>
 
           <div class="modal-footer">
