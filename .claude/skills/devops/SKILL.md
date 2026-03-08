@@ -1,5 +1,6 @@
 ---
 name: devops
+model: sonnet
 description: Build, maintain, and troubleshoot CI/CD pipelines. Triage deployment failures, modify GitHub Actions workflows, check deployment status, and manage GitHub Pages and Apps Script deployments.
 argument-hint: [status, deploy failed, issue-number, or describe what to do]
 allowed-tools: Bash, Read, Write, Edit, Grep, Glob, WebFetch, mcp__Claude_Preview__preview_start, mcp__Claude_Preview__preview_screenshot, mcp__Claude_Preview__preview_console_logs, mcp__Claude_Preview__preview_logs

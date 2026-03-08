@@ -1,5 +1,6 @@
 ---
 name: dev
+model: opus
 description: Implement a GitHub issue following BDD practices. Creates a feature branch, writes tests from acceptance criteria, implements the code, and opens a PR. Use when an issue is in the Ready column.
 argument-hint: [issue-number]
 allowed-tools: Bash, Read, Write, Edit, Grep, Glob, Task, TodoWrite

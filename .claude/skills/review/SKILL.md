@@ -1,5 +1,6 @@
 ---
 name: review
+model: opus
 description: Review a pull request for code quality, security, test coverage, and project conventions. Approves and merges, or requests changes. Use when an issue is in the In Review column.
 argument-hint: [issue-or-pr-number]
 allowed-tools: Bash, Read, Grep, Glob

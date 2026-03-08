@@ -1,5 +1,6 @@
 ---
 name: idea
+model: haiku
 description: Capture and classify a new idea as a GitHub issue on the project board. Use when the user has a raw idea, bug report, or feature request to record.
 argument-hint: [describe your idea]
 allowed-tools: Bash, Read, Grep, Glob, AskUserQuestion

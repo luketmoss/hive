@@ -1,5 +1,6 @@
 ---
 name: orchestrator
+model: sonnet
 description: Batch-process all children of a parent issue through the development pipeline. Use when the user wants to process multiple sub-issues at once (e.g., "#3 children" or "process all children of #3").
 argument-hint: [#parent-number children]
 allowed-tools: Bash, Read, Grep, Glob, Task, TodoWrite, AskUserQuestion

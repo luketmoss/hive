@@ -1,5 +1,6 @@
 ---
 name: pm
+model: sonnet
 description: Refine a GitHub issue with BDD acceptance criteria, scope boundaries, and technical notes. Use when an issue in To Do needs requirements before development.
 argument-hint: [issue-number]
 allowed-tools: Bash, Read, Grep, Glob, AskUserQuestion

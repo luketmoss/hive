@@ -1,5 +1,6 @@
 ---
 name: ux
+model: sonnet
 description: Evaluate the app for usability and accessibility (WCAG 2.1 AA). Inspects the running app at multiple viewports, checks contrast, keyboard nav, and interaction patterns. Can be used at any stage.
 argument-hint: [issue-number, component-name, or empty for full audit]
 allowed-tools: Bash, Read, Grep, Glob, mcp__Claude_Preview__preview_start, mcp__Claude_Preview__preview_screenshot, mcp__Claude_Preview__preview_snapshot, mcp__Claude_Preview__preview_inspect, mcp__Claude_Preview__preview_click, mcp__Claude_Preview__preview_fill, mcp__Claude_Preview__preview_resize, mcp__Claude_Preview__preview_eval, mcp__Claude_Preview__preview_console_logs

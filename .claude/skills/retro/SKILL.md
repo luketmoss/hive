@@ -1,5 +1,6 @@
 ---
 name: retro
+model: sonnet
 description: Run a pipeline retrospective at the end of a session. Analyzes the current conversation context plus GitHub artifacts to identify deviations from expected pipeline behavior and improvement opportunities. Invoke this in the same session that did the work.
 argument-hint: [issue-numbers, e.g. "29" or "29 41"]
 allowed-tools: Bash, Read, Grep, Glob, Write
