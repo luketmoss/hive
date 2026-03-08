@@ -1208,3 +1208,290 @@ describe('CardDetail — Touch reorder (Issue #88)', () => {
     });
   });
 });
+
+// =====================================================================
+// #86: Sub-task date fields (due date & scheduled date)
+// =====================================================================
+describe('CardDetail sub-task date fields (Issue #86)', () => {
+  const childWithDates = {
+    id: 'child-dates-1',
+    title: 'Buy paint',
+    description: '',
+    status: 'To Do' as const,
+    owner: 'Luke',
+    due_date: '2026-03-20',
+    scheduled_date: '2026-03-15',
+    labels: '',
+    parent_id: 'detail-test-1',
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+    completed_at: '',
+    sort_order: 1,
+    created_by: '',
+    sheetRow: 3,
+  };
+
+  const childNoDates = {
+    ...childWithDates,
+    id: 'child-dates-2',
+    title: 'Sand walls',
+    due_date: '',
+    scheduled_date: '',
+    sort_order: 2,
+    sheetRow: 4,
+  };
+
+  const childOverdue = {
+    ...childWithDates,
+    id: 'child-dates-3',
+    title: 'Fix fence',
+    due_date: '2020-01-01',
+    scheduled_date: '',
+    sort_order: 3,
+    sheetRow: 5,
+  };
+
+  const childDoneOverdue = {
+    ...childOverdue,
+    id: 'child-dates-4',
+    title: 'Done task',
+    status: 'Done' as const,
+    sort_order: 4,
+    sheetRow: 6,
+  };
+
+  beforeEach(() => {
+    mockSelectedItemId = 'detail-test-1';
+    mockChildren = [childWithDates, childNoDates];
+    mockItems = [childWithDates, childNoDates];
+    mockUpdateItem.mockReset().mockResolvedValue(true);
+    mockMoveItem.mockReset().mockResolvedValue(true);
+  });
+
+  // AC1: Date display on sub-task rows
+  describe('AC1: Date display on sub-task rows', () => {
+    it('shows compact due date and scheduled date on a sub-task with dates', () => {
+      const { container } = renderCardDetail();
+      const badges = container.querySelectorAll('.subtask-date-badge');
+      // childWithDates has both due + sched, childNoDates has neither
+      expect(badges.length).toBe(2);
+      expect(badges[0].textContent).toContain('Due:');
+      expect(badges[0].textContent).toContain('Mar 20');
+      expect(badges[1].textContent).toContain('Sched:');
+      expect(badges[1].textContent).toContain('Mar 15');
+    });
+
+    it('shows no date indicator badges for sub-tasks without dates', () => {
+      mockChildren = [childNoDates];
+      mockItems = [childNoDates];
+      const { container } = renderCardDetail();
+      // No date badges (the compact "Due: Mar 8" display elements)
+      const badges = container.querySelectorAll('.subtask-date-badge');
+      expect(badges.length).toBe(0);
+      // Add-affordance buttons are present (hidden via CSS, but in DOM)
+      const addBtns = container.querySelectorAll('.subtask-date-add');
+      expect(addBtns.length).toBe(2);
+    });
+
+    it('shows overdue styling on past-due sub-task due dates', () => {
+      mockChildren = [childOverdue];
+      mockItems = [childOverdue];
+      const { container } = renderCardDetail();
+      const overdueBadge = container.querySelector('.subtask-date-overdue');
+      expect(overdueBadge).not.toBeNull();
+      expect(overdueBadge!.textContent).toContain('Due:');
+    });
+
+    it('does not show overdue styling on Done sub-tasks', () => {
+      mockChildren = [childDoneOverdue];
+      mockItems = [childDoneOverdue];
+      const { container } = renderCardDetail();
+      const overdueBadge = container.querySelector('.subtask-date-overdue');
+      expect(overdueBadge).toBeNull();
+    });
+  });
+
+  // AC2: Inline date editing on sub-tasks
+  describe('AC2: Inline date editing on sub-tasks', () => {
+    it('clicking a date badge shows an inline date input', () => {
+      const { container } = renderCardDetail();
+      const dueBadge = container.querySelector('.subtask-date-badge') as HTMLElement;
+      fireEvent.click(dueBadge);
+
+      const dateInput = container.querySelector('.subtask-date-input') as HTMLInputElement;
+      expect(dateInput).not.toBeNull();
+      expect(dateInput.type).toBe('date');
+      expect(dateInput.value).toBe('2026-03-20');
+    });
+
+    it('changing the date input calls updateItem and closes the editor', async () => {
+      const { container } = renderCardDetail();
+      const dueBadge = container.querySelector('.subtask-date-badge') as HTMLElement;
+      fireEvent.click(dueBadge);
+
+      const dateInput = container.querySelector('.subtask-date-input') as HTMLInputElement;
+      await act(async () => {
+        fireEvent.change(dateInput, { target: { value: '2026-04-01' } });
+      });
+
+      expect(mockUpdateItem).toHaveBeenCalledWith('child-dates-1', { due_date: '2026-04-01' }, 'Luke', 'test-token');
+      // Editor should close after save
+      expect(container.querySelector('.subtask-date-input')).toBeNull();
+    });
+
+    it('blurring the date input closes the editor', () => {
+      const { container } = renderCardDetail();
+      const dueBadge = container.querySelector('.subtask-date-badge') as HTMLElement;
+      fireEvent.click(dueBadge);
+
+      const dateInput = container.querySelector('.subtask-date-input') as HTMLInputElement;
+      fireEvent.blur(dateInput);
+
+      expect(container.querySelector('.subtask-date-input')).toBeNull();
+    });
+
+    it('Escape closes the date editor', () => {
+      const { container } = renderCardDetail();
+      const dueBadge = container.querySelector('.subtask-date-badge') as HTMLElement;
+      fireEvent.click(dueBadge);
+
+      const dateInput = container.querySelector('.subtask-date-input') as HTMLInputElement;
+      fireEvent.keyDown(dateInput, { key: 'Escape' });
+
+      expect(container.querySelector('.subtask-date-input')).toBeNull();
+    });
+
+    it('date badge has accessible label including date and edit hint', () => {
+      const { container } = renderCardDetail();
+      const dueBadge = container.querySelector('.subtask-date-badge') as HTMLElement;
+      const label = dueBadge.getAttribute('aria-label') || '';
+      expect(label).toContain('Due date:');
+      expect(label).toContain('Click to edit');
+    });
+
+    it('clicking "Due +" affordance opens due date editor for dateless sub-task', () => {
+      mockChildren = [childNoDates];
+      mockItems = [childNoDates];
+      const { container } = renderCardDetail();
+      const dueAddBtn = container.querySelector('.subtask-date-add[aria-label^="Add due date"]') as HTMLElement;
+      expect(dueAddBtn).not.toBeNull();
+      fireEvent.click(dueAddBtn);
+      const dateInput = container.querySelector('.subtask-date-input') as HTMLInputElement;
+      expect(dateInput).not.toBeNull();
+      expect(dateInput.getAttribute('aria-label')).toContain('Due date');
+    });
+
+    it('clicking "Sched +" affordance opens scheduled date editor for dateless sub-task', () => {
+      mockChildren = [childNoDates];
+      mockItems = [childNoDates];
+      const { container } = renderCardDetail();
+      const schedAddBtn = container.querySelector('.subtask-date-add[aria-label^="Add scheduled date"]') as HTMLElement;
+      expect(schedAddBtn).not.toBeNull();
+      fireEvent.click(schedAddBtn);
+      const dateInput = container.querySelector('.subtask-date-input') as HTMLInputElement;
+      expect(dateInput).not.toBeNull();
+      expect(dateInput.getAttribute('aria-label')).toContain('Scheduled date');
+    });
+
+    it('shows "Sched +" affordance when sub-task has due date but no scheduled date', () => {
+      const childDueOnly = { ...childWithDates, scheduled_date: '' };
+      mockChildren = [childDueOnly];
+      mockItems = [childDueOnly];
+      const { container } = renderCardDetail();
+      // Due badge (not affordance) for existing due date
+      expect(container.querySelector('.subtask-date-badge')).not.toBeNull();
+      // Sched+ affordance for missing scheduled date
+      const schedAdd = container.querySelector('.subtask-date-add[aria-label^="Add scheduled date"]');
+      expect(schedAdd).not.toBeNull();
+    });
+
+    it('shows no add-affordance buttons when both dates are set', () => {
+      const { container } = renderCardDetail();
+      // childWithDates has both dates set — no affordance buttons
+      const addBtns = container.querySelectorAll('.subtask-date-add');
+      // Only childNoDates (second child) would have affordances, childWithDates has none
+      // childWithDates → 0 affordances; childNoDates → 2 affordances
+      // With both children in default beforeEach: 2 affordances total (from childNoDates only)
+      expect(addBtns.length).toBe(2);
+    });
+  });
+
+  // AC3: Date fields on sub-task creation
+  describe('AC3: Date fields on sub-task creation', () => {
+    it('creation row includes due date and scheduled date inputs', () => {
+      const { container } = renderCardDetail();
+      const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+      fireEvent.click(addBtn);
+
+      const dateInputs = container.querySelectorAll('.subtask-add-date');
+      expect(dateInputs.length).toBe(2);
+      expect((dateInputs[0] as HTMLInputElement).getAttribute('aria-label')).toBe('Due date for new sub-task');
+      expect((dateInputs[1] as HTMLInputElement).getAttribute('aria-label')).toBe('Scheduled date for new sub-task');
+    });
+
+    it('date inputs default to empty', () => {
+      const { container } = renderCardDetail();
+      const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+      fireEvent.click(addBtn);
+
+      const dateInputs = container.querySelectorAll('.subtask-add-date') as NodeListOf<HTMLInputElement>;
+      expect(dateInputs[0].value).toBe('');
+      expect(dateInputs[1].value).toBe('');
+    });
+
+    it('submitting with dates includes them in createItem call', () => {
+      const { container } = renderCardDetail();
+      const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+      fireEvent.click(addBtn);
+
+      const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+      fireEvent.input(input, { target: { value: 'New subtask with dates' } });
+
+      const dateInputs = container.querySelectorAll('.subtask-add-date') as NodeListOf<HTMLInputElement>;
+      fireEvent.change(dateInputs[0], { target: { value: '2026-04-01' } });
+      fireEvent.change(dateInputs[1], { target: { value: '2026-03-28' } });
+
+      fireEvent.keyDown(input, { key: 'Enter' });
+
+      expect(createItem).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'New subtask with dates',
+          due_date: '2026-04-01',
+          scheduled_date: '2026-03-28',
+        }),
+        'Luke',
+        'test-token'
+      );
+    });
+
+    it('submitting without dates does not include date fields in createItem call', () => {
+      vi.mocked(createItem).mockClear();
+      const { container } = renderCardDetail();
+      const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+      fireEvent.click(addBtn);
+
+      const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+      fireEvent.input(input, { target: { value: 'No dates subtask' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+
+      const callArgs = vi.mocked(createItem).mock.calls[0][0];
+      expect(callArgs.due_date).toBeUndefined();
+      expect(callArgs.scheduled_date).toBeUndefined();
+    });
+  });
+
+  // AC4: No cross-validation with parent dates
+  describe('AC4: No cross-validation with parent dates', () => {
+    it('sub-task with due date after parent due date shows no warning', () => {
+      // Parent has no due date; child has a far-future date. No warning or error shown.
+      mockChildren = [{ ...childWithDates, due_date: '2099-12-31' }];
+      mockItems = [{ ...childWithDates, due_date: '2099-12-31' }];
+      const { container } = renderCardDetail();
+      const overdue = container.querySelector('.subtask-date-overdue');
+      expect(overdue).toBeNull();
+      const badge = container.querySelector('.subtask-date-badge');
+      expect(badge).not.toBeNull();
+      expect(badge!.textContent).toContain('Dec 31');
+    });
+  });
+});
