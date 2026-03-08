@@ -403,7 +403,8 @@ describe('KanbanBoard keyboard shortcuts (Issue #91)', () => {
       mockState.items = [];
       const { queryByTestId } = renderBoard();
 
-      fireEvent.keyDown(document, { key: '?' });
+      // Real keyboards send shiftKey: true when typing '?' (Shift + /)
+      fireEvent.keyDown(document, { key: '?', shiftKey: true });
 
       expect(queryByTestId('shortcuts-help')).not.toBeNull();
     });

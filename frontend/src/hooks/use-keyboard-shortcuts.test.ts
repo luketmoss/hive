@@ -118,6 +118,26 @@ describe('useKeyboardShortcuts', () => {
       press('S', { ctrlKey: true, shiftKey: true });
       expect(action).toHaveBeenCalledTimes(1);
     });
+
+    it('fires shifted-character shortcut (e.g. ?) even though shiftKey is true', () => {
+      const action = vi.fn();
+      const shortcuts: Shortcut[] = [{ key: '?', action }];
+      renderHook(() => useKeyboardShortcuts(shortcuts));
+
+      // On real keyboards, typing '?' sends shiftKey: true + key: '?'
+      press('?', { shiftKey: true });
+      expect(action).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not fire Ctrl+key when Ctrl+Shift+key is pressed', () => {
+      const action = vi.fn();
+      const shortcuts: Shortcut[] = [{ key: 's', ctrl: true, action }];
+      renderHook(() => useKeyboardShortcuts(shortcuts));
+
+      // Ctrl+Shift+S should NOT match a Ctrl+S shortcut
+      press('S', { ctrlKey: true, shiftKey: true });
+      expect(action).not.toHaveBeenCalled();
+    });
   });
 
   describe('Enabled flag', () => {

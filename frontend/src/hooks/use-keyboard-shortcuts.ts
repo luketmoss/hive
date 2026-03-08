@@ -56,7 +56,14 @@ export function useKeyboardShortcuts(shortcuts: Shortcut[], enabled = true) {
         const hasShift = e.shiftKey;
 
         if (needsCtrl !== hasCtrl) continue;
-        if (needsShift !== hasShift) continue;
+
+        // For Shift: if the shortcut explicitly requires Shift, enforce it.
+        // If the shortcut does NOT require Shift and no Ctrl modifier is involved,
+        // ignore the Shift state — the key value already reflects shifted characters
+        // (e.g. typing '?' sends shiftKey:true + key:'?', not key:'/').
+        // Only enforce "no Shift" when Ctrl is held (to distinguish Ctrl+S from Ctrl+Shift+S).
+        if (needsShift && !hasShift) continue;
+        if (!needsShift && hasShift && needsCtrl) continue;
 
         // For single-key shortcuts (no ctrl/shift), suppress when input is focused
         const isModifier = needsCtrl || needsShift;
