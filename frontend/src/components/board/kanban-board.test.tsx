@@ -85,6 +85,10 @@ vi.mock('../../state/board-store', () => ({
   permissions: { value: [] },
   currentUserEmail: { value: '' },
   switchBoard: (...args: any[]) => mockSwitchBoard(...args),
+  theme: { value: 'system' },
+  applyTheme: () => {},
+  cycleTheme: () => {},
+  setTheme: () => {},
 }));
 
 vi.mock('../../state/actions', () => ({
@@ -123,6 +127,9 @@ vi.mock('../profile/profile-dialog', () => ({
 }));
 vi.mock('../archive/archive-dialog', () => ({
   ArchiveDialog: () => <div data-testid="archive-dialog" />,
+}));
+vi.mock('./theme-toggle', () => ({
+  ThemeToggle: () => <div data-testid="theme-toggle" />,
 }));
 
 const mockAuth: AuthState = {

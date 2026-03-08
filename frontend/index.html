@@ -5,6 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Hive — Family Board</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐝</text></svg>" />
+  <!-- AC4: Apply data-theme before first paint to prevent flash of wrong theme -->
+  <script>
+    (function() {
+      try {
+        var t = localStorage.getItem('hive-theme');
+        var resolved;
+        if (t === 'dark') {
+          resolved = 'dark';
+        } else if (t === 'light') {
+          resolved = 'light';
+        } else {
+          // 'system' or missing/invalid: follow OS preference
+          resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', resolved);
+      } catch(e) {}
+    })();
+  </script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>

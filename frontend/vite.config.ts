@@ -6,5 +6,6 @@ export default defineConfig({
   base: '/hive/',
   test: {
     environment: 'jsdom',
+    setupFiles: ['./src/test-setup.ts'],
   },
 });

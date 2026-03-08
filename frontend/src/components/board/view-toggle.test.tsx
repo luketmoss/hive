@@ -48,6 +48,10 @@ vi.mock('../../state/board-store', () => ({
   userBoardRole: { value: null },
   permissions: { value: [] },
   currentUserEmail: { value: '' },
+  theme: { value: 'system' },
+  applyTheme: () => {},
+  cycleTheme: () => {},
+  setTheme: () => {},
 }));
 
 vi.mock('../../state/actions', () => ({
@@ -84,6 +88,9 @@ vi.mock('../forms/create-item-modal', () => ({
 
 vi.mock('../archive/archive-dialog', () => ({
   ArchiveDialog: () => <div data-testid="archive-dialog" />,
+}));
+vi.mock('./theme-toggle', () => ({
+  ThemeToggle: () => <div data-testid="theme-toggle" />,
 }));
 
 // Import after mocks
