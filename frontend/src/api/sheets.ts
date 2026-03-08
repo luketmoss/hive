@@ -334,12 +334,14 @@ export async function cascadeOwnerUpdate(
 export async function fetchBoards(token: string): Promise<Board[]> {
   try {
     return await withReauth(token, async (t) => {
-      const rows = await sheetsGet('Boards!A2:D', t);
+      const rows = await sheetsGet('Boards!A2:F', t);
       return rows.map(row => ({
         id: row[0] || '',
         name: row[1] || '',
         created_at: row[2] || '',
         created_by: row[3] || '',
+        color: row[4] || '',
+        icon: row[5] || '',
       }));
     });
   } catch (err) {
@@ -369,26 +371,42 @@ async function ensureBoardsTab(token: string): Promise<void> {
     throw new SheetsApiError(res.status, text);
   }
   // Add header row
-  await sheetsUpdate('Boards!A1:D1', [['ID', 'Name', 'Created At', 'Created By']], token);
+  await sheetsUpdate('Boards!A1:F1', [['ID', 'Name', 'Created At', 'Created By', 'Color', 'Icon']], token);
 }
 
 export async function createBoardRow(board: Board, token: string): Promise<void> {
   return withReauth(token, async (t) => {
     try {
-      await sheetsAppend('Boards!A:D', [[
+      await sheetsAppend('Boards!A:F', [[
         board.id, board.name, board.created_at, board.created_by,
+        board.color || '', board.icon || '',
       ]], t);
     } catch (err) {
       // If Boards tab doesn't exist, create it and retry
       if (err instanceof SheetsApiError && err.status === 400) {
         await ensureBoardsTab(t);
-        await sheetsAppend('Boards!A:D', [[
+        await sheetsAppend('Boards!A:F', [[
           board.id, board.name, board.created_at, board.created_by,
+          board.color || '', board.icon || '',
         ]], t);
         return;
       }
       throw err;
     }
+  });
+}
+
+/**
+ * Update the color and icon for an existing board.
+ * Finds the board row by ID, then writes only columns E and F.
+ */
+export async function updateBoardRow(boardId: string, color: string, icon: string, token: string): Promise<void> {
+  return withReauth(token, async (t) => {
+    const rows = await sheetsGet('Boards!A2:A', t);
+    const rowIndex = rows.findIndex(row => (row[0] || '') === boardId);
+    if (rowIndex < 0) return; // Board not found — no-op
+    const sheetRow = rowIndex + 2; // 1-based + header
+    await sheetsUpdate(`Boards!E${sheetRow}:F${sheetRow}`, [[color, icon]], t);
   });
 }
 

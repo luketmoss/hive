@@ -17,6 +17,7 @@ import {
   upsertOwner as sheetsUpsertOwner,
   fetchBoards as sheetsFetchBoards,
   createBoardRow as sheetsCreateBoardRow,
+  updateBoardRow as sheetsUpdateBoardRow,
   fetchPermissions as sheetsFetchPermissions,
   createPermissionRow as sheetsCreatePermissionRow,
   deletePermissionRow as sheetsDeletePermissionRow,
@@ -38,6 +39,7 @@ import {
   upsertOwner as mockUpsertOwner,
   fetchBoards as mockFetchBoards,
   createBoardRow as mockCreateBoardRow,
+  updateBoardRow as mockUpdateBoardRow,
   fetchPermissions as mockFetchPermissions,
   createPermissionRow as mockCreatePermissionRow,
   deletePermissionRow as mockDeletePermissionRow,
@@ -78,6 +80,7 @@ function api() {
       upsertOwner: mockUpsertOwner,
       fetchBoards: mockFetchBoards,
       createBoardRow: mockCreateBoardRow,
+      updateBoardRow: mockUpdateBoardRow,
       fetchPermissions: mockFetchPermissions,
       createPermissionRow: mockCreatePermissionRow,
       deletePermissionRow: mockDeletePermissionRow,
@@ -100,6 +103,7 @@ function api() {
     upsertOwner: sheetsUpsertOwner,
     fetchBoards: sheetsFetchBoards,
     createBoardRow: sheetsCreateBoardRow,
+    updateBoardRow: sheetsUpdateBoardRow,
     fetchPermissions: sheetsFetchPermissions,
     createPermissionRow: sheetsCreatePermissionRow,
     deletePermissionRow: sheetsDeletePermissionRow,
@@ -122,6 +126,7 @@ const cascadeOwnerUpdate = (...args: Parameters<typeof sheetsCascadeOwnerUpdate>
 const upsertOwner = (...args: Parameters<typeof sheetsUpsertOwner>) => api().upsertOwner(...args);
 const fetchBoardsApi = (...args: Parameters<typeof sheetsFetchBoards>) => api().fetchBoards(...args);
 const createBoardRowApi = (...args: Parameters<typeof sheetsCreateBoardRow>) => api().createBoardRow(...args);
+const updateBoardRowApi = (...args: Parameters<typeof sheetsUpdateBoardRow>) => api().updateBoardRow(...args);
 const fetchPermissionsApi = (...args: Parameters<typeof sheetsFetchPermissions>) => api().fetchPermissions(...args);
 const createPermissionRowApi = (...args: Parameters<typeof sheetsCreatePermissionRow>) => api().createPermissionRow(...args);
 const deletePermissionRowApi = (...args: Parameters<typeof sheetsDeletePermissionRow>) => api().deletePermissionRow(...args);
@@ -737,7 +742,9 @@ import { switchBoard } from './board-store';
 export async function createBoard(
   name: string,
   actor: string,
-  token: string
+  token: string,
+  color?: string,
+  icon?: string
 ): Promise<boolean> {
   const trimmed = name.trim();
   if (!trimmed) return false;
@@ -753,6 +760,8 @@ export async function createBoard(
     name: trimmed,
     created_at: new Date().toISOString(),
     created_by: actor,
+    color: color || '',
+    icon: icon || '',
   };
 
   // Check if this is the first board — orphaned items need adopting
@@ -798,6 +807,31 @@ export async function createBoard(
     }
     if (!isReauthFailure(err)) {
       showToast('Failed to create board: ' + err.message, 'error');
+    }
+    return false;
+  }
+}
+
+export async function updateBoardAppearance(
+  boardId: string,
+  color: string,
+  icon: string,
+  token: string
+): Promise<boolean> {
+  const oldBoards = [...boards.value];
+
+  // Optimistic update
+  boards.value = boards.value.map(b =>
+    b.id === boardId ? { ...b, color, icon } : b
+  );
+
+  try {
+    await updateBoardRowApi(boardId, color, icon, token);
+    return true;
+  } catch (err: any) {
+    boards.value = oldBoards;
+    if (!isReauthFailure(err)) {
+      showToast('Failed to update board: ' + err.message, 'error');
     }
     return false;
   }

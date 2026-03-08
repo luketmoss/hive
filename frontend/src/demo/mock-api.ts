@@ -137,6 +137,12 @@ export async function createBoardRow(board: Board, _token: string): Promise<void
   mockBoardsState.value = [...mockBoardsState.value, board];
 }
 
+export async function updateBoardRow(boardId: string, color: string, icon: string, _token: string): Promise<void> {
+  mockBoardsState.value = mockBoardsState.value.map(b =>
+    b.id === boardId ? { ...b, color, icon } : b
+  );
+}
+
 // --- Permission operations (in-memory) ---
 
 export async function fetchPermissions(_token: string): Promise<BoardPermission[]> {
