@@ -383,7 +383,7 @@ describe('CreateItemModal — Inline Sub-tasks (Issue #55)', () => {
     });
   });
 
-  // AC9: Modal accessibility attributes
+  // AC9: Modal accessibility attributes (Issue #55)
   describe('AC9: Modal accessibility attributes', () => {
     it('modal has role="dialog" and aria-modal="true"', () => {
       const { container } = render(<CreateItemModal />);
@@ -404,6 +404,78 @@ describe('CreateItemModal — Inline Sub-tasks (Issue #55)', () => {
       const { container } = render(<CreateItemModal />);
       const closeBtn = container.querySelector('.modal-header .btn.btn-ghost') as HTMLButtonElement;
       expect(closeBtn.getAttribute('aria-label')).toBe('Close');
+    });
+  });
+});
+
+// --- Quick Date Shortcuts (Issue #82) ---
+describe('CreateItemModal — Quick Date Shortcuts (Issue #82)', () => {
+  describe('AC1: Quick date chips on create modal', () => {
+    it('renders quick date chips below the due date input', () => {
+      const { container } = render(<CreateItemModal />);
+      const dueDateField = container.querySelector('#due-date')!.closest('.form-field')!;
+      const chips = dueDateField.querySelector('.quick-date-chips');
+      expect(chips).not.toBeNull();
+      expect(chips!.querySelectorAll('.quick-date-chip')).toHaveLength(4);
+    });
+
+    it('renders quick date chips below the scheduled date input', () => {
+      const { container } = render(<CreateItemModal />);
+      const scheduledField = container.querySelector('#scheduled-date')!.closest('.form-field')!;
+      const chips = scheduledField.querySelector('.quick-date-chips');
+      expect(chips).not.toBeNull();
+      expect(chips!.querySelectorAll('.quick-date-chip')).toHaveLength(4);
+    });
+
+    it('tapping a due date chip populates the due date input', () => {
+      const { container } = render(<CreateItemModal />);
+      const dueDateField = container.querySelector('#due-date')!.closest('.form-field')!;
+      const todayChip = dueDateField.querySelector('.quick-date-chip') as HTMLButtonElement;
+      fireEvent.click(todayChip);
+
+      // Submitting the form should include today's date as due_date
+      const titleInput = container.querySelector('#title') as HTMLInputElement;
+      fireEvent.input(titleInput, { target: { value: 'Test' } });
+      const form = container.querySelector('form') as HTMLFormElement;
+      fireEvent.submit(form);
+
+      const today = new Date();
+      const expected = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      expect(mockCreateItem.mock.calls[0][0].due_date).toBe(expected);
+    });
+
+    it('tapping a scheduled date chip populates the scheduled date input', () => {
+      const { container } = render(<CreateItemModal />);
+      const scheduledField = container.querySelector('#scheduled-date')!.closest('.form-field')!;
+      const todayChip = scheduledField.querySelector('.quick-date-chip') as HTMLButtonElement;
+      fireEvent.click(todayChip);
+
+      const titleInput = container.querySelector('#title') as HTMLInputElement;
+      fireEvent.input(titleInput, { target: { value: 'Test' } });
+      const form = container.querySelector('form') as HTMLFormElement;
+      fireEvent.submit(form);
+
+      const today = new Date();
+      const expected = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      expect(mockCreateItem.mock.calls[0][0].scheduled_date).toBe(expected);
+    });
+
+    it('date input can still be edited manually after chip selection', () => {
+      const { container } = render(<CreateItemModal />);
+      const dueDateField = container.querySelector('#due-date')!.closest('.form-field')!;
+      const todayChip = dueDateField.querySelector('.quick-date-chip') as HTMLButtonElement;
+      fireEvent.click(todayChip);
+
+      // Override with manual date
+      const dueDateInput = container.querySelector('#due-date') as HTMLInputElement;
+      fireEvent.change(dueDateInput, { target: { value: '2026-12-25' } });
+
+      const titleInput = container.querySelector('#title') as HTMLInputElement;
+      fireEvent.input(titleInput, { target: { value: 'Test' } });
+      const form = container.querySelector('form') as HTMLFormElement;
+      fireEvent.submit(form);
+
+      expect(mockCreateItem.mock.calls[0][0].due_date).toBe('2026-12-25');
     });
   });
 });

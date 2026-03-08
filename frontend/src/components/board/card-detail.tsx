@@ -8,6 +8,7 @@ import { LabelBadge } from '../shared/label-badge';
 import { LabelPickerManager } from '../labels/label-picker-manager';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
 import { getContrastTextColor } from '../../utils/color';
+import { QuickDateChips } from '../shared/quick-date-chips';
 import type { ItemStatus } from '../../api/types';
 
 export function CardDetail() {
@@ -219,31 +220,49 @@ export function CardDetail() {
 
           <SaveFeedbackField label="Due Date">
             {(onFieldSaved) => (
-              <input
-                type="date"
-                value={item.due_date ? item.due_date.split('T')[0] : ''}
-                onChange={async (e) => {
-                  const prev = item.due_date ? item.due_date.split('T')[0] : '';
-                  const ok = await save('due_date', (e.target as HTMLInputElement).value);
-                  onFieldSaved(ok);
-                  if (!ok) (e.target as HTMLInputElement).value = prev;
-                }}
-              />
+              <>
+                <input
+                  type="date"
+                  value={item.due_date ? item.due_date.split('T')[0] : ''}
+                  onChange={async (e) => {
+                    const prev = item.due_date ? item.due_date.split('T')[0] : '';
+                    const ok = await save('due_date', (e.target as HTMLInputElement).value);
+                    onFieldSaved(ok);
+                    if (!ok) (e.target as HTMLInputElement).value = prev;
+                  }}
+                />
+                <QuickDateChips
+                  value={item.due_date ? item.due_date.split('T')[0] : ''}
+                  onChange={async (date) => {
+                    const ok = await save('due_date', date);
+                    onFieldSaved(ok);
+                  }}
+                />
+              </>
             )}
           </SaveFeedbackField>
 
           <SaveFeedbackField label="Scheduled Date">
             {(onFieldSaved) => (
-              <input
-                type="date"
-                value={item.scheduled_date ? item.scheduled_date.split('T')[0] : ''}
-                onChange={async (e) => {
-                  const prev = item.scheduled_date ? item.scheduled_date.split('T')[0] : '';
-                  const ok = await save('scheduled_date', (e.target as HTMLInputElement).value);
-                  onFieldSaved(ok);
-                  if (!ok) (e.target as HTMLInputElement).value = prev;
-                }}
-              />
+              <>
+                <input
+                  type="date"
+                  value={item.scheduled_date ? item.scheduled_date.split('T')[0] : ''}
+                  onChange={async (e) => {
+                    const prev = item.scheduled_date ? item.scheduled_date.split('T')[0] : '';
+                    const ok = await save('scheduled_date', (e.target as HTMLInputElement).value);
+                    onFieldSaved(ok);
+                    if (!ok) (e.target as HTMLInputElement).value = prev;
+                  }}
+                />
+                <QuickDateChips
+                  value={item.scheduled_date ? item.scheduled_date.split('T')[0] : ''}
+                  onChange={async (date) => {
+                    const ok = await save('scheduled_date', date);
+                    onFieldSaved(ok);
+                  }}
+                />
+              </>
             )}
           </SaveFeedbackField>
 

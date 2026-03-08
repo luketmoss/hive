@@ -6,6 +6,7 @@ import type { StagedSubtask } from '../../state/actions';
 import { LabelPickerManager } from '../labels/label-picker-manager';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
 import { getContrastTextColor } from '../../utils/color';
+import { QuickDateChips } from '../shared/quick-date-chips';
 
 export function CreateItemModal() {
   const { token, user } = useAuth();
@@ -134,6 +135,7 @@ export function CreateItemModal() {
                 value={dueDate}
                 onChange={(e) => setDueDate((e.target as HTMLInputElement).value)}
               />
+              <QuickDateChips value={dueDate} onChange={setDueDate} />
             </div>
 
             <div class="form-field">
@@ -144,6 +146,7 @@ export function CreateItemModal() {
                 value={scheduledDate}
                 onChange={(e) => setScheduledDate((e.target as HTMLInputElement).value)}
               />
+              <QuickDateChips value={scheduledDate} onChange={setScheduledDate} />
               <span class="form-hint">When you plan to do this</span>
             </div>
 
