@@ -131,6 +131,9 @@ vi.mock('../archive/archive-dialog', () => ({
 vi.mock('./theme-toggle', () => ({
   ThemeToggle: () => <div data-testid="theme-toggle" />,
 }));
+vi.mock('../shared/hive-logo', () => ({
+  HiveLogo: (props: any) => <svg data-testid="hive-logo" class={props.class} />,
+}));
 
 const mockAuth: AuthState = {
   token: 'test-token',
@@ -415,5 +418,33 @@ describe('KanbanBoard keyboard shortcuts (Issue #91)', () => {
 
       expect(queryByTestId('shortcuts-help')).not.toBeNull();
     });
+  });
+});
+
+describe('KanbanBoard logo in header (Issue #30 AC3)', () => {
+  it('renders HiveLogo in the board-header-left', () => {
+    mockState.items = [];
+    const { container } = renderBoard();
+    const headerLeft = container.querySelector('.board-header-left');
+    expect(headerLeft).not.toBeNull();
+    const logo = headerLeft!.querySelector('[data-testid="hive-logo"]');
+    expect(logo).not.toBeNull();
+  });
+
+  it('logo appears before the h1 heading', () => {
+    mockState.items = [];
+    const { container } = renderBoard();
+    const headerLeft = container.querySelector('.board-header-left');
+    const children = Array.from(headerLeft!.children);
+    const logoIdx = children.findIndex(c => c.getAttribute('data-testid') === 'hive-logo');
+    const h1Idx = children.findIndex(c => c.tagName === 'H1');
+    expect(logoIdx).toBeLessThan(h1Idx);
+  });
+
+  it('logo has the board-header-logo class', () => {
+    mockState.items = [];
+    const { container } = renderBoard();
+    const logo = container.querySelector('[data-testid="hive-logo"]');
+    expect(logo!.classList.contains('board-header-logo')).toBe(true);
   });
 });

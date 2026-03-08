@@ -16,6 +16,7 @@ import { ProfileDialog } from '../profile/profile-dialog';
 import { ArchiveDialog } from '../archive/archive-dialog';
 import { FilterBar } from '../filters/filter-bar';
 import { ThemeToggle } from './theme-toggle';
+import { HiveLogo } from '../shared/hive-logo';
 import type { ItemStatus, ItemWithRow } from '../../api/types';
 
 export function KanbanBoard() {
@@ -210,6 +211,7 @@ export function KanbanBoard() {
     <div class="board-layout">
       <header class="board-header">
         <div class="board-header-left">
+          <HiveLogo class="board-header-logo" />
           <h1>Hive</h1>
         </div>
         <div class="board-header-right">
