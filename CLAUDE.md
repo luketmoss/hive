@@ -47,69 +47,87 @@ When the user's request matches a custom skill, invoke it automatically — no s
 
 **When the user says "approve #N"**: find the open PR for that issue, run the merge step from the Full Pipeline (approve + squash-merge + delete branch + move to Done). No need to re-run any other pipeline stages.
 
+## Board Columns
+
+| Column | Option ID | Description |
+|---|---|---|
+| To Do | `2ed3c08e` | New issues awaiting refinement |
+| PM Refining | `60b38b8d` | PM skill writing ACs — pass-through, do not disturb |
+| UX | `0c810f0f` | UX skill reviewing; PM reconciling — pass-through, do not disturb |
+| Refined | `9e0d0478` | Requirements complete — **your design gate**: review ACs then move to Pick Up or start a session |
+| Pick Up | `b9d77a66` | Approved and queued for autonomous dev pipeline |
+| In Development | `cedf160f` | Dev skill is building |
+| Testing | `1bd1ca27` | QA skill verifying acceptance criteria |
+| Code Review | `2e7d4fd2` | Review skill checking code quality and conventions |
+| Done | `2aaa3a20` | Shipped |
+
+Use this GraphQL mutation to move an issue (replace `ITEM_ID` and `OPTION_ID`):
+```
+gh api graphql -f query='mutation { updateProjectV2ItemFieldValue(input: { projectId: "PVT_kwHOAJR9ys4BQe_8" itemId: "ITEM_ID" fieldId: "PVTSSF_lAHOAJR9ys4BQe_8zg-lvnE" value: { singleSelectOptionId: "OPTION_ID" } }) { projectV2Item { id } } }'
+```
+
 ## Pipeline Orchestration
 
 **You (the main Claude instance) are the orchestrator.** You invoke skills in order, pass results between them, and ensure no step is skipped. Individual skills do their one job and return results to you. They do NOT call each other.
 
 **Context passing:** Read the issue once at the start of the pipeline. When invoking each skill, include the current ACs and scope in your prompt so the skill has immediate context. Skills may still read the issue for verification, but this reduces redundant API calls.
 
+### Board State Routing
+
+When the user references an issue number, check its column and route accordingly:
+
+- **To Do / PM Refining / UX** → run the **Refinement Pipeline** (pauses at Refined for user review)
+- **Refined / Pick Up / In Development / Testing / Code Review** → run the **Dev Pipeline** (fully autonomous, auto-merges)
+
 ### Refinement Pipeline
 
-Use this when the user wants an issue refined and ready for development.
+**Your design gate. Steps 1–4 are fully autonomous — no pauses. The only stop is presenting the final ACs to the user at step 5.**
 
-**Steps 1-3 are autonomous — do NOT stop or wait for the user between them. Continue immediately from one step to the next.**
-
-1. **Invoke `/pm`** with the issue number. Collect the acceptance criteria and scope.
-2. **Immediately invoke `/ux`** with the issue number and the ACs from step 1. Ask it to review the proposed UX for usability and accessibility gaps. **Tell it to post its findings as a comment on the GitHub issue.**
-3. **Immediately invoke `/pm` again** with the UX findings (PM + UX negotiation). PM reviews each UX recommendation and decides:
+1. Move issue to **PM Refining**. Invoke `/pm` with the issue number. Collect the acceptance criteria and scope.
+2. Move issue to **UX**. Invoke `/ux` with the issue number and the ACs from step 1. Ask it to review the proposed UX for usability and accessibility gaps. **Tell it to post its findings as a comment on the GitHub issue.**
+3. Invoke `/pm` again with the UX findings (PM + UX negotiation). PM reviews each UX recommendation and decides:
    - **Accept**: update the ACs on the issue to incorporate the feedback.
-   - **Defer**: the item is valid but out of scope for this issue. You (the orchestrator) create a new backlog issue for it (see **Deferred Items** below).
+   - **Defer**: valid but out of scope — create a new backlog issue (see **Deferred Items** below).
    - **Reject**: PM explains why the recommendation doesn't apply. No action needed.
-4. Present the final ACs to the user and confirm the issue is ready. **This is the only pause point in refinement.**
+4. Move issue to **Refined**.
+5. Present the final ACs to the user. **This is the only pause point — your design gate.** Once you review and are satisfied, move the issue to Pick Up for autonomous dev, or start a session to run the Dev Pipeline interactively.
 
-### Full Pipeline
+### Dev Pipeline
 
-Use this when the user wants an issue taken from its current board state through to completion (or when they explicitly ask for the full pipeline).
+**Fully autonomous. No approval gate. Auto-merges on passing QA and Code Review. Posts a final report to the GitHub issue on completion.**
 
-**Steps 1-5 are autonomous — do NOT stop or wait for the user between them. The only pause point is the Approval Gate at step 6.**
+Runs when an issue is in Refined (interactive session) or Pick Up (watcher). Also resumes correctly from In Development, Testing, or Code Review if the pipeline is restarted mid-flight.
 
-1. **Check board state**: Look up the issue's current column to determine where to start. If the issue is in **Pick Up**, move it to **To Do** first (using the GraphQL mutation with option ID `18b995bb`), then treat it as To Do.
-2. **Refinement** (if in To Do/Refining): Run the Refinement Pipeline above.
-3. **Development** (if in Ready/In Development): Invoke `/dev` with the issue number.
-4. **QA** (if in Testing): Invoke `/qa` with the issue number. **Tell it to post its QA report as a comment on the GitHub issue (in addition to the PR).**
-   - If QA **fails with code issues**: Invoke `/dev` with the QA failure report. Then re-invoke `/qa`. If it fails a second time, **stop and tell the user**.
-   - If QA **flags AC problems** (ACs are ambiguous, contradictory, or don't match real behavior): Invoke `/pm` with the QA + Dev findings to negotiate AC updates. PM decides what to accept, defer, or reject (same as refinement). Then re-invoke `/dev` and `/qa` with the updated ACs.
-5. **Code Review** (if in In Review): Invoke `/review` with the issue number. Tell the review agent **not to merge** — only post its verdict.
-   - If review **requests changes**: Invoke `/dev` with the review feedback. Then re-invoke `/review`. If it requests changes a second time, **stop and tell the user**.
-6. **Approval Gate**: If running in an interactive session, present the structured summary to the user (format below) and wait for approval. If running autonomously (from the scheduled watcher), post the summary as a GitHub issue comment and **stop** — do not merge. End the comment with: `**To approve and merge:** Open a new Claude Code session and say: \`approve #<N>\``
-
-   Present a structured summary using this format:
+1. **Start dev**: If in Pick Up or Refined, move issue to **In Development**. Invoke `/dev` with the issue number.
+2. **QA**: Move issue to **Testing**. Invoke `/qa` with the issue number. **Tell it to post its QA report as a comment on the GitHub issue.**
+   - If QA **fails with code issues**: Invoke `/dev` with the failure report. Re-invoke `/qa`. If it fails a second time, **stop — post a comment on the issue and tell the user**.
+   - If QA **flags AC problems** (ambiguous, contradictory, or don't match real behaviour): Invoke `/pm` to negotiate AC updates (accept/defer/reject). Re-invoke `/dev` and `/qa` with updated ACs.
+3. **Code Review**: Move issue to **Code Review**. Invoke `/review` with the issue number. Tell it **not to merge** — verdict only.
+   - If review **requests changes**: Invoke `/dev` with the feedback. Re-invoke `/review`. If it requests changes a second time, **stop — post a comment on the issue and tell the user**.
+4. **Auto-merge**:
+   ```
+   gh pr review <pr> --repo luketmoss/hive --approve --body "All pipeline stages passed."
+   gh pr merge <pr> --repo luketmoss/hive --squash --delete-branch
+   ```
+   Move issue to **Done**.
+5. **Post final report** to the GitHub issue as a comment:
 
    ```
-   ## Pipeline Summary — Issue #N: <title>
-
-   ### Requirements (PM)
-   - <number> acceptance criteria defined
-   - Scope: <one-line scope summary>
-   - Complexity: <small/medium/large>
-
-   ### UX Review
-   - <accepted count> accepted, <deferred count> deferred, <rejected count> rejected
-   - Key changes: <brief list of UX-driven AC updates>
+   ## Pipeline Complete — Issue #N: <title>
 
    ### Implementation (Dev)
-   - Branch: `<branch-name>`
+   - Branch: `<branch-name>` (merged)
    - Files changed: <count> | Tests added: <count>
    - Key changes: <brief summary of what was built>
 
    ### QA Results
-   - Verdict: **PASS** / **FAIL**
+   - Verdict: **PASS**
    - <X/Y> acceptance criteria verified
    - Automated tests: frontend <pass>/<total>, apps-script <pass>/<total>
    - Edge cases tested: <brief list>
 
    ### Code Review
-   - Verdict: **APPROVED** / **CHANGES REQUESTED**
+   - Verdict: **APPROVED**
    - Security: <clean / issues found>
    - Conventions: <clean / issues found>
 
@@ -118,18 +136,8 @@ Use this when the user wants an issue taken from its current board state through
 
    ### Links
    - Issue: #<number>
-   - PR: #<pr-number>
-
-   **Ready to merge?** Reply **approve** to squash-merge, or provide feedback.
+   - PR: #<pr-number> (merged)
    ```
-
-   Omit sections for stages that were skipped (e.g., if the issue started in Testing, omit Requirements and UX Review).
-7. **Merge** (after user approves):
-   ```
-   gh pr review <pr> --repo luketmoss/hive --approve --body "All agents passed, user approved."
-   gh pr merge <pr> --repo luketmoss/hive --squash --delete-branch
-   ```
-   Move the issue to **Done**.
 
 ### Deferred Items
 
