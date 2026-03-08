@@ -1,13 +1,35 @@
+import { useState } from 'preact/hooks';
 import { filterOwner, filterLabel, groupBy, owners, labels as labelsStore } from '../../state/board-store';
 
 export function FilterBar() {
+  const [collapsed, setCollapsed] = useState(true);
   const hasFilters = filterOwner.value || filterLabel.value;
   const hasGrouping = groupBy.value !== 'none';
   const showReset = hasFilters || hasGrouping;
 
+  // #88 AC3: Count active filters for badge
+  const activeCount =
+    (filterOwner.value ? 1 : 0) +
+    (filterLabel.value ? 1 : 0) +
+    (hasGrouping ? 1 : 0);
+
   return (
     <div class="filter-bar">
-      <div class="filter-group">
+      {/* #88 AC3: Mobile toggle — hidden on desktop via CSS */}
+      <button
+        class="filter-toggle"
+        aria-expanded={!collapsed}
+        aria-controls="filter-content"
+        onClick={() => setCollapsed(c => !c)}
+      >
+        Filters
+        {activeCount > 0 && <span class="filter-badge">{activeCount}</span>}
+      </button>
+
+      <div
+        id="filter-content"
+        class={`filter-group${collapsed ? ' filter-group-collapsed' : ''}`}
+      >
         {/* #28 AC1, AC9: Owner chips in a labeled group */}
         <div role="group" aria-label="Filter by owner" class="filter-chip-group">
           <span class="filter-chip-group-label">Owner:</span>

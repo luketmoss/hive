@@ -1306,6 +1306,10 @@ body {
   border-top: 1px solid var(--color-border);
   flex-shrink: 0;
   background: var(--color-surface);
+  /* #88 AC2: Sticky footer — always visible when modal body scrolls */
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
 }
 
 /* === Staged Sub-tasks (create modal) === */
@@ -1910,6 +1914,87 @@ body {
   color: white;
 }
 
+/* === Filter bar toggle (#88 AC3) === */
+.filter-toggle {
+  display: none; /* AC4: hidden on desktop */
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.filter-toggle:hover {
+  background: color-mix(in srgb, var(--color-border) 30%, transparent);
+}
+
+.filter-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.filter-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--color-primary);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* === Sub-task drag handle (#88 AC5) === */
+.subtask-drag-handle {
+  display: none; /* hidden on desktop */
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  cursor: grab;
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  padding: 0;
+  touch-action: none;
+  flex-shrink: 0;
+}
+
+.subtask-drag-handle:active {
+  cursor: grabbing;
+}
+
+.subtask-dragging {
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg));
+  box-shadow: var(--shadow-lg);
+  z-index: 10;
+  position: relative;
+}
+
+.subtask-drop-target {
+  border-top: 2px solid var(--color-primary);
+}
+
+.reorder-live-region {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 /* === Responsive === */
 @media (max-width: 768px) {
   .view-toggle-bar {
@@ -1996,6 +2081,34 @@ body {
     width: 44px;
     height: 44px;
     font-size: 16px;
+  }
+
+  /* #88 AC1: Sub-task creation row 44px touch targets */
+  .subtask-add-input,
+  .subtask-add-owner {
+    min-height: 44px;
+  }
+
+  /* #88 AC3: Show filter toggle on mobile */
+  .filter-toggle {
+    display: flex;
+  }
+
+  /* #88 AC3: Collapsed filter content hidden on mobile */
+  .filter-group-collapsed {
+    display: none;
+  }
+
+  /* #88 AC5: Hide arrow buttons on mobile, show drag handle */
+  .subtask-action-btn[aria-label="Move up"],
+  .subtask-action-btn[aria-label="Move down"] {
+    display: none;
+  }
+
+  .subtask-drag-handle {
+    display: flex;
+    width: 44px;
+    height: 44px;
   }
 
   /* #90 AC4: Share modal Add button meets 44px WCAG 2.5.8 touch target */

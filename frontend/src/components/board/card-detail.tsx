@@ -1,5 +1,4 @@
-import { useState } from 'preact/hooks';
-import { useRef, useCallback } from 'preact/hooks';
+import { useState, useRef, useCallback } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
 import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels as labelsStore, showToast } from '../../state/board-store';
 import { updateItem, deleteItem, deleteSubtask, createItem, moveItem, reorderSubtasks } from '../../state/actions';
@@ -127,6 +126,94 @@ export function CardDetail() {
     const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= children.length) return;
     reorderSubtasks(children[idx].id, children[swapIdx].id, actor, token);
+  };
+
+  // #88 AC5: Touch-friendly sub-task reorder
+  const [reorderAnnouncement, setReorderAnnouncement] = useState('');
+  const touchDragRef = useRef<{
+    childId: string;
+    startIdx: number;
+    targetIdx: number;
+    startY: number;
+    listEl: HTMLElement;
+    rowHeight: number;
+    childIds: string[];
+  } | null>(null);
+
+  const handleTouchReorderStart = (childId: string, idx: number, e: TouchEvent) => {
+    const handle = e.currentTarget as HTMLElement;
+    const li = handle.closest('.subtask-item') as HTMLElement;
+    const list = li.closest('.subtask-list') as HTMLElement;
+    const rowHeight = li.getBoundingClientRect().height + 4; // gap
+
+    li.classList.add('subtask-dragging');
+
+    touchDragRef.current = {
+      childId,
+      startIdx: idx,
+      targetIdx: idx,
+      startY: e.touches[0].clientY,
+      listEl: list,
+      rowHeight,
+      childIds: children.map(c => c.id),
+    };
+  };
+
+  const handleTouchReorderMove = (e: TouchEvent) => {
+    const drag = touchDragRef.current;
+    if (!drag) return;
+    e.preventDefault();
+
+    const deltaY = e.touches[0].clientY - drag.startY;
+    const items = Array.from(drag.listEl.querySelectorAll('.subtask-item')) as HTMLElement[];
+
+    // Visual transform on dragged item
+    if (items[drag.startIdx]) {
+      items[drag.startIdx].style.transform = `translateY(${deltaY}px)`;
+      items[drag.startIdx].style.position = 'relative';
+      items[drag.startIdx].style.zIndex = '10';
+    }
+
+    // Calculate target position
+    const offset = Math.round(deltaY / drag.rowHeight);
+    drag.targetIdx = Math.max(0, Math.min(items.length - 1, drag.startIdx + offset));
+
+    // Show drop indicator
+    items.forEach((el, i) => {
+      if (i === drag.startIdx) return;
+      el.classList.toggle('subtask-drop-target', i === drag.targetIdx);
+    });
+  };
+
+  const handleTouchReorderEnd = () => {
+    const drag = touchDragRef.current;
+    if (!drag) return;
+
+    // Clean up DOM styles
+    const items = Array.from(drag.listEl.querySelectorAll('.subtask-item')) as HTMLElement[];
+    items.forEach(el => {
+      el.style.transform = '';
+      el.style.position = '';
+      el.style.zIndex = '';
+      el.classList.remove('subtask-dragging');
+      el.classList.remove('subtask-drop-target');
+    });
+
+    const { startIdx, targetIdx, childIds } = drag;
+    touchDragRef.current = null;
+
+    if (startIdx === targetIdx || !token) return;
+
+    // Perform sequential adjacent swaps
+    const ids = [...childIds];
+    const step = targetIdx > startIdx ? 1 : -1;
+    for (let i = startIdx; i !== targetIdx; i += step) {
+      reorderSubtasks(ids[i], ids[i + step], actor, token);
+      [ids[i], ids[i + step]] = [ids[i + step], ids[i]];
+    }
+
+    setReorderAnnouncement(`Sub-task moved to position ${targetIdx + 1}`);
+    setTimeout(() => setReorderAnnouncement(''), 3000);
   };
 
   const toggleChildStatus = (childId: string, currentStatus: ItemStatus) => {
@@ -296,6 +383,18 @@ export function CardDetail() {
               <ul class="subtask-list">
                 {children.map((child, idx) => (
                   <li key={child.id} class={`subtask-item ${child.status === 'Done' ? 'subtask-done' : ''}`}>
+                    {/* #88 AC5: Drag handle for touch reorder (visible on mobile only via CSS) */}
+                    {children.length > 1 && (
+                      <span
+                        class="subtask-drag-handle"
+                        aria-label={`Drag to reorder ${child.title}`}
+                        role="button"
+                        tabIndex={0}
+                        onTouchStart={(e) => handleTouchReorderStart(child.id, idx, e as unknown as TouchEvent)}
+                        onTouchMove={(e) => handleTouchReorderMove(e as unknown as TouchEvent)}
+                        onTouchEnd={handleTouchReorderEnd}
+                      >&#9776;</span>
+                    )}
                     <input
                       type="checkbox"
                       checked={child.status === 'Done'}
@@ -343,6 +442,8 @@ export function CardDetail() {
                 ))}
               </ul>
             )}
+            {/* #88 AC5: Announce reorder to screen readers */}
+            <div class="reorder-live-region" aria-live="polite" role="status">{reorderAnnouncement}</div>
             {addingSubtask && (
               <div
                 class="subtask-add-wrapper"

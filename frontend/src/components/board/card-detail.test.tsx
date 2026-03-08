@@ -1154,3 +1154,57 @@ describe('CardDetail keyboard hint (Issue #60)', () => {
     expect(wrapper!.querySelector('.subtask-add-hint')).not.toBeNull();
   });
 });
+
+// --- Touch-friendly sub-task reorder (Issue #88) ---
+describe('CardDetail — Touch reorder (Issue #88)', () => {
+  beforeEach(() => {
+    mockSelectedItemId = 'detail-test-1';
+    mockChildren = [
+      { id: 'child-1', title: 'Sub A', status: 'To Do', owner: 'Luke', parent_id: 'detail-test-1', sort_order: 1 },
+      { id: 'child-2', title: 'Sub B', status: 'To Do', owner: 'Sarah', parent_id: 'detail-test-1', sort_order: 2 },
+      { id: 'child-3', title: 'Sub C', status: 'Done', owner: 'Luke', parent_id: 'detail-test-1', sort_order: 3 },
+    ];
+    mockItems = [...mockChildren];
+  });
+
+  // AC5: Drag handle rendered on each sub-task
+  describe('AC5: Touch-friendly sub-task reorder', () => {
+    it('renders a drag handle on each sub-task when 2+ children exist', () => {
+      const { container } = renderCardDetail();
+      const handles = container.querySelectorAll('.subtask-drag-handle');
+      expect(handles.length).toBe(3);
+    });
+
+    it('drag handle has role="button" and accessible label', () => {
+      const { container } = renderCardDetail();
+      const handle = container.querySelector('.subtask-drag-handle') as HTMLElement;
+      expect(handle.getAttribute('role')).toBe('button');
+      expect(handle.getAttribute('aria-label')).toBe('Drag to reorder Sub A');
+    });
+
+    it('does not render drag handles when only 1 sub-task exists', () => {
+      mockChildren = [
+        { id: 'child-1', title: 'Sub A', status: 'To Do', owner: 'Luke', parent_id: 'detail-test-1', sort_order: 1 },
+      ];
+      mockItems = [...mockChildren];
+      const { container } = renderCardDetail();
+      const handles = container.querySelectorAll('.subtask-drag-handle');
+      expect(handles.length).toBe(0);
+    });
+
+    it('has an aria-live region for reorder announcements', () => {
+      const { container } = renderCardDetail();
+      const live = container.querySelector('[aria-live="polite"]');
+      expect(live).not.toBeNull();
+      expect(live!.getAttribute('role')).toBe('status');
+    });
+
+    it('arrow buttons still rendered (hidden via CSS on mobile)', () => {
+      const { container } = renderCardDetail();
+      const upBtns = container.querySelectorAll('[aria-label="Move up"]');
+      const downBtns = container.querySelectorAll('[aria-label="Move down"]');
+      expect(upBtns.length).toBe(3);
+      expect(downBtns.length).toBe(3);
+    });
+  });
+});
