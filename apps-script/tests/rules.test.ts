@@ -13,7 +13,6 @@ interface Item {
   status: ItemStatus;
   owner: string;
   due_date: string;
-  scheduled_date: string;
   labels: string;
   parent_id: string;
   created_at: string;
@@ -77,7 +76,6 @@ function makeItem(overrides: Partial<Item> = {}): Item {
     status: 'To Do',
     owner: '',
     due_date: '',
-    scheduled_date: '',
     labels: '',
     parent_id: '',
     created_at: '2025-01-01T00:00:00.000Z',

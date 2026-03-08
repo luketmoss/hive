@@ -10,7 +10,6 @@ export interface Item {
   status: ItemStatus;
   owner: string;
   due_date: string;
-  scheduled_date: string;
   labels: string;
   parent_id: string;
   created_at: string;

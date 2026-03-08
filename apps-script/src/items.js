@@ -58,7 +58,6 @@ function createItem(data, actor) {
     status: status,
     owner: data.owner || '',
     due_date: data.due_date || '',
-    scheduled_date: data.scheduled_date || '',
     labels: data.labels || '',
     parent_id: data.parent_id || '',
     created_at: now,
@@ -117,7 +116,7 @@ function updateItem(id, changes, actor) {
   // Apply other field changes
   var updatableFields = [
     'title', 'description', 'owner', 'due_date',
-    'scheduled_date', 'labels', 'parent_id', 'sort_order',
+    'labels', 'parent_id', 'sort_order',
   ];
 
   for (var i = 0; i < updatableFields.length; i++) {

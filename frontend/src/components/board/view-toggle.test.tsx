@@ -125,7 +125,7 @@ describe('View Toggle (Issue #13)', () => {
     mockItemsRef.current = [
       {
         id: '1', title: 'Task A', description: '', status: 'To Do',
-        owner: '', due_date: '', scheduled_date: '', labels: '',
+        owner: '', due_date: '', labels: '',
         parent_id: '', created_at: '', updated_at: '', completed_at: '',
         sort_order: 1, created_by: '', board_id: '', sheetRow: 2,
       },

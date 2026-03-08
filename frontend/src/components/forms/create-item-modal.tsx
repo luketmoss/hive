@@ -14,7 +14,6 @@ export function CreateItemModal() {
   const [description, setDescription] = useState('');
   const [owner, setOwner] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [scheduledDate, setScheduledDate] = useState('');
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [subtasks, setSubtasks] = useState<StagedSubtask[]>([]);
   const [subtaskInput, setSubtaskInput] = useState('');
@@ -32,7 +31,6 @@ export function CreateItemModal() {
       description,
       owner,
       due_date: dueDate,
-      scheduled_date: scheduledDate,
       labels: selectedLabels.join(', '),
       created_by: user?.email || '',
     };
@@ -136,18 +134,6 @@ export function CreateItemModal() {
                 onChange={(e) => setDueDate((e.target as HTMLInputElement).value)}
               />
               <QuickDateChips value={dueDate} onChange={setDueDate} />
-            </div>
-
-            <div class="form-field">
-              <label for="scheduled-date">Scheduled Date</label>
-              <input
-                id="scheduled-date"
-                type="date"
-                value={scheduledDate}
-                onChange={(e) => setScheduledDate((e.target as HTMLInputElement).value)}
-              />
-              <QuickDateChips value={scheduledDate} onChange={setScheduledDate} />
-              <span class="form-hint">When you plan to do this</span>
             </div>
 
             <div class="form-field">

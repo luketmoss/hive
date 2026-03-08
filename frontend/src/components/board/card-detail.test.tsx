@@ -30,7 +30,6 @@ vi.mock('../../state/board-store', () => ({
         status: 'To Do',
         owner: 'Luke',
         due_date: '',
-        scheduled_date: '',
         labels: '',
         parent_id: '',
         created_at: '2026-01-01T00:00:00Z',
@@ -749,7 +748,6 @@ describe('CardDetail sub-task owner editing (Issue #24)', () => {
     status: 'To Do' as const,
     owner: 'Luke',
     due_date: '',
-    scheduled_date: '',
     labels: '',
     parent_id: 'detail-test-1',
     created_at: '2026-01-01T00:00:00Z',
@@ -1210,7 +1208,7 @@ describe('CardDetail — Touch reorder (Issue #88)', () => {
 });
 
 // =====================================================================
-// #86: Sub-task date fields (due date & scheduled date)
+// #86: Sub-task date fields (due date)
 // =====================================================================
 describe('CardDetail sub-task date fields (Issue #86)', () => {
   const childWithDates = {
@@ -1220,7 +1218,6 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
     status: 'To Do' as const,
     owner: 'Luke',
     due_date: '2026-03-20',
-    scheduled_date: '2026-03-15',
     labels: '',
     parent_id: 'detail-test-1',
     created_at: '2026-01-01T00:00:00Z',
@@ -1236,7 +1233,6 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
     id: 'child-dates-2',
     title: 'Sand walls',
     due_date: '',
-    scheduled_date: '',
     sort_order: 2,
     sheetRow: 4,
   };
@@ -1246,7 +1242,6 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
     id: 'child-dates-3',
     title: 'Fix fence',
     due_date: '2020-01-01',
-    scheduled_date: '',
     sort_order: 3,
     sheetRow: 5,
   };
@@ -1270,15 +1265,13 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
 
   // AC1: Date display on sub-task rows
   describe('AC1: Date display on sub-task rows', () => {
-    it('shows compact due date and scheduled date on a sub-task with dates', () => {
+    it('shows compact due date on a sub-task with dates', () => {
       const { container } = renderCardDetail();
       const badges = container.querySelectorAll('.subtask-date-badge');
-      // childWithDates has both due + sched, childNoDates has neither
-      expect(badges.length).toBe(2);
+      // childWithDates has due_date, childNoDates has neither
+      expect(badges.length).toBe(1);
       expect(badges[0].textContent).toContain('Due:');
       expect(badges[0].textContent).toContain('Mar 20');
-      expect(badges[1].textContent).toContain('Sched:');
-      expect(badges[1].textContent).toContain('Mar 15');
     });
 
     it('shows no date indicator badges for sub-tasks without dates', () => {
@@ -1288,9 +1281,9 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
       // No date badges (the compact "Due: Mar 8" display elements)
       const badges = container.querySelectorAll('.subtask-date-badge');
       expect(badges.length).toBe(0);
-      // Add-affordance buttons are present (hidden via CSS, but in DOM)
+      // Add-affordance button is present (hidden via CSS, but in DOM)
       const addBtns = container.querySelectorAll('.subtask-date-add');
-      expect(addBtns.length).toBe(2);
+      expect(addBtns.length).toBe(1);
     });
 
     it('shows overdue styling on past-due sub-task due dates', () => {
@@ -1381,62 +1374,35 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
       expect(dateInput.getAttribute('aria-label')).toContain('Due date');
     });
 
-    it('clicking "Sched +" affordance opens scheduled date editor for dateless sub-task', () => {
-      mockChildren = [childNoDates];
-      mockItems = [childNoDates];
+    it('shows no add-affordance buttons when due date is set', () => {
+      mockChildren = [childWithDates];
+      mockItems = [childWithDates];
       const { container } = renderCardDetail();
-      const schedAddBtn = container.querySelector('.subtask-date-add[aria-label^="Add scheduled date"]') as HTMLElement;
-      expect(schedAddBtn).not.toBeNull();
-      fireEvent.click(schedAddBtn);
-      const dateInput = container.querySelector('.subtask-date-input') as HTMLInputElement;
-      expect(dateInput).not.toBeNull();
-      expect(dateInput.getAttribute('aria-label')).toContain('Scheduled date');
-    });
-
-    it('shows "Sched +" affordance when sub-task has due date but no scheduled date', () => {
-      const childDueOnly = { ...childWithDates, scheduled_date: '' };
-      mockChildren = [childDueOnly];
-      mockItems = [childDueOnly];
-      const { container } = renderCardDetail();
-      // Due badge (not affordance) for existing due date
-      expect(container.querySelector('.subtask-date-badge')).not.toBeNull();
-      // Sched+ affordance for missing scheduled date
-      const schedAdd = container.querySelector('.subtask-date-add[aria-label^="Add scheduled date"]');
-      expect(schedAdd).not.toBeNull();
-    });
-
-    it('shows no add-affordance buttons when both dates are set', () => {
-      const { container } = renderCardDetail();
-      // childWithDates has both dates set — no affordance buttons
+      // childWithDates has due_date set — no affordance buttons
       const addBtns = container.querySelectorAll('.subtask-date-add');
-      // Only childNoDates (second child) would have affordances, childWithDates has none
-      // childWithDates → 0 affordances; childNoDates → 2 affordances
-      // With both children in default beforeEach: 2 affordances total (from childNoDates only)
-      expect(addBtns.length).toBe(2);
+      expect(addBtns.length).toBe(0);
     });
   });
 
   // AC3: Date fields on sub-task creation
   describe('AC3: Date fields on sub-task creation', () => {
-    it('creation row includes due date and scheduled date inputs', () => {
+    it('creation row includes due date input', () => {
       const { container } = renderCardDetail();
       const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
       fireEvent.click(addBtn);
 
       const dateInputs = container.querySelectorAll('.subtask-add-date');
-      expect(dateInputs.length).toBe(2);
+      expect(dateInputs.length).toBe(1);
       expect((dateInputs[0] as HTMLInputElement).getAttribute('aria-label')).toBe('Due date for new sub-task');
-      expect((dateInputs[1] as HTMLInputElement).getAttribute('aria-label')).toBe('Scheduled date for new sub-task');
     });
 
-    it('date inputs default to empty', () => {
+    it('date input defaults to empty', () => {
       const { container } = renderCardDetail();
       const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
       fireEvent.click(addBtn);
 
       const dateInputs = container.querySelectorAll('.subtask-add-date') as NodeListOf<HTMLInputElement>;
       expect(dateInputs[0].value).toBe('');
-      expect(dateInputs[1].value).toBe('');
     });
 
     it('submitting with dates includes them in createItem call', () => {
@@ -1449,7 +1415,6 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
 
       const dateInputs = container.querySelectorAll('.subtask-add-date') as NodeListOf<HTMLInputElement>;
       fireEvent.change(dateInputs[0], { target: { value: '2026-04-01' } });
-      fireEvent.change(dateInputs[1], { target: { value: '2026-03-28' } });
 
       fireEvent.keyDown(input, { key: 'Enter' });
 
@@ -1457,7 +1422,6 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
         expect.objectContaining({
           title: 'New subtask with dates',
           due_date: '2026-04-01',
-          scheduled_date: '2026-03-28',
         }),
         'Luke',
         'test-token'
@@ -1476,7 +1440,6 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
 
       const callArgs = vi.mocked(createItem).mock.calls[0][0];
       expect(callArgs.due_date).toBeUndefined();
-      expect(callArgs.scheduled_date).toBeUndefined();
     });
   });
 

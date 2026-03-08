@@ -106,22 +106,21 @@ function rowToItem(row: any[]): Item {
     status: (row[3] || 'To Do') as Item['status'],
     owner: row[4] || '',
     due_date: row[5] || '',
-    scheduled_date: row[6] || '',
-    labels: row[7] || '',
-    parent_id: row[8] || '',
-    created_at: row[9] || '',
-    updated_at: row[10] || '',
-    completed_at: row[11] || '',
-    sort_order: Number(row[12]) || 0,
-    created_by: row[13] || '',
-    board_id: row[14] || '',
+    labels: row[6] || '',
+    parent_id: row[7] || '',
+    created_at: row[8] || '',
+    updated_at: row[9] || '',
+    completed_at: row[10] || '',
+    sort_order: Number(row[11]) || 0,
+    created_by: row[12] || '',
+    board_id: row[13] || '',
   };
 }
 
 function itemToRow(item: Item): any[] {
   return [
     item.id, item.title, item.description, item.status,
-    item.owner, item.due_date, item.scheduled_date, item.labels,
+    item.owner, item.due_date, item.labels,
     item.parent_id, item.created_at, item.updated_at, item.completed_at,
     item.sort_order, item.created_by, item.board_id,
   ];
@@ -131,7 +130,7 @@ function itemToRow(item: Item): any[] {
 
 export async function fetchAllItems(token: string): Promise<ItemWithRow[]> {
   return withReauth(token, async (t) => {
-    const rows = await sheetsGet('Items!A2:O', t);
+    const rows = await sheetsGet('Items!A2:N', t);
     return rows.map((row, i) => ({
       ...rowToItem(row),
       sheetRow: i + 2, // 1-based, header is row 1
@@ -160,11 +159,11 @@ export async function fetchLabels(token: string): Promise<Label[]> {
 }
 
 export async function createItemRow(item: Item, token: string): Promise<void> {
-  return withReauth(token, (t) => sheetsAppend('Items!A:O', [itemToRow(item)], t));
+  return withReauth(token, (t) => sheetsAppend('Items!A:N', [itemToRow(item)], t));
 }
 
 export async function updateItemRow(sheetRow: number, item: Item, token: string): Promise<void> {
-  return withReauth(token, (t) => sheetsUpdate(`Items!A${sheetRow}:O${sheetRow}`, [itemToRow(item)], t));
+  return withReauth(token, (t) => sheetsUpdate(`Items!A${sheetRow}:N${sheetRow}`, [itemToRow(item)], t));
 }
 
 export async function deleteItemRow(sheetRow: number, token: string): Promise<void> {
@@ -286,9 +285,9 @@ export async function cascadeLabelUpdate(
   token: string
 ): Promise<void> {
   return withReauth(token, async (t) => {
-    const rows = await sheetsGet('Items!A2:O', t);
+    const rows = await sheetsGet('Items!A2:N', t);
     for (let i = 0; i < rows.length; i++) {
-      const labelsStr = rows[i][7] || '';
+      const labelsStr = rows[i][6] || '';
       const labelsList = labelsStr.split(',').map((l: string) => l.trim()).filter(Boolean);
       if (!labelsList.includes(oldName)) continue;
 
@@ -301,8 +300,8 @@ export async function cascadeLabelUpdate(
       const newLabelsStr = updated.join(', ');
       if (newLabelsStr !== labelsStr) {
         const sheetRow = i + 2;
-        // Update only the labels column (H = column 8)
-        await sheetsUpdate(`Items!H${sheetRow}`, [[newLabelsStr]], t);
+        // Update only the labels column (G = column 7)
+        await sheetsUpdate(`Items!G${sheetRow}`, [[newLabelsStr]], t);
       }
     }
   });
@@ -318,7 +317,7 @@ export async function cascadeOwnerUpdate(
   token: string
 ): Promise<void> {
   return withReauth(token, async (t) => {
-    const rows = await sheetsGet('Items!A2:O', t);
+    const rows = await sheetsGet('Items!A2:N', t);
     for (let i = 0; i < rows.length; i++) {
       const owner = rows[i][4] || '';
       if (owner !== oldName) continue;

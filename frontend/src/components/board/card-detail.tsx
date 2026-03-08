@@ -23,7 +23,6 @@ export function CardDetail() {
   const [subtaskTitle, setSubtaskTitle] = useState('');
   const [subtaskOwner, setSubtaskOwner] = useState(item.owner);
   const [subtaskDueDate, setSubtaskDueDate] = useState('');
-  const [subtaskScheduledDate, setSubtaskScheduledDate] = useState('');
   const subtaskInputRef = useRef<HTMLInputElement>(null);
   const subtaskRowRef = useRef<HTMLDivElement>(null);
   const addSubtaskBtnRef = useRef<HTMLButtonElement>(null);
@@ -73,7 +72,6 @@ export function CardDetail() {
     setSubtaskTitle('');
     setSubtaskOwner(item.owner);
     setSubtaskDueDate('');
-    setSubtaskScheduledDate('');
     // Focus the input after render
     requestAnimationFrame(() => {
       subtaskInputRef.current?.focus();
@@ -90,14 +88,12 @@ export function CardDetail() {
     if (trimmed && token) {
       const newSubtask: Record<string, string> = { title: trimmed, parent_id: item.id, owner: subtaskOwner, created_by: user?.email || '' };
       if (subtaskDueDate) newSubtask.due_date = subtaskDueDate;
-      if (subtaskScheduledDate) newSubtask.scheduled_date = subtaskScheduledDate;
       createItem(newSubtask, actor, token);
     }
     setAddingSubtask(false);
     setSubtaskTitle('');
     subtaskTitleRef.current = '';
     setSubtaskDueDate('');
-    setSubtaskScheduledDate('');
     // Return focus to the "+ Add" trigger button after the row unmounts (#58 AC1/AC3)
     requestAnimationFrame(() => addSubtaskBtnRef.current?.focus());
   };
@@ -108,7 +104,6 @@ export function CardDetail() {
     setSubtaskTitle('');
     subtaskTitleRef.current = '';
     setSubtaskDueDate('');
-    setSubtaskScheduledDate('');
     // Return focus to the "+ Add" trigger button (#58 AC2/AC3)
     requestAnimationFrame(() => addSubtaskBtnRef.current?.focus());
   };
@@ -248,7 +243,7 @@ export function CardDetail() {
     await updateItem(childId, { owner: newOwner }, actor, token);
   };
 
-  const handleSubtaskDateSave = async (childId: string, field: 'due_date' | 'scheduled_date', value: string) => {
+  const handleSubtaskDateSave = async (childId: string, field: 'due_date', value: string) => {
     if (!token) return;
     await updateItem(childId, { [field]: value }, actor, token);
   };
@@ -338,30 +333,6 @@ export function CardDetail() {
                   value={item.due_date ? item.due_date.split('T')[0] : ''}
                   onChange={async (date) => {
                     const ok = await save('due_date', date);
-                    onFieldSaved(ok);
-                  }}
-                />
-              </>
-            )}
-          </SaveFeedbackField>
-
-          <SaveFeedbackField label="Scheduled Date">
-            {(onFieldSaved) => (
-              <>
-                <input
-                  type="date"
-                  value={item.scheduled_date ? item.scheduled_date.split('T')[0] : ''}
-                  onChange={async (e) => {
-                    const prev = item.scheduled_date ? item.scheduled_date.split('T')[0] : '';
-                    const ok = await save('scheduled_date', (e.target as HTMLInputElement).value);
-                    onFieldSaved(ok);
-                    if (!ok) (e.target as HTMLInputElement).value = prev;
-                  }}
-                />
-                <QuickDateChips
-                  value={item.scheduled_date ? item.scheduled_date.split('T')[0] : ''}
-                  onChange={async (date) => {
-                    const ok = await save('scheduled_date', date);
                     onFieldSaved(ok);
                   }}
                 />
@@ -507,16 +478,6 @@ export function CardDetail() {
                     value={subtaskDueDate}
                     aria-label="Due date for new sub-task"
                     onChange={(e) => setSubtaskDueDate((e.target as HTMLInputElement).value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }
-                    }}
-                  />
-                  <input
-                    type="date"
-                    class="subtask-add-date"
-                    value={subtaskScheduledDate}
-                    aria-label="Scheduled date for new sub-task"
-                    onChange={(e) => setSubtaskScheduledDate((e.target as HTMLInputElement).value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }
                     }}
@@ -720,36 +681,33 @@ function isOverdue(dateStr: string, status: string): boolean {
 
 function SubtaskDates({ child, onSave }: {
   child: ItemWithRow;
-  onSave: (childId: string, field: 'due_date' | 'scheduled_date', value: string) => void;
+  onSave: (childId: string, field: 'due_date', value: string) => void;
 }) {
-  const [editingField, setEditingField] = useState<'due_date' | 'scheduled_date' | null>(null);
+  const [editing, setEditing] = useState(false);
 
   const hasDue = !!child.due_date;
-  const hasSched = !!child.scheduled_date;
   const dueOverdue = isOverdue(child.due_date, child.status);
 
-  const handleSave = (field: 'due_date' | 'scheduled_date', value: string) => {
-    onSave(child.id, field, value);
-    setEditingField(null);
+  const handleSave = (value: string) => {
+    onSave(child.id, 'due_date', value);
+    setEditing(false);
   };
 
-  if (editingField) {
-    const currentValue = editingField === 'due_date'
-      ? (child.due_date ? child.due_date.split('T')[0] : '')
-      : (child.scheduled_date ? child.scheduled_date.split('T')[0] : '');
+  if (editing) {
+    const currentValue = child.due_date ? child.due_date.split('T')[0] : '';
     return (
       <span class="subtask-dates">
         <input
           type="date"
           class="subtask-date-input"
           value={currentValue}
-          aria-label={editingField === 'due_date' ? `Due date for ${child.title}` : `Scheduled date for ${child.title}`}
+          aria-label={`Due date for ${child.title}`}
           autoFocus
-          onChange={(e) => handleSave(editingField, (e.target as HTMLInputElement).value)}
-          onBlur={() => setEditingField(null)}
+          onChange={(e) => handleSave((e.target as HTMLInputElement).value)}
+          onBlur={() => setEditing(false)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') { handleSave(editingField, (e.target as HTMLInputElement).value); }
-            if (e.key === 'Escape') { e.stopPropagation(); setEditingField(null); }
+            if (e.key === 'Enter') { handleSave((e.target as HTMLInputElement).value); }
+            if (e.key === 'Escape') { e.stopPropagation(); setEditing(false); }
           }}
         />
       </span>
@@ -764,7 +722,7 @@ function SubtaskDates({ child, onSave }: {
         <button
           class={`subtask-date-badge ${dueOverdue ? 'subtask-date-overdue' : ''}`}
           aria-label={`Due date: ${formatCompactDate(child.due_date)}${dueOverdue ? ', overdue' : ''}. Click to edit.`}
-          onClick={(e) => { e.stopPropagation(); setEditingField('due_date'); }}
+          onClick={(e) => { e.stopPropagation(); setEditing(true); }}
         >
           Due: {formatCompactDate(child.due_date)}
         </button>
@@ -772,26 +730,9 @@ function SubtaskDates({ child, onSave }: {
         <button
           class="subtask-date-add"
           aria-label={`Add due date for ${child.title}`}
-          onClick={(e) => { e.stopPropagation(); setEditingField('due_date'); }}
+          onClick={(e) => { e.stopPropagation(); setEditing(true); }}
         >
           Due +
-        </button>
-      )}
-      {hasSched ? (
-        <button
-          class="subtask-date-badge"
-          aria-label={`Scheduled date: ${formatCompactDate(child.scheduled_date)}. Click to edit.`}
-          onClick={(e) => { e.stopPropagation(); setEditingField('scheduled_date'); }}
-        >
-          Sched: {formatCompactDate(child.scheduled_date)}
-        </button>
-      ) : (
-        <button
-          class="subtask-date-add"
-          aria-label={`Add scheduled date for ${child.title}`}
-          onClick={(e) => { e.stopPropagation(); setEditingField('scheduled_date'); }}
-        >
-          Sched +
         </button>
       )}
     </span>

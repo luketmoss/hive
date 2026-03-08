@@ -246,7 +246,7 @@ describe('withReauth: mid-session 401 retries API call (AC4)', () => {
   it('retries updateItemRow with new token after mid-session 401', async () => {
     const item = {
       id: 'id-1', title: 'Test', description: '', status: 'To Do' as const,
-      owner: '', due_date: '', scheduled_date: '', labels: '', parent_id: '',
+      owner: '', due_date: '', labels: '', parent_id: '',
       created_at: '', updated_at: '', completed_at: '', sort_order: 1, created_by: '',
       board_id: '',
     };
@@ -276,7 +276,7 @@ describe('withReauth: mid-session reauth failure (AC5)', () => {
   it('propagates ReauthFailedError when mid-session reauth fails', async () => {
     const item = {
       id: 'id-1', title: 'Test', description: '', status: 'To Do' as const,
-      owner: '', due_date: '', scheduled_date: '', labels: '', parent_id: '',
+      owner: '', due_date: '', labels: '', parent_id: '',
       created_at: '', updated_at: '', completed_at: '', sort_order: 1, created_by: '',
       board_id: '',
     };
