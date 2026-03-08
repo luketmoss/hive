@@ -9,6 +9,7 @@
   --color-primary-hover: #1565c0;
   /* RGB components for alpha-blended highlights */
   --color-primary-rgb: 25, 118, 210;
+  --color-primary-light: color-mix(in srgb, var(--color-primary) 8%, transparent);
 
   /* Text */
   --color-text: #1f1f1f;
@@ -793,7 +794,7 @@ body {
 
 .share-btn:hover {
   color: var(--color-primary);
-  background: rgba(var(--color-primary-rgb), 0.08);
+  background: var(--color-primary-light);
 }
 
 /* === Share Modal === */
@@ -863,7 +864,7 @@ body {
 }
 
 .share-member-highlight {
-  background: rgba(var(--color-primary-rgb), 0.08);
+  background: var(--color-primary-light);
   animation: share-fade 2s ease-out forwards;
 }
 
@@ -2104,7 +2105,6 @@ body {
 }
 
 .btn-icon-danger:hover {
-  background: rgba(var(--color-primary-rgb), 0);   /* transparent — tinted below */
   background: color-mix(in srgb, var(--color-danger) 10%, transparent);
   color: var(--color-danger);
 }
@@ -2213,7 +2213,7 @@ body {
 .quick-date-chip:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  background: var(--color-primary-light);
 }
 
 .quick-date-chip:focus-visible {
