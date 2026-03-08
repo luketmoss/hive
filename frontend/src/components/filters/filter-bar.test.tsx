@@ -402,3 +402,94 @@ describe('Group-by chip toggles (Issue #77)', () => {
     });
   });
 });
+
+// --- Collapsible filter bar on mobile (Issue #88) ---
+describe('Collapsible filter bar (Issue #88)', () => {
+  // AC3: Toggle button with badge
+  describe('AC3: Collapsible filter bar toggle', () => {
+    it('renders a filter toggle button', () => {
+      const { container } = render(<FilterBar />);
+      const toggle = container.querySelector('.filter-toggle');
+      expect(toggle).not.toBeNull();
+      expect(toggle!.textContent).toBe('Filters');
+    });
+
+    it('toggle has aria-expanded="false" when collapsed', () => {
+      const { container } = render(<FilterBar />);
+      const toggle = container.querySelector('.filter-toggle');
+      expect(toggle!.getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('toggle has aria-controls pointing to filter content', () => {
+      const { container } = render(<FilterBar />);
+      const toggle = container.querySelector('.filter-toggle');
+      expect(toggle!.getAttribute('aria-controls')).toBe('filter-content');
+    });
+
+    it('filter content has collapsed class by default', () => {
+      const { container } = render(<FilterBar />);
+      const content = container.querySelector('#filter-content');
+      expect(content!.classList.contains('filter-group-collapsed')).toBe(true);
+    });
+
+    it('clicking toggle expands the filter content', () => {
+      const { container } = render(<FilterBar />);
+      const toggle = container.querySelector('.filter-toggle') as HTMLButtonElement;
+      fireEvent.click(toggle);
+
+      const content = container.querySelector('#filter-content');
+      expect(content!.classList.contains('filter-group-collapsed')).toBe(false);
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    });
+
+    it('clicking toggle again collapses the filter content', () => {
+      const { container } = render(<FilterBar />);
+      const toggle = container.querySelector('.filter-toggle') as HTMLButtonElement;
+      fireEvent.click(toggle); // expand
+      fireEvent.click(toggle); // collapse
+
+      const content = container.querySelector('#filter-content');
+      expect(content!.classList.contains('filter-group-collapsed')).toBe(true);
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('shows badge with active filter count when owner filter active', () => {
+      mockFilterOwner.value = 'Luke';
+      const { container } = render(<FilterBar />);
+      const badge = container.querySelector('.filter-badge');
+      expect(badge).not.toBeNull();
+      expect(badge!.textContent).toBe('1');
+    });
+
+    it('shows badge count including all active filters and grouping', () => {
+      mockFilterOwner.value = 'Luke';
+      mockFilterLabel.value = 'Urgent';
+      mockGroupBy.value = 'owner';
+      const { container } = render(<FilterBar />);
+      const badge = container.querySelector('.filter-badge');
+      expect(badge!.textContent).toBe('3');
+    });
+
+    it('shows no badge when no filters active', () => {
+      const { container } = render(<FilterBar />);
+      const badge = container.querySelector('.filter-badge');
+      expect(badge).toBeNull();
+    });
+  });
+
+  // AC4: Desktop filter bar unchanged
+  describe('AC4: Desktop filter bar unchanged', () => {
+    it('filter content container exists with id for aria-controls', () => {
+      const { container } = render(<FilterBar />);
+      const content = container.querySelector('#filter-content');
+      expect(content).not.toBeNull();
+    });
+
+    it('all chip groups are rendered inside filter content', () => {
+      const { container } = render(<FilterBar />);
+      const content = container.querySelector('#filter-content')!;
+      const groups = content.querySelectorAll('[role="group"]');
+      expect(groups.length).toBe(3); // Owner, Label, Group
+    });
+  });
+});
