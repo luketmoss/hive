@@ -46,6 +46,7 @@ export function BoardSwitcher() {
           class="btn btn-ghost share-btn"
           onClick={() => { showShareModal.value = true; }}
           aria-label={`Share ${boardName}`}
+          title="Share board (Ctrl+Shift+S)"
           data-testid="share-board-btn"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

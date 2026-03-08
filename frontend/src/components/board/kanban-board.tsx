@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'preact/hooks';
+import { useState, useCallback, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, boardItems } from '../../state/board-store';
+import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, boardItems, userBoardRole } from '../../state/board-store';
 import { moveItem } from '../../state/actions';
 import { Column } from './column';
 import { ListView } from './list-view';
@@ -23,6 +23,27 @@ export function KanbanBoard() {
   const displayName = user
     ? (owners.value.find(o => o.google_account.toLowerCase() === user.email.toLowerCase())?.name || user.name)
     : '';
+
+  // AC2/AC3: Ctrl+Shift+S (Cmd+Shift+S on Mac) opens share modal — only for board owners
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === 'S' &&
+        e.shiftKey &&
+        (e.ctrlKey || e.metaKey) &&
+        userBoardRole.value === 'owner' &&
+        !showShareModal.value &&
+        !showCreateModal.value &&
+        !showCreateBoardModal.value &&
+        !selectedItem.value
+      ) {
+        e.preventDefault();
+        showShareModal.value = true;
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const handleOpenArchive = useCallback(() => {
     showArchiveDialog.value = true;

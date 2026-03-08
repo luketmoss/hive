@@ -1,32 +1,51 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, cleanup } from '@testing-library/preact';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { render, cleanup, fireEvent } from '@testing-library/preact';
 import { KanbanBoard } from './kanban-board';
 import { AuthContext } from '../../auth/auth-context';
 import type { AuthState } from '../../auth/auth-context';
 
+// Mutable mock state — defined as plain objects so vi.mock hoisting works
+const mockState = {
+  items: [] as any[],
+  showShareModal: false,
+  userBoardRole: null as string | null,
+  showCreateModal: false,
+  showCreateBoardModal: false,
+  selectedItem: null as any,
+};
+
 afterEach(() => {
   cleanup();
+  mockState.items = [];
+  mockState.showShareModal = false;
+  mockState.userBoardRole = null;
+  mockState.showCreateModal = false;
+  mockState.showCreateBoardModal = false;
+  mockState.selectedItem = null;
 });
 
-// Mutable mock data for items
-let mockItems: any[] = [];
-
 vi.mock('../../state/board-store', () => ({
-  items: { get value() { return mockItems; } },
+  items: { get value() { return mockState.items; } },
   columns: {
     get value() {
       return {
-        'To Do': mockItems.filter((i: any) => i.status === 'To Do' && !i.parent_id),
-        'In Progress': mockItems.filter((i: any) => i.status === 'In Progress' && !i.parent_id),
-        'Done': mockItems.filter((i: any) => i.status === 'Done' && !i.parent_id),
+        'To Do': mockState.items.filter((i: any) => i.status === 'To Do' && !i.parent_id),
+        'In Progress': mockState.items.filter((i: any) => i.status === 'In Progress' && !i.parent_id),
+        'Done': mockState.items.filter((i: any) => i.status === 'Done' && !i.parent_id),
       };
     },
   },
   rootItems: {
-    get value() { return mockItems.filter((i: any) => !i.parent_id); },
+    get value() { return mockState.items.filter((i: any) => !i.parent_id); },
   },
-  showCreateModal: { value: false },
-  selectedItem: { value: null },
+  showCreateModal: {
+    get value() { return mockState.showCreateModal; },
+    set value(v: boolean) { mockState.showCreateModal = v; },
+  },
+  selectedItem: {
+    get value() { return mockState.selectedItem; },
+    set value(v: any) { mockState.selectedItem = v; },
+  },
   selectedItemId: { value: null },
   groupBy: { value: 'none' },
   owners: { value: [] },
@@ -41,12 +60,18 @@ vi.mock('../../state/board-store', () => ({
   hasArchivedItems: { value: false },
   showArchiveDialog: { value: false },
   boards: { value: [] },
-  boardItems: { get value() { return mockItems; } },
-  showCreateBoardModal: { value: false },
-  showShareModal: { value: false },
+  boardItems: { get value() { return mockState.items; } },
+  showCreateBoardModal: {
+    get value() { return mockState.showCreateBoardModal; },
+    set value(v: boolean) { mockState.showCreateBoardModal = v; },
+  },
+  showShareModal: {
+    get value() { return mockState.showShareModal; },
+    set value(v: boolean) { mockState.showShareModal = v; },
+  },
   accessibleBoards: { value: [] },
   activeBoard: { value: null },
-  userBoardRole: { value: null },
+  userBoardRole: { get value() { return mockState.userBoardRole; } },
   permissions: { value: [] },
   currentUserEmail: { value: '' },
 }));
@@ -107,7 +132,7 @@ describe('KanbanBoard empty/welcome state (Issue #11)', () => {
   // AC1: Empty board shows welcome message
   describe('AC1: Empty board shows welcome message', () => {
     it('shows welcome message when board has zero items', () => {
-      mockItems = [];
+      mockState.items = [];
       const { container } = renderBoard();
       const welcome = container.querySelector('[data-testid="board-welcome"]');
       expect(welcome).not.toBeNull();
@@ -116,7 +141,7 @@ describe('KanbanBoard empty/welcome state (Issue #11)', () => {
     });
 
     it('does not show welcome when board has items', () => {
-      mockItems = [{
+      mockState.items = [{
         id: '1', title: 'Task', description: '', status: 'To Do',
         owner: '', due_date: '', scheduled_date: '', labels: '',
         parent_id: '', created_at: '', updated_at: '', completed_at: '',
@@ -128,7 +153,7 @@ describe('KanbanBoard empty/welcome state (Issue #11)', () => {
     });
 
     it('does not show columns when board is empty', () => {
-      mockItems = [];
+      mockState.items = [];
       const { container } = renderBoard();
       const columns = container.querySelector('.board-columns');
       expect(columns).toBeNull();
@@ -138,7 +163,7 @@ describe('KanbanBoard empty/welcome state (Issue #11)', () => {
   // AC2: Empty columns still show standard "No items" text (not welcome)
   describe('AC2: Empty columns still show standard text', () => {
     it('renders columns with "No items" when board has items but some columns are empty', () => {
-      mockItems = [{
+      mockState.items = [{
         id: '1', title: 'Task', description: '', status: 'To Do',
         owner: '', due_date: '', scheduled_date: '', labels: '',
         parent_id: '', created_at: '', updated_at: '', completed_at: '',
@@ -163,7 +188,7 @@ describe('KanbanBoard profile trigger (Issue #40)', () => {
   // AC1: Profile trigger in header
   describe('AC1: Profile trigger is a button with proper ARIA', () => {
     it('renders user-info as a <button> element', () => {
-      mockItems = [];
+      mockState.items = [];
       const { container } = renderBoard();
       const trigger = container.querySelector('.user-info');
       expect(trigger).not.toBeNull();
@@ -171,14 +196,14 @@ describe('KanbanBoard profile trigger (Issue #40)', () => {
     });
 
     it('has aria-haspopup="dialog"', () => {
-      mockItems = [];
+      mockState.items = [];
       const { container } = renderBoard();
       const trigger = container.querySelector('.user-info');
       expect(trigger!.getAttribute('aria-haspopup')).toBe('dialog');
     });
 
     it('shows user name with truncation class', () => {
-      mockItems = [];
+      mockState.items = [];
       const { container } = renderBoard();
       const nameSpan = container.querySelector('.user-name');
       expect(nameSpan).not.toBeNull();
@@ -191,7 +216,7 @@ describe('KanbanBoard ARIA labels (Issue #7)', () => {
   // AC2: FAB has accessible label
   describe('AC2: FAB has accessible label', () => {
     it('FAB button has aria-label="Create new item"', () => {
-      mockItems = [];
+      mockState.items = [];
       const { container } = renderBoard();
       const fab = container.querySelector('.fab') as HTMLElement;
       expect(fab).not.toBeNull();
@@ -199,10 +224,81 @@ describe('KanbanBoard ARIA labels (Issue #7)', () => {
     });
 
     it('FAB button has title="Create new item"', () => {
-      mockItems = [];
+      mockState.items = [];
       const { container } = renderBoard();
       const fab = container.querySelector('.fab') as HTMLElement;
       expect(fab.getAttribute('title')).toBe('Create new item');
+    });
+  });
+});
+
+describe('KanbanBoard keyboard shortcut (Issue #90)', () => {
+  describe('AC2: Ctrl+Shift+S opens share modal for owners', () => {
+    it('opens share modal on Ctrl+Shift+S when user is owner', () => {
+      mockState.items = [];
+      mockState.userBoardRole ='owner';
+      renderBoard();
+
+      fireEvent.keyDown(document, { key: 'S', ctrlKey: true, shiftKey: true });
+
+      expect(mockState.showShareModal).toBe(true);
+    });
+
+    it('opens share modal on Cmd+Shift+S (Mac) when user is owner', () => {
+      mockState.items = [];
+      mockState.userBoardRole ='owner';
+      renderBoard();
+
+      fireEvent.keyDown(document, { key: 'S', metaKey: true, shiftKey: true });
+
+      expect(mockState.showShareModal).toBe(true);
+    });
+  });
+
+  describe('AC3: Shortcut inactive for non-owners', () => {
+    it('does not open share modal when user is member', () => {
+      mockState.items = [];
+      mockState.userBoardRole ='member';
+      renderBoard();
+
+      fireEvent.keyDown(document, { key: 'S', ctrlKey: true, shiftKey: true });
+
+      expect(mockState.showShareModal).toBe(false);
+    });
+
+    it('does not open share modal when user has no role', () => {
+      mockState.items = [];
+      mockState.userBoardRole =null;
+      renderBoard();
+
+      fireEvent.keyDown(document, { key: 'S', ctrlKey: true, shiftKey: true });
+
+      expect(mockState.showShareModal).toBe(false);
+    });
+  });
+
+  describe('Shortcut guards', () => {
+    it('does not open share modal when another modal is open', () => {
+      mockState.items = [];
+      mockState.userBoardRole ='owner';
+      mockState.showCreateModal = true;
+      renderBoard();
+
+      fireEvent.keyDown(document, { key: 'S', ctrlKey: true, shiftKey: true });
+
+      expect(mockState.showShareModal).toBe(false);
+    });
+
+    it('does not open share modal when share modal is already open', () => {
+      mockState.items = [];
+      mockState.userBoardRole ='owner';
+      mockState.showShareModal = true;
+      renderBoard();
+
+      fireEvent.keyDown(document, { key: 'S', ctrlKey: true, shiftKey: true });
+
+      // Should still be true (unchanged), not toggled
+      expect(mockState.showShareModal).toBe(true);
     });
   });
 });

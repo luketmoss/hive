@@ -224,6 +224,27 @@ describe('ShareModal (Issue #42)', () => {
     });
   });
 
+  describe('AC1: Owner badge in member list (Issue #90)', () => {
+    it('shows "(Owner)" badge next to the owner entry', () => {
+      const { container } = renderModal();
+      const badge = container.querySelector('.share-owner-badge');
+      expect(badge).not.toBeNull();
+      expect(badge!.textContent).toBe('(Owner)');
+    });
+
+    it('owner badge has aria-label="Board owner"', () => {
+      const { container } = renderModal();
+      const badge = container.querySelector('.share-owner-badge');
+      expect(badge!.getAttribute('aria-label')).toBe('Board owner');
+    });
+
+    it('does not show owner badge on member entries', () => {
+      const { container } = renderModal();
+      const badges = container.querySelectorAll('.share-owner-badge');
+      expect(badges.length).toBe(1); // Only on the owner row
+    });
+  });
+
   describe('Accessibility', () => {
     it('has role="dialog" and aria-modal="true"', () => {
       const { getByRole } = renderModal();

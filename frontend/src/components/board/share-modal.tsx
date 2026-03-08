@@ -170,7 +170,12 @@ export function ShareModal() {
                   role="listitem"
                 >
                   <div class="share-member-info">
-                    <span class="share-member-name">{nameForEmail(perm.user_email)}</span>
+                    <span class="share-member-name">
+                      {nameForEmail(perm.user_email)}
+                      {perm.role === 'owner' && (
+                        <span class="share-owner-badge" aria-label="Board owner">(Owner)</span>
+                      )}
+                    </span>
                     <span class="share-member-email">{perm.user_email}</span>
                   </div>
                   <span class="share-member-role">{perm.role}</span>
