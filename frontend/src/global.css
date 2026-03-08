@@ -1125,6 +1125,77 @@ body {
   color: var(--color-primary);
 }
 
+/* === #86: Sub-task date badges === */
+.subtask-dates {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.subtask-date-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  font-size: 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.subtask-date-badge:hover {
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+.subtask-date-overdue {
+  color: var(--color-overdue);
+  border-color: var(--color-overdue);
+}
+
+.subtask-date-overdue:hover {
+  color: var(--color-overdue);
+  border-color: var(--color-overdue);
+}
+
+.subtask-date-input {
+  font-size: 12px;
+  padding: 2px 4px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  color: var(--color-text);
+}
+
+.subtask-date-input:focus {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* #86 AC3: Date inputs on sub-task creation row */
+.subtask-add-date {
+  flex-shrink: 0;
+  padding: 4px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+  max-width: 140px;
+}
+
+.subtask-add-date:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
 /* === Inline delete confirmation === */
 .delete-confirm-inline {
   display: flex;
@@ -2059,6 +2130,35 @@ body {
   .subtask-actions {
     opacity: 1;
     margin-left: auto;
+  }
+
+  /* #86 AC5: Sub-task dates wrap below title+owner on mobile */
+  .subtask-dates {
+    width: 100%;
+    order: 10;
+    min-height: 44px;
+  }
+
+  .subtask-date-badge {
+    min-height: 44px;
+    padding: 4px 10px;
+    font-size: 13px;
+  }
+
+  .subtask-date-input {
+    min-height: 44px;
+    font-size: 14px;
+    padding: 4px 8px;
+  }
+
+  /* #86 AC5: Creation row date inputs 44px touch targets */
+  .subtask-add-date {
+    min-height: 44px;
+  }
+
+  /* #86 AC5: Creation row wraps on mobile */
+  .subtask-add-inline {
+    flex-wrap: wrap;
   }
 
   /* #59 AC3: Constrain owner select width on mobile */
