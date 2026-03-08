@@ -11,8 +11,12 @@ const mockState = {
   userBoardRole: null as string | null,
   showCreateModal: false,
   showCreateBoardModal: false,
+  showArchiveDialog: false,
   selectedItem: null as any,
+  accessibleBoards: [] as any[],
 };
+
+const mockSwitchBoard = vi.fn();
 
 afterEach(() => {
   cleanup();
@@ -21,7 +25,10 @@ afterEach(() => {
   mockState.userBoardRole = null;
   mockState.showCreateModal = false;
   mockState.showCreateBoardModal = false;
+  mockState.showArchiveDialog = false;
   mockState.selectedItem = null;
+  mockState.accessibleBoards = [];
+  mockSwitchBoard.mockClear();
 });
 
 vi.mock('../../state/board-store', () => ({
@@ -58,7 +65,10 @@ vi.mock('../../state/board-store', () => ({
   setViewMode: () => {},
   allDoneItems: { value: [] },
   hasArchivedItems: { value: false },
-  showArchiveDialog: { value: false },
+  showArchiveDialog: {
+    get value() { return mockState.showArchiveDialog; },
+    set value(v: boolean) { mockState.showArchiveDialog = v; },
+  },
   boards: { value: [] },
   boardItems: { get value() { return mockState.items; } },
   showCreateBoardModal: {
@@ -69,11 +79,12 @@ vi.mock('../../state/board-store', () => ({
     get value() { return mockState.showShareModal; },
     set value(v: boolean) { mockState.showShareModal = v; },
   },
-  accessibleBoards: { value: [] },
+  accessibleBoards: { get value() { return mockState.accessibleBoards; } },
   activeBoard: { value: null },
   userBoardRole: { get value() { return mockState.userBoardRole; } },
   permissions: { value: [] },
   currentUserEmail: { value: '' },
+  switchBoard: (...args: any[]) => mockSwitchBoard(...args),
 }));
 
 vi.mock('../../state/actions', () => ({
@@ -103,6 +114,9 @@ vi.mock('./create-board-modal', () => ({
 }));
 vi.mock('./share-modal', () => ({
   ShareModal: () => null,
+}));
+vi.mock('./shortcuts-help', () => ({
+  ShortcutsHelp: ({ onClose }: any) => <div data-testid="shortcuts-help"><button onClick={onClose}>Close</button></div>,
 }));
 vi.mock('../profile/profile-dialog', () => ({
   ProfileDialog: () => <div data-testid="profile-dialog" />,
@@ -291,7 +305,7 @@ describe('KanbanBoard keyboard shortcut (Issue #90)', () => {
 
     it('does not open share modal when share modal is already open', () => {
       mockState.items = [];
-      mockState.userBoardRole ='owner';
+      mockState.userBoardRole = 'owner';
       mockState.showShareModal = true;
       renderBoard();
 
@@ -299,6 +313,99 @@ describe('KanbanBoard keyboard shortcut (Issue #90)', () => {
 
       // Should still be true (unchanged), not toggled
       expect(mockState.showShareModal).toBe(true);
+    });
+  });
+});
+
+describe('KanbanBoard keyboard shortcuts (Issue #91)', () => {
+  describe('AC1: Archive shortcut', () => {
+    it('opens archive dialog when A is pressed', () => {
+      mockState.items = [];
+      renderBoard();
+
+      fireEvent.keyDown(document, { key: 'a' });
+
+      expect(mockState.showArchiveDialog).toBe(true);
+    });
+
+    it('closes archive dialog when A is pressed again', () => {
+      mockState.items = [];
+      mockState.showArchiveDialog = true;
+      renderBoard();
+
+      fireEvent.keyDown(document, { key: 'a' });
+
+      expect(mockState.showArchiveDialog).toBe(false);
+    });
+  });
+
+  describe('AC2: Board switching shortcuts', () => {
+    it('switches to board at position with Ctrl+number', () => {
+      mockState.items = [];
+      mockState.accessibleBoards = [
+        { id: 'b1', name: 'Board 1' },
+        { id: 'b2', name: 'Board 2' },
+      ];
+      renderBoard();
+
+      fireEvent.keyDown(document, { key: '2', ctrlKey: true });
+
+      expect(mockSwitchBoard).toHaveBeenCalledWith('b2');
+    });
+
+    it('switches to first board with Cmd+1 (Mac)', () => {
+      mockState.items = [];
+      mockState.accessibleBoards = [
+        { id: 'b1', name: 'Board 1' },
+        { id: 'b2', name: 'Board 2' },
+      ];
+      renderBoard();
+
+      fireEvent.keyDown(document, { key: '1', metaKey: true });
+
+      expect(mockSwitchBoard).toHaveBeenCalledWith('b1');
+    });
+
+    it('does nothing when number exceeds board count', () => {
+      mockState.items = [];
+      mockState.accessibleBoards = [{ id: 'b1', name: 'Board 1' }];
+      renderBoard();
+
+      fireEvent.keyDown(document, { key: '5', ctrlKey: true });
+
+      expect(mockSwitchBoard).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('AC3: New item shortcut', () => {
+    it('opens create modal when N is pressed', () => {
+      mockState.items = [];
+      renderBoard();
+
+      fireEvent.keyDown(document, { key: 'n' });
+
+      expect(mockState.showCreateModal).toBe(true);
+    });
+
+    it('does not open create modal when another modal is already open', () => {
+      mockState.items = [];
+      mockState.showArchiveDialog = true;
+      renderBoard();
+
+      fireEvent.keyDown(document, { key: 'n' });
+
+      expect(mockState.showCreateModal).toBe(false);
+    });
+  });
+
+  describe('AC4: Shortcuts help overlay', () => {
+    it('opens shortcuts help when ? is pressed', () => {
+      mockState.items = [];
+      const { queryByTestId } = renderBoard();
+
+      fireEvent.keyDown(document, { key: '?' });
+
+      expect(queryByTestId('shortcuts-help')).not.toBeNull();
     });
   });
 });

@@ -1,13 +1,16 @@
-import { useState, useCallback, useEffect } from 'preact/hooks';
+import { useState, useCallback, useMemo } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, boardItems, userBoardRole } from '../../state/board-store';
+import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, boardItems, userBoardRole, accessibleBoards, switchBoard } from '../../state/board-store';
 import { moveItem } from '../../state/actions';
+import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts';
+import type { Shortcut } from '../../hooks/use-keyboard-shortcuts';
 import { Column } from './column';
 import { ListView } from './list-view';
 import { CardDetail } from './card-detail';
 import { CreateItemModal } from '../forms/create-item-modal';
 import { CreateBoardModal } from './create-board-modal';
 import { ShareModal } from './share-modal';
+import { ShortcutsHelp } from './shortcuts-help';
 import { BoardSwitcher } from './board-switcher';
 import { ProfileDialog } from '../profile/profile-dialog';
 import { ArchiveDialog } from '../archive/archive-dialog';
@@ -17,6 +20,7 @@ import type { ItemStatus, ItemWithRow } from '../../api/types';
 export function KanbanBoard() {
   const { user, logout, token, updateUserName } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const statuses: ItemStatus[] = ['To Do', 'In Progress', 'Done'];
 
   // Derive display name from Owners sheet (source of truth), falling back to Google account name
@@ -24,26 +28,74 @@ export function KanbanBoard() {
     ? (owners.value.find(o => o.google_account.toLowerCase() === user.email.toLowerCase())?.name || user.name)
     : '';
 
-  // AC2/AC3: Ctrl+Shift+S (Cmd+Shift+S on Mac) opens share modal — only for board owners
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.key === 'S' &&
-        e.shiftKey &&
-        (e.ctrlKey || e.metaKey) &&
-        userBoardRole.value === 'owner' &&
-        !showShareModal.value &&
-        !showCreateModal.value &&
-        !showCreateBoardModal.value &&
-        !selectedItem.value
-      ) {
-        e.preventDefault();
-        showShareModal.value = true;
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  /** True when no modal or overlay is open — shortcuts should be active. */
+  const noModalOpen = () =>
+    !showShareModal.value &&
+    !showCreateModal.value &&
+    !showCreateBoardModal.value &&
+    !showArchiveDialog.value &&
+    !selectedItem.value &&
+    !showShortcutsHelp;
+
+  // Build shortcut definitions
+  const shortcuts = useMemo<Shortcut[]>(() => [
+    // AC1: Archive shortcut — 'A' toggles archive dialog
+    {
+      key: 'a',
+      action: () => {
+        if (showArchiveDialog.value) {
+          showArchiveDialog.value = false;
+        } else if (noModalOpen()) {
+          showArchiveDialog.value = true;
+        }
+      },
+    },
+    // AC3: New item shortcut — 'N' opens create modal
+    {
+      key: 'n',
+      action: () => {
+        if (noModalOpen()) {
+          showCreateModal.value = true;
+        }
+      },
+    },
+    // AC4: Shortcuts help overlay — '?' toggles help
+    {
+      key: '?',
+      action: () => {
+        if (showShortcutsHelp) {
+          setShowShortcutsHelp(false);
+        } else if (noModalOpen()) {
+          setShowShortcutsHelp(true);
+        }
+      },
+    },
+    // #90 AC2/AC3: Ctrl+Shift+S opens share modal — only for board owners
+    {
+      key: 's',
+      ctrl: true,
+      shift: true,
+      action: () => {
+        if (userBoardRole.value === 'owner' && noModalOpen()) {
+          showShareModal.value = true;
+        }
+      },
+    },
+    // AC2: Board switching — Ctrl+1 through Ctrl+9
+    ...Array.from({ length: 9 }, (_, i) => ({
+      key: String(i + 1),
+      ctrl: true,
+      action: () => {
+        if (!noModalOpen()) return;
+        const boardList = accessibleBoards.value;
+        if (i < boardList.length) {
+          switchBoard(boardList[i].id);
+        }
+      },
+    })),
+  ], [showShortcutsHelp]);
+
+  useKeyboardShortcuts(shortcuts);
 
   const handleOpenArchive = useCallback(() => {
     showArchiveDialog.value = true;
@@ -202,6 +254,7 @@ export function KanbanBoard() {
       {showCreateBoardModal.value && <CreateBoardModal />}
       {showShareModal.value && <ShareModal />}
       {showArchiveDialog.value && <ArchiveDialog onClose={handleCloseArchive} />}
+      {showShortcutsHelp && <ShortcutsHelp onClose={() => setShowShortcutsHelp(false)} />}
       {showProfile && user && token && (
         <ProfileDialog
           user={user}
