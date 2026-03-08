@@ -45,6 +45,8 @@ When the user's request matches a custom skill, invoke it automatically — no s
 
 **When the user references an issue number** (e.g., "implement #29", "work on 29", "refine #29", "take #29 all the way"), **always start the Full Pipeline**. The pipeline checks the issue's board state and picks up from the right stage — do NOT skip ahead to `/dev`, `/qa`, or `/review` directly. The only exceptions are when the user explicitly invokes a slash command (e.g., `/dev #29`) or explicitly says to skip stages.
 
+**When the user says "approve #N"**: find the open PR for that issue, run the merge step from the Full Pipeline (approve + squash-merge + delete branch + move to Done). No need to re-run any other pipeline stages.
+
 ## Pipeline Orchestration
 
 **You (the main Claude instance) are the orchestrator.** You invoke skills in order, pass results between them, and ensure no step is skipped. Individual skills do their one job and return results to you. They do NOT call each other.
@@ -71,7 +73,7 @@ Use this when the user wants an issue taken from its current board state through
 
 **Steps 1-5 are autonomous — do NOT stop or wait for the user between them. The only pause point is the Approval Gate at step 6.**
 
-1. **Check board state**: Look up the issue's current column to determine where to start.
+1. **Check board state**: Look up the issue's current column to determine where to start. If the issue is in **Pick Up**, move it to **To Do** first (using the GraphQL mutation with option ID `18b995bb`), then treat it as To Do.
 2. **Refinement** (if in To Do/Refining): Run the Refinement Pipeline above.
 3. **Development** (if in Ready/In Development): Invoke `/dev` with the issue number.
 4. **QA** (if in Testing): Invoke `/qa` with the issue number. **Tell it to post its QA report as a comment on the GitHub issue (in addition to the PR).**
@@ -79,7 +81,9 @@ Use this when the user wants an issue taken from its current board state through
    - If QA **flags AC problems** (ACs are ambiguous, contradictory, or don't match real behavior): Invoke `/pm` with the QA + Dev findings to negotiate AC updates. PM decides what to accept, defer, or reject (same as refinement). Then re-invoke `/dev` and `/qa` with the updated ACs.
 5. **Code Review** (if in In Review): Invoke `/review` with the issue number. Tell the review agent **not to merge** — only post its verdict.
    - If review **requests changes**: Invoke `/dev` with the review feedback. Then re-invoke `/review`. If it requests changes a second time, **stop and tell the user**.
-6. **Approval Gate**: Present a structured summary to the user using this format, then wait for explicit approval before merging:
+6. **Approval Gate**: If running in an interactive session, present the structured summary to the user (format below) and wait for approval. If running autonomously (from the scheduled watcher), post the summary as a GitHub issue comment and **stop** — do not merge. End the comment with: `**To approve and merge:** Open a new Claude Code session and say: \`approve #<N>\``
+
+   Present a structured summary using this format:
 
    ```
    ## Pipeline Summary — Issue #N: <title>
