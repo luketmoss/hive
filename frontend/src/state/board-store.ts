@@ -92,6 +92,44 @@ export function setViewMode(mode: ViewMode) {
   } catch { /* localStorage unavailable */ }
 }
 
+// --- Theme ---
+export type Theme = 'light' | 'dark' | 'system';
+
+/** Read the saved theme preference from localStorage, falling back to 'system'. */
+export function loadTheme(): Theme {
+  try {
+    const stored = localStorage.getItem('hive-theme');
+    if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
+  } catch { /* localStorage unavailable */ }
+  return 'system';
+}
+
+export const theme = signal<Theme>(loadTheme());
+
+/** Apply `data-theme` attribute to `<html>` based on the given theme. */
+export function applyTheme(t: Theme) {
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const resolved = t === 'system' ? (prefersDark ? 'dark' : 'light') : t;
+  document.documentElement.setAttribute('data-theme', resolved);
+}
+
+/** Set the active theme, persist to localStorage, and apply to the DOM. */
+export function setTheme(t: Theme) {
+  theme.value = t;
+  try {
+    localStorage.setItem('hive-theme', t);
+  } catch { /* localStorage unavailable */ }
+  applyTheme(t);
+}
+
+/** Cycle theme Light → Dark → System → Light (used by T keyboard shortcut). */
+export function cycleTheme() {
+  const order: Theme[] = ['light', 'dark', 'system'];
+  const current = theme.value;
+  const next = order[(order.indexOf(current) + 1) % order.length];
+  setTheme(next);
+}
+
 // --- Derived ---
 export const filteredItems = computed(() => {
   let result = boardItems.value;

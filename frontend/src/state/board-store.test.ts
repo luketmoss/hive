@@ -191,3 +191,107 @@ describe('viewMode persistence (AC4)', () => {
     expect(store.viewMode.value).toBe('list');
   });
 });
+
+// ---- Theme persistence (AC1, AC3, AC4) ----
+
+describe('theme persistence (AC1, AC3, AC4)', () => {
+  let originalGetItem: typeof Storage.prototype.getItem;
+  let originalSetItem: typeof Storage.prototype.setItem;
+
+  beforeEach(() => {
+    originalGetItem = Storage.prototype.getItem;
+    originalSetItem = Storage.prototype.setItem;
+    vi.resetModules();
+    // Reset the data-theme attribute between tests
+    document.documentElement.removeAttribute('data-theme');
+  });
+
+  afterEach(() => {
+    Storage.prototype.getItem = originalGetItem;
+    Storage.prototype.setItem = originalSetItem;
+    localStorage.removeItem('hive-theme');
+    document.documentElement.removeAttribute('data-theme');
+  });
+
+  // AC1: No stored value → default to 'system'
+  it('defaults to "system" when localStorage has no stored value', async () => {
+    localStorage.removeItem('hive-theme');
+    const store = await import('./board-store');
+    expect(store.loadTheme()).toBe('system');
+  });
+
+  // AC4: Stored 'dark' survives re-read
+  it('loads "dark" from localStorage when previously stored', async () => {
+    localStorage.setItem('hive-theme', 'dark');
+    const store = await import('./board-store');
+    expect(store.loadTheme()).toBe('dark');
+  });
+
+  it('loads "light" from localStorage when previously stored', async () => {
+    localStorage.setItem('hive-theme', 'light');
+    const store = await import('./board-store');
+    expect(store.loadTheme()).toBe('light');
+  });
+
+  it('loads "system" from localStorage when previously stored', async () => {
+    localStorage.setItem('hive-theme', 'system');
+    const store = await import('./board-store');
+    expect(store.loadTheme()).toBe('system');
+  });
+
+  // AC4: Invalid value falls back to 'system'
+  it('falls back to "system" when localStorage has an invalid value', async () => {
+    localStorage.setItem('hive-theme', 'invalid');
+    const store = await import('./board-store');
+    expect(store.loadTheme()).toBe('system');
+  });
+
+  // AC3: setTheme persists to localStorage and updates signal
+  it('persists theme to localStorage when setTheme is called', async () => {
+    localStorage.removeItem('hive-theme');
+    const store = await import('./board-store');
+
+    store.setTheme('dark');
+    expect(store.theme.value).toBe('dark');
+    expect(localStorage.getItem('hive-theme')).toBe('dark');
+
+    store.setTheme('light');
+    expect(store.theme.value).toBe('light');
+    expect(localStorage.getItem('hive-theme')).toBe('light');
+
+    store.setTheme('system');
+    expect(store.theme.value).toBe('system');
+    expect(localStorage.getItem('hive-theme')).toBe('system');
+  });
+
+  // AC3: cycleTheme cycles Light → Dark → System → Light
+  it('cycleTheme cycles Light → Dark → System → Light', async () => {
+    const store = await import('./board-store');
+
+    store.setTheme('light');
+    store.cycleTheme();
+    expect(store.theme.value).toBe('dark');
+
+    store.cycleTheme();
+    expect(store.theme.value).toBe('system');
+
+    store.cycleTheme();
+    expect(store.theme.value).toBe('light');
+  });
+
+  // AC4: localStorage errors handled gracefully on read
+  it('handles localStorage errors gracefully on read', async () => {
+    Storage.prototype.getItem = () => { throw new Error('quota exceeded'); };
+    const store = await import('./board-store');
+    expect(store.loadTheme()).toBe('system');
+  });
+
+  // AC4: localStorage errors handled gracefully on write
+  it('handles localStorage errors gracefully on write', async () => {
+    localStorage.removeItem('hive-theme');
+    const store = await import('./board-store');
+    Storage.prototype.setItem = () => { throw new Error('quota exceeded'); };
+    expect(() => store.setTheme('dark')).not.toThrow();
+    expect(store.theme.value).toBe('dark');
+  });
+});

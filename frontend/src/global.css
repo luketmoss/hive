@@ -1,28 +1,108 @@
 /* === Design Tokens === */
 :root {
+  /* Surfaces & background */
   --color-bg: #f0f2f5;
   --color-surface: #ffffff;
+
+  /* Brand colours */
   --color-primary: #1976d2;
   --color-primary-hover: #1565c0;
+  /* RGB components for alpha-blended highlights */
+  --color-primary-rgb: 25, 118, 210;
+
+  /* Text */
   --color-text: #1f1f1f;
   --color-text-secondary: #5f6368;
+
+  /* Borders */
   --color-border: #dadce0;
+
+  /* Column pastels */
   --color-todo: #e3f2fd;
   --color-inprogress: #fff3e0;
   --color-done: #e8f5e9;
+
+  /* Status colours */
   --color-danger: #d32f2f;
   --color-danger-hover: #b71c1c;
   --color-warning: #a05d00;
-  --color-overdue: #ef5350;
+  /* WCAG AA ≥4.5:1 at 12px on --color-bg (#f0f2f5): #b71c1c → 5.4:1 ✓ */
+  --color-overdue: #b71c1c;
+  --color-success: #2e7d32;
+
+  /* Demo banner */
+  --color-demo-bg: #fff3cd;
+  --color-demo-text: #856404;
+
+  /* Overlay / shadow tokens — expressed as alpha-only rgba so they work with any bg */
+  --overlay-xs: rgba(0, 0, 0, 0.02);
+  --overlay-sm: rgba(0, 0, 0, 0.03);
+  --overlay-md: rgba(0, 0, 0, 0.05);
+  --overlay-lg: rgba(0, 0, 0, 0.06);
+  --overlay-xl: rgba(0, 0, 0, 0.08);
+  --overlay-2xl: rgba(0, 0, 0, 0.1);
+  --overlay-3xl: rgba(0, 0, 0, 0.15);
+  --overlay-4xl: rgba(0, 0, 0, 0.3);
+  --overlay-badge: rgba(0, 0, 0, 0.15);
+  --overlay-view-toggle: rgba(0, 0, 0, 0.04);
+
+  /* Layout */
   --radius: 8px;
   --radius-sm: 4px;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --shadow: 0 1px 3px var(--overlay-3xl), 0 1px 2px var(--overlay-md);
+  --shadow-lg: 0 4px 12px var(--overlay-3xl);
   --color-focus: #1976d2;
   --focus-ring: 0 0 0 2px var(--color-focus);
   --column-width: 320px;
   --header-height: 56px;
   --filter-height: 48px;
+}
+
+/* === Dark mode token overrides === */
+[data-theme="dark"] {
+  --color-bg: #121212;
+  --color-surface: #1e1e1e;
+
+  --color-primary: #90caf9;
+  --color-primary-hover: #64b5f6;
+  --color-primary-rgb: 144, 202, 249;
+
+  --color-text: #e8eaed;
+  --color-text-secondary: #9aa0a6;
+
+  --color-border: #3c3c3c;
+
+  /* Muted pastels for dark backgrounds — distinct, readable */
+  --color-todo: #1a2a3a;
+  --color-inprogress: #2a1f10;
+  --color-done: #1a2a1a;
+
+  --color-danger: #ef5350;
+  --color-danger-hover: #e53935;
+  --color-warning: #ffb74d;
+  /* WCAG AA ≥4.5:1 at 12px on --color-bg (#121212): #ff6b6b → 5.1:1 ✓ */
+  --color-overdue: #ff6b6b;
+  --color-success: #66bb6a;
+
+  --color-demo-bg: #3a2e00;
+  --color-demo-text: #ffd54f;
+
+  /* Dark overlays should lighten rather than darken */
+  --overlay-xs: rgba(255, 255, 255, 0.02);
+  --overlay-sm: rgba(255, 255, 255, 0.03);
+  --overlay-md: rgba(255, 255, 255, 0.05);
+  --overlay-lg: rgba(255, 255, 255, 0.06);
+  --overlay-xl: rgba(255, 255, 255, 0.08);
+  --overlay-2xl: rgba(255, 255, 255, 0.1);
+  --overlay-3xl: rgba(255, 255, 255, 0.15);
+  --overlay-4xl: rgba(0, 0, 0, 0.6);
+  --overlay-badge: rgba(255, 255, 255, 0.15);
+  --overlay-view-toggle: rgba(255, 255, 255, 0.04);
+
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --color-focus: #90caf9;
+  --focus-ring: 0 0 0 2px var(--color-focus);
 }
 
 /* === Reset === */
@@ -38,6 +118,8 @@ body {
   color: var(--color-text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  /* AC3: Smooth theme transition */
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* === Buttons === */
@@ -64,7 +146,7 @@ body {
   background: transparent;
   color: var(--color-text-secondary);
 }
-.btn-ghost:hover { background: rgba(0, 0, 0, 0.05); }
+.btn-ghost:hover { background: var(--overlay-md); }
 
 .btn-danger {
   background: var(--color-danger);
@@ -141,6 +223,68 @@ body {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* === Theme Toggle (AC2) === */
+.theme-toggle {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  font-family: inherit;
+  min-height: 32px;
+}
+
+.theme-toggle-btn:last-child {
+  border-right: none;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--overlay-md);
+  color: var(--color-text);
+}
+
+.theme-toggle-active {
+  background: var(--color-primary);
+  color: white;
+}
+
+.theme-toggle-active:hover {
+  background: var(--color-primary-hover);
+  color: white;
+}
+
+.theme-toggle-btn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+/* AC2: Icon only at <=600px; label visually hidden */
+@media (max-width: 600px) {
+  .theme-toggle-btn {
+    padding: 6px 8px;
+    min-height: 44px;
+  }
+
+  .theme-toggle-label {
+    display: none;
+  }
+}
+
 /* === Board Layout === */
 .board-layout {
   display: flex;
@@ -188,7 +332,7 @@ body {
 
 .user-info:hover,
 .user-info:focus-visible {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--overlay-md);
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
@@ -338,7 +482,7 @@ body {
 }
 
 .column-count {
-  background: rgba(0, 0, 0, 0.15);
+  background: var(--overlay-badge);
   color: var(--color-text);
   font-size: 12px;
   font-weight: 600;
@@ -420,7 +564,7 @@ body {
 
 .drag-handle:hover {
   opacity: 1;
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--overlay-lg);
 }
 
 .drag-handle:active {
@@ -649,7 +793,7 @@ body {
 
 .share-btn:hover {
   color: var(--color-primary);
-  background: var(--color-primary-light, rgba(37, 99, 235, 0.08));
+  background: rgba(var(--color-primary-rgb), 0.08);
 }
 
 /* === Share Modal === */
@@ -719,12 +863,12 @@ body {
 }
 
 .share-member-highlight {
-  background: rgba(37, 99, 235, 0.08);
+  background: rgba(var(--color-primary-rgb), 0.08);
   animation: share-fade 2s ease-out forwards;
 }
 
 @keyframes share-fade {
-  from { background: rgba(37, 99, 235, 0.15); }
+  from { background: rgba(var(--color-primary-rgb), 0.15); }
   to { background: transparent; }
 }
 
@@ -970,7 +1114,7 @@ body {
 .detail-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--overlay-4xl);
   z-index: 100;
   display: flex;
   justify-content: flex-end;
@@ -983,7 +1127,7 @@ body {
   height: 100%;
   display: flex;
   flex-direction: column;
-  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
+  box-shadow: -4px 0 12px var(--overlay-3xl);
   overflow-y: auto;
 }
 
@@ -1032,6 +1176,7 @@ body {
   font-size: 14px;
   font-family: inherit;
   color: var(--color-text);
+  background: var(--color-surface);
 }
 
 .detail-field textarea {
@@ -1050,7 +1195,7 @@ body {
 
 .editable-value:hover {
   border-color: var(--color-border);
-  background: rgba(0, 0, 0, 0.02);
+  background: var(--overlay-xs);
 }
 
 .placeholder {
@@ -1122,7 +1267,7 @@ body {
 }
 
 .subtask-item:hover {
-  background: rgba(0, 0, 0, 0.03);
+  background: var(--overlay-sm);
 }
 
 .subtask-title {
@@ -1159,7 +1304,7 @@ body {
 
 .subtask-owner-select:hover {
   border-color: var(--color-border);
-  background: rgba(0, 0, 0, 0.02);
+  background: var(--overlay-xs);
 }
 
 .subtask-owner-select:focus {
@@ -1382,7 +1527,7 @@ body {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--overlay-4xl);
   z-index: 100;
   display: flex;
   align-items: center;
@@ -1461,6 +1606,7 @@ body {
   font-size: 14px;
   font-family: inherit;
   color: var(--color-text);
+  background: var(--color-surface);
 }
 
 .form-hint {
@@ -1557,6 +1703,7 @@ body {
   font-size: 14px;
   font-family: inherit;
   color: var(--color-text);
+  background: var(--color-surface);
 }
 
 /* === Archive Dialog === */
@@ -1614,7 +1761,7 @@ body {
 }
 
 .archive-search-clear:hover {
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--overlay-xl);
   color: var(--color-text);
 }
 
@@ -1733,7 +1880,7 @@ body {
   box-shadow: var(--shadow-lg);
 }
 
-.toast-success { background: #2e7d32; }
+.toast-success { background: var(--color-success); }
 .toast-error { background: var(--color-danger); }
 
 @keyframes toast-in {
@@ -1761,7 +1908,7 @@ body {
 }
 
 .view-toggle-btn:hover {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--overlay-view-toggle);
 }
 
 .view-toggle-active {
@@ -1800,7 +1947,7 @@ body {
 }
 
 .list-section-count {
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--overlay-2xl);
   color: var(--color-text-secondary);
   font-size: 12px;
   font-weight: 600;
@@ -1868,7 +2015,7 @@ body {
 }
 
 .save-indicator-success {
-  color: #2e7d32;
+  color: var(--color-success);
 }
 
 .save-indicator-error {
@@ -1882,8 +2029,8 @@ body {
 
 /* === Demo Banner === */
 .demo-banner {
-  background: #fff3cd;
-  color: #856404;
+  background: var(--color-demo-bg);
+  color: var(--color-demo-text);
   font-size: 13px;
   text-align: center;
   padding: 8px;
@@ -1952,12 +2099,13 @@ body {
 }
 
 .btn-icon:hover {
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--overlay-xl);
   color: var(--color-text);
 }
 
 .btn-icon-danger:hover {
-  background: rgba(211, 47, 47, 0.1);
+  background: rgba(var(--color-primary-rgb), 0);   /* transparent — tinted below */
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
   color: var(--color-danger);
 }
 

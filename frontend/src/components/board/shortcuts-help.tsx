@@ -17,6 +17,7 @@ const NAVIGATION_SHORTCUTS: ShortcutEntry[] = [
 const ACTION_SHORTCUTS: ShortcutEntry[] = [
   { keys: 'N', description: 'Create new item' },
   { keys: 'A', description: 'Open completed items archive' },
+  { keys: 'T', description: 'Cycle theme: Light → Dark → System' },
   { keys: 'Ctrl+Shift+S', description: 'Share board (owner only)' },
 ];
 

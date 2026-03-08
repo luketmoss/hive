@@ -1,6 +1,6 @@
-import { useState, useCallback, useMemo } from 'preact/hooks';
+import { useState, useCallback, useMemo, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, boardItems, userBoardRole, accessibleBoards, switchBoard } from '../../state/board-store';
+import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme } from '../../state/board-store';
 import { moveItem } from '../../state/actions';
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts';
 import type { Shortcut } from '../../hooks/use-keyboard-shortcuts';
@@ -15,6 +15,7 @@ import { BoardSwitcher } from './board-switcher';
 import { ProfileDialog } from '../profile/profile-dialog';
 import { ArchiveDialog } from '../archive/archive-dialog';
 import { FilterBar } from '../filters/filter-bar';
+import { ThemeToggle } from './theme-toggle';
 import type { ItemStatus, ItemWithRow } from '../../api/types';
 
 export function KanbanBoard() {
@@ -22,6 +23,20 @@ export function KanbanBoard() {
   const [showProfile, setShowProfile] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const statuses: ItemStatus[] = ['To Do', 'In Progress', 'Done'];
+
+  // AC5: Listen for OS prefers-color-scheme changes while System is selected
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      if (theme.value === 'system') {
+        applyTheme('system');
+      }
+    };
+    mq.addEventListener('change', handleChange);
+    // Apply theme on mount (picks up inline script state or sets initial data-theme)
+    applyTheme(theme.value);
+    return () => mq.removeEventListener('change', handleChange);
+  }, []);
 
   // Derive display name from Owners sheet (source of truth), falling back to Google account name
   const displayName = user
@@ -67,6 +82,15 @@ export function KanbanBoard() {
           setShowShortcutsHelp(false);
         } else if (noModalOpen()) {
           setShowShortcutsHelp(true);
+        }
+      },
+    },
+    // AC7: Theme cycle — 'T' cycles Light → Dark → System → Light
+    {
+      key: 't',
+      action: () => {
+        if (noModalOpen()) {
+          cycleTheme();
         }
       },
     },
@@ -189,6 +213,7 @@ export function KanbanBoard() {
           <h1>Hive</h1>
         </div>
         <div class="board-header-right">
+          <ThemeToggle />
           {user && (
             <button
               class="user-info"
