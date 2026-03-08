@@ -90,7 +90,9 @@ Note any layout issues, overflow, truncation, or touch target problems at each s
 
 ### Step 5: Post findings
 
-Format the report by severity:
+Format the report by severity.
+
+**Do NOT write the report to a temp file.** Use the heredoc directly in the shell command — do not use the Write tool.
 
 **If reviewing an issue or PR:**
 ```bash

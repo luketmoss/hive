@@ -54,7 +54,7 @@ You are refining issues for **Hive**, a family Kanban board:
 ### Step 1: Read and understand
 
 1. Fetch the issue: `gh issue view <number> --repo luketmoss/hive`
-2. Move the issue to **"Refining"** using the board movement helper above.
+2. Do NOT move the issue — the orchestrator handles all column moves.
 
 ### Step 2: Explore the codebase
 
@@ -130,9 +130,9 @@ Update the issue body with the refined content using `gh issue edit`:
 - (any remaining ambiguities — ask the user about these before moving to Ready)
 ```
 
-### Step 7: Move to Ready
+### Step 7: Finalise
 
-Once the user confirms the requirements look good and any open questions are resolved, move the issue to **"Ready"** using the board movement helper.
+Confirm the issue body is updated with all ACs, scope, and technical notes. Do NOT move the issue to any column — the orchestrator handles all board movement.
 
 ## Definition of Done
 
@@ -141,12 +141,11 @@ Once the user confirms the requirements look good and any open questions are res
 - [ ] Migration AC included if new tabs, columns, or fields are introduced
 - [ ] Scope boundaries clearly defined (in and out)
 - [ ] Technical notes identify affected files and complexity
-- [ ] Open questions resolved with the user
-- [ ] Issue is in the "Ready" column on the project board
+- [ ] Open questions resolved
 
 ## Handoff
 
 When complete, output a brief status line:
-> PM complete — Issue #N: <AC count> ACs defined, moved to Ready.
+> PM complete — Issue #N: <AC count> ACs defined.
 
 Do NOT suggest next steps or address the user. The orchestrator will decide what happens next.
