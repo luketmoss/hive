@@ -9,7 +9,6 @@ function makeItem(overrides: Partial<ItemWithRow>): ItemWithRow {
     status: 'To Do',
     owner: 'Mom',
     due_date: '',
-    scheduled_date: '',
     labels: '',
     parent_id: '',
     created_at: new Date().toISOString(),

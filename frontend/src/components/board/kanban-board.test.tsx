@@ -164,7 +164,7 @@ describe('KanbanBoard empty/welcome state (Issue #11)', () => {
     it('does not show welcome when board has items', () => {
       mockState.items = [{
         id: '1', title: 'Task', description: '', status: 'To Do',
-        owner: '', due_date: '', scheduled_date: '', labels: '',
+        owner: '', due_date: '', labels: '',
         parent_id: '', created_at: '', updated_at: '', completed_at: '',
         sort_order: 1, created_by: '', board_id: '', sheetRow: 2,
       }];
@@ -186,7 +186,7 @@ describe('KanbanBoard empty/welcome state (Issue #11)', () => {
     it('renders columns with "No items" when board has items but some columns are empty', () => {
       mockState.items = [{
         id: '1', title: 'Task', description: '', status: 'To Do',
-        owner: '', due_date: '', scheduled_date: '', labels: '',
+        owner: '', due_date: '', labels: '',
         parent_id: '', created_at: '', updated_at: '', completed_at: '',
         sort_order: 1, created_by: '', board_id: '', sheetRow: 2,
       }];

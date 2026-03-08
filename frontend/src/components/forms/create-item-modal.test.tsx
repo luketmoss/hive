@@ -45,85 +45,6 @@ beforeEach(() => {
   mockBoardStore.showCreateModal.value = true;
 });
 
-// --- Previous AC tests (Scheduled Date — Issue #46) ---
-describe('CreateItemModal — Scheduled Date (Issue #46)', () => {
-  describe('AC1: Scheduled date picker present in create modal', () => {
-    it('renders a Scheduled Date date input field', () => {
-      const { container } = render(<CreateItemModal />);
-      const input = container.querySelector('#scheduled-date') as HTMLInputElement;
-      expect(input).not.toBeNull();
-      expect(input.type).toBe('date');
-    });
-
-    it('has hint text "When you plan to do this" beneath the label', () => {
-      const { container } = render(<CreateItemModal />);
-      const hints = container.querySelectorAll('.form-hint');
-      const scheduledHint = Array.from(hints).find(h => h.textContent === 'When you plan to do this');
-      expect(scheduledHint).not.toBeNull();
-    });
-
-    it('is placed between Due Date and Labels', () => {
-      const { container } = render(<CreateItemModal />);
-      const fields = container.querySelectorAll('.form-field');
-      const fieldLabels = Array.from(fields).map(f => {
-        const label = f.querySelector('label');
-        return label?.textContent?.replace(/\s*\(\d+\)/, '') || '';
-      });
-      const dueDateIdx = fieldLabels.indexOf('Due Date');
-      const scheduledIdx = fieldLabels.indexOf('Scheduled Date');
-      const labelsIdx = fieldLabels.indexOf('Labels');
-      expect(scheduledIdx).toBeGreaterThan(dueDateIdx);
-      expect(scheduledIdx).toBeLessThan(labelsIdx);
-    });
-  });
-
-  describe('AC2: Creating an item with a scheduled date', () => {
-    it('passes scheduled_date to createItem when set', () => {
-      const { container } = render(<CreateItemModal />);
-      const titleInput = container.querySelector('#title') as HTMLInputElement;
-      const scheduledInput = container.querySelector('#scheduled-date') as HTMLInputElement;
-      const form = container.querySelector('form') as HTMLFormElement;
-
-      fireEvent.input(titleInput, { target: { value: 'Test task' } });
-      fireEvent.change(scheduledInput, { target: { value: '2026-04-01' } });
-      fireEvent.submit(form);
-
-      expect(mockCreateItem).toHaveBeenCalledTimes(1);
-      const data = mockCreateItem.mock.calls[0][0];
-      expect(data.scheduled_date).toBe('2026-04-01');
-    });
-  });
-
-  describe('AC3: Creating an item without a scheduled date', () => {
-    it('passes empty scheduled_date when not set', () => {
-      const { container } = render(<CreateItemModal />);
-      const titleInput = container.querySelector('#title') as HTMLInputElement;
-      const form = container.querySelector('form') as HTMLFormElement;
-
-      fireEvent.input(titleInput, { target: { value: 'Test task' } });
-      fireEvent.submit(form);
-
-      expect(mockCreateItem).toHaveBeenCalledTimes(1);
-      const data = mockCreateItem.mock.calls[0][0];
-      expect(data.scheduled_date).toBe('');
-    });
-  });
-
-  describe('AC5: Accessible labeling', () => {
-    it('has a label with matching for/id attributes', () => {
-      const { container } = render(<CreateItemModal />);
-      const label = Array.from(container.querySelectorAll('label')).find(
-        l => l.textContent === 'Scheduled Date'
-      );
-      expect(label).not.toBeNull();
-      expect(label!.getAttribute('for')).toBe('scheduled-date');
-
-      const input = container.querySelector('#scheduled-date');
-      expect(input).not.toBeNull();
-    });
-  });
-});
-
 // --- Inline Sub-tasks (Issue #55) ---
 describe('CreateItemModal — Inline Sub-tasks (Issue #55)', () => {
   function getSubtaskInput(container: Element) {
@@ -419,14 +340,6 @@ describe('CreateItemModal — Quick Date Shortcuts (Issue #82)', () => {
       expect(chips!.querySelectorAll('.quick-date-chip')).toHaveLength(4);
     });
 
-    it('renders quick date chips below the scheduled date input', () => {
-      const { container } = render(<CreateItemModal />);
-      const scheduledField = container.querySelector('#scheduled-date')!.closest('.form-field')!;
-      const chips = scheduledField.querySelector('.quick-date-chips');
-      expect(chips).not.toBeNull();
-      expect(chips!.querySelectorAll('.quick-date-chip')).toHaveLength(4);
-    });
-
     it('tapping a due date chip populates the due date input', () => {
       const { container } = render(<CreateItemModal />);
       const dueDateField = container.querySelector('#due-date')!.closest('.form-field')!;
@@ -442,22 +355,6 @@ describe('CreateItemModal — Quick Date Shortcuts (Issue #82)', () => {
       const today = new Date();
       const expected = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       expect(mockCreateItem.mock.calls[0][0].due_date).toBe(expected);
-    });
-
-    it('tapping a scheduled date chip populates the scheduled date input', () => {
-      const { container } = render(<CreateItemModal />);
-      const scheduledField = container.querySelector('#scheduled-date')!.closest('.form-field')!;
-      const todayChip = scheduledField.querySelector('.quick-date-chip') as HTMLButtonElement;
-      fireEvent.click(todayChip);
-
-      const titleInput = container.querySelector('#title') as HTMLInputElement;
-      fireEvent.input(titleInput, { target: { value: 'Test' } });
-      const form = container.querySelector('form') as HTMLFormElement;
-      fireEvent.submit(form);
-
-      const today = new Date();
-      const expected = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      expect(mockCreateItem.mock.calls[0][0].scheduled_date).toBe(expected);
     });
 
     it('date input can still be edited manually after chip selection', () => {

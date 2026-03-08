@@ -44,7 +44,6 @@ describe('Mock API layer (AC5)', () => {
       status: 'To Do',
       owner: '',
       due_date: '',
-      scheduled_date: '',
       labels: '',
       parent_id: '',
       created_at: new Date().toISOString(),
@@ -106,7 +105,7 @@ describe('Mock API layer (AC5)', () => {
     await fetchLabels('demo-token');
     const newItem: Item = {
       id: 'test-http', title: 'Test', description: '', status: 'To Do',
-      owner: '', due_date: '', scheduled_date: '', labels: '', parent_id: '',
+      owner: '', due_date: '', labels: '', parent_id: '',
       created_at: '', updated_at: '', completed_at: '', sort_order: 0, created_by: '',
       board_id: '',
     };

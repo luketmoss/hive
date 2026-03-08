@@ -19,7 +19,6 @@ function makeItem(overrides: Partial<ItemWithRow> = {}): ItemWithRow {
     status: 'To Do',
     owner: '',
     due_date: '',
-    scheduled_date: '',
     labels: '',
     parent_id: '',
     created_at: '2026-01-01T00:00:00Z',
@@ -51,67 +50,6 @@ describe('Card', () => {
       const dueEl = container.querySelector('.card-due');
       expect(dueEl).not.toBeNull();
       expect(dueEl!.className).toContain('card-due');
-    });
-  });
-
-  // AC2: Scheduled date displays with text label "Sched:" and calendar icon
-  describe('AC2: Scheduled date displays with text label and calendar icon', () => {
-    it('shows scheduled date with "Sched:" text label prefix', () => {
-      const item = makeItem({ scheduled_date: '2026-03-15T12:00:00' });
-      const { container } = render(<Card item={item} />);
-      const scheduledEl = container.querySelector('.card-scheduled');
-      expect(scheduledEl).not.toBeNull();
-      expect(scheduledEl!.textContent).toContain('Sched:');
-      expect(scheduledEl!.textContent).toContain('Mar 15');
-    });
-
-    it('retains the .card-scheduled CSS class', () => {
-      const item = makeItem({ scheduled_date: '2026-03-15T12:00:00' });
-      const { container } = render(<Card item={item} />);
-      const scheduledEl = container.querySelector('.card-scheduled');
-      expect(scheduledEl).not.toBeNull();
-      expect(scheduledEl!.className).toContain('card-scheduled');
-    });
-
-    it('handles date-only strings without timezone shift', () => {
-      const item = makeItem({ scheduled_date: '2026-03-02' });
-      const { container } = render(<Card item={item} />);
-      const scheduledEl = container.querySelector('.card-scheduled');
-      expect(scheduledEl).not.toBeNull();
-      expect(scheduledEl!.textContent).toContain('Sched:');
-      expect(scheduledEl!.textContent).toContain('Mar 2');
-    });
-  });
-
-  // AC3: Both dates visually distinguishable (different labels + color weight)
-  describe('AC3: Both dates are visually distinguishable', () => {
-    it('shows both dates with different text labels ("Due:" vs "Sched:")', () => {
-      const item = makeItem({
-        scheduled_date: '2026-03-15T12:00:00',
-        due_date: '2026-03-20T12:00:00',
-      });
-      const { container } = render(<Card item={item} />);
-      const scheduledEl = container.querySelector('.card-scheduled');
-      const dueEl = container.querySelector('.card-due');
-      expect(scheduledEl).not.toBeNull();
-      expect(dueEl).not.toBeNull();
-      expect(scheduledEl!.textContent).toContain('Sched:');
-      expect(dueEl!.textContent).toContain('Due:');
-      // Labels are different
-      expect(scheduledEl!.textContent).not.toEqual(dueEl!.textContent);
-    });
-
-    it('both dates are inside .card-meta on the same flex row', () => {
-      const item = makeItem({
-        scheduled_date: '2026-03-10T12:00:00',
-        due_date: '2026-03-20T12:00:00',
-      });
-      const { container } = render(<Card item={item} />);
-      const meta = container.querySelector('.card-meta');
-      const scheduledEl = container.querySelector('.card-scheduled');
-      const dueEl = container.querySelector('.card-due');
-      expect(meta!.contains(scheduledEl!)).toBe(true);
-      expect(meta!.contains(dueEl!)).toBe(true);
     });
   });
 
@@ -162,89 +100,21 @@ describe('Card', () => {
 
   // AC5: Only set dates are displayed (no empty placeholders)
   describe('AC5: Only set dates are rendered', () => {
-    it('renders neither date when both are empty', () => {
-      const item = makeItem({ due_date: '', scheduled_date: '' });
+    it('renders no date when due_date is empty', () => {
+      const item = makeItem({ due_date: '' });
       const { container } = render(<Card item={item} />);
       expect(container.querySelector('.card-due')).toBeNull();
-      expect(container.querySelector('.card-scheduled')).toBeNull();
     });
 
-    it('renders only due date when only due_date is set', () => {
-      const item = makeItem({ due_date: '2099-03-20', scheduled_date: '' });
+    it('renders due date when due_date is set', () => {
+      const item = makeItem({ due_date: '2099-03-20' });
       const { container } = render(<Card item={item} />);
       expect(container.querySelector('.card-due')).not.toBeNull();
-      expect(container.querySelector('.card-scheduled')).toBeNull();
-    });
-
-    it('renders only scheduled date when only scheduled_date is set', () => {
-      const item = makeItem({ due_date: '', scheduled_date: '2026-03-15' });
-      const { container } = render(<Card item={item} />);
-      expect(container.querySelector('.card-due')).toBeNull();
-      expect(container.querySelector('.card-scheduled')).not.toBeNull();
-    });
-  });
-
-  // AC6: Due date more prominent (font-weight: 600, darker color)
-  describe('AC6: Due date is more visually prominent', () => {
-    it('due date element has .card-due class for bold/dark styling', () => {
-      const item = makeItem({
-        due_date: '2099-03-20',
-        scheduled_date: '2026-03-15',
-      });
-      const { container } = render(<Card item={item} />);
-      const dueEl = container.querySelector('.card-due');
-      const scheduledEl = container.querySelector('.card-scheduled');
-      // Due date uses .card-due (font-weight: 600, color: var(--color-text))
-      expect(dueEl!.className).toContain('card-due');
-      // Scheduled uses .card-scheduled (normal weight, color: var(--color-text-secondary))
-      expect(scheduledEl!.className).toContain('card-scheduled');
-      // They are different classes
-      expect(dueEl!.className).not.toContain('card-scheduled');
-    });
-  });
-
-  // AC7: Dates legible at small widths (white-space: nowrap)
-  describe('AC7: Dates remain legible at small widths', () => {
-    it('both date elements have classes that apply white-space: nowrap via CSS', () => {
-      // Verified via CSS: .card-due and .card-scheduled both have white-space: nowrap.
-      // In jsdom we verify the class names are correctly applied.
-      const item = makeItem({
-        due_date: '2099-03-20',
-        scheduled_date: '2026-03-15',
-      });
-      const { container } = render(<Card item={item} />);
-      const dueEl = container.querySelector('.card-due');
-      const scheduledEl = container.querySelector('.card-scheduled');
-      expect(dueEl!.classList.contains('card-due')).toBe(true);
-      expect(scheduledEl!.classList.contains('card-scheduled')).toBe(true);
-    });
-
-    it('uses abbreviated labels "Due:" and "Sched:" for compact layout', () => {
-      const item = makeItem({
-        due_date: '2099-03-20',
-        scheduled_date: '2026-03-15',
-      });
-      const { container } = render(<Card item={item} />);
-      const dueEl = container.querySelector('.card-due');
-      const scheduledEl = container.querySelector('.card-scheduled');
-      // "Due:" not "Due date:" — abbreviated
-      expect(dueEl!.textContent).toContain('Due:');
-      expect(dueEl!.textContent).not.toContain('Due date:');
-      // "Sched:" not "Scheduled:" — abbreviated
-      expect(scheduledEl!.textContent).toContain('Sched:');
-      expect(scheduledEl!.textContent).not.toContain('Scheduled:');
     });
   });
 
   // AC8: Date elements have aria-labels for screen readers
   describe('AC8: Date elements have accessible aria-labels', () => {
-    it('scheduled date has aria-label with full "Scheduled date:" text', () => {
-      const item = makeItem({ scheduled_date: '2026-03-15T12:00:00' });
-      const { container } = render(<Card item={item} />);
-      const scheduledEl = container.querySelector('.card-scheduled');
-      expect(scheduledEl!.getAttribute('aria-label')).toBe('Scheduled date: Mar 15');
-    });
-
     it('due date (not overdue) has aria-label with "Due date:" text', () => {
       const item = makeItem({ due_date: '2099-03-20T12:00:00', status: 'To Do' });
       const { container } = render(<Card item={item} />);
@@ -257,19 +127,6 @@ describe('Card', () => {
       const { container } = render(<Card item={item} />);
       const dueEl = container.querySelector('.card-due');
       expect(dueEl!.getAttribute('aria-label')).toBe('Due date: Jan 1, overdue');
-    });
-
-    it('both aria-labels use full unabbreviated words (not "Sched:" or "Due:")', () => {
-      const item = makeItem({
-        scheduled_date: '2026-03-15',
-        due_date: '2099-03-20',
-      });
-      const { container } = render(<Card item={item} />);
-      const scheduledEl = container.querySelector('.card-scheduled');
-      const dueEl = container.querySelector('.card-due');
-      // aria-labels use full words
-      expect(scheduledEl!.getAttribute('aria-label')).toContain('Scheduled date:');
-      expect(dueEl!.getAttribute('aria-label')).toContain('Due date:');
     });
   });
 

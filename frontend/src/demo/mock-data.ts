@@ -1,6 +1,6 @@
 // Static, deterministic mock data for demo mode.
 // Covers all board features: multiple statuses, owners, labels,
-// subtasks, overdue dates, scheduled dates, long titles, unassigned items.
+// subtasks, overdue dates, long titles, unassigned items.
 
 import type { ItemWithRow, Owner, Label, Board, BoardPermission } from '../api/types';
 
@@ -63,7 +63,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     status: 'To Do',
     owner: 'Mom',
     due_date: daysFromNow(1),
-    scheduled_date: daysFromNow(0),
+
     labels: 'Errands',
     parent_id: '',
     created_at: daysAgo(3),
@@ -82,7 +82,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     status: 'Done',
     owner: 'Mom',
     due_date: '',
-    scheduled_date: '',
+
     labels: '',
     parent_id: 'demo-001',
     created_at: daysAgo(3),
@@ -101,7 +101,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     status: 'Done',
     owner: 'Mom',
     due_date: '',
-    scheduled_date: '',
+
     labels: '',
     parent_id: 'demo-001',
     created_at: daysAgo(3),
@@ -120,7 +120,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     status: 'To Do',
     owner: 'Dad',
     due_date: '',
-    scheduled_date: '',
+
     labels: '',
     parent_id: 'demo-001',
     created_at: daysAgo(3),
@@ -140,7 +140,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     status: 'In Progress',
     owner: 'Dad',
     due_date: daysFromNow(7),
-    scheduled_date: '',
+
     labels: 'Home',
     parent_id: '',
     created_at: daysAgo(5),
@@ -160,7 +160,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     status: 'In Progress',
     owner: 'Kiddo',
     due_date: daysFromNow(3),
-    scheduled_date: daysAgo(1),
+
     labels: 'School, Important',
     parent_id: '',
     created_at: daysAgo(10),
@@ -180,7 +180,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     status: 'To Do',
     owner: 'Mom',
     due_date: daysFromNow(14),
-    scheduled_date: '',
+
     labels: 'Family, Fun',
     parent_id: '',
     created_at: daysAgo(7),
@@ -200,7 +200,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     status: 'Done',
     owner: 'Dad',
     due_date: daysAgo(7),
-    scheduled_date: '',
+
     labels: 'Health',
     parent_id: '',
     created_at: daysAgo(14),
@@ -220,7 +220,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     status: 'To Do',
     owner: '',
     due_date: '',
-    scheduled_date: '',
+
     labels: '',
     parent_id: '',
     created_at: daysAgo(2),
@@ -240,7 +240,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     status: 'To Do',
     owner: 'Kiddo',
     due_date: daysAgo(2),
-    scheduled_date: '',
+
     labels: 'Errands',
     parent_id: '',
     created_at: daysAgo(10),
@@ -260,7 +260,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     status: 'In Progress',
     owner: 'Mom',
     due_date: '',
-    scheduled_date: '',
+
     labels: 'Home',
     parent_id: '',
     created_at: daysAgo(4),
@@ -280,7 +280,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     status: 'Done',
     owner: 'Dad',
     due_date: daysAgo(30),
-    scheduled_date: '',
+
     labels: 'Important',
     parent_id: '',
     created_at: daysAgo(60),
@@ -300,7 +300,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     status: 'Done',
     owner: 'Mom',
     due_date: '',
-    scheduled_date: '',
+
     labels: 'Home',
     parent_id: '',
     created_at: daysAgo(5),
@@ -312,7 +312,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     sheetRow: 17,
   },
 
-  // 10. Clean garage — To Do, scheduled only (no due date)
+  // 10. Clean garage — To Do, no due date
   {
     id: 'demo-010',
     title: 'Clean garage',
@@ -320,7 +320,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     status: 'To Do',
     owner: 'Dad',
     due_date: '',
-    scheduled_date: daysFromNow(6),
+
     labels: 'Home',
     parent_id: '',
     created_at: daysAgo(3),
@@ -340,7 +340,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     status: 'To Do',
     owner: '',
     due_date: '',
-    scheduled_date: '',
+
     labels: 'Fun',
     parent_id: '',
     created_at: daysAgo(1),
@@ -360,7 +360,7 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     status: 'In Progress',
     owner: 'Mom',
     due_date: daysFromNow(0),
-    scheduled_date: '',
+
     labels: '',
     parent_id: '',
     created_at: daysAgo(5),

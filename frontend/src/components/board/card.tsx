@@ -91,14 +91,6 @@ export function Card({ item, onMoveStatus }: Props) {
             ) : (
               <span class="card-unassigned">Unassigned</span>
             )}
-            {item.scheduled_date && (
-              <span
-                class="card-scheduled"
-                aria-label={`Scheduled date: ${formatDate(item.scheduled_date)}`}
-              >
-                {'\u{1F4C5}'} Sched: {formatDate(item.scheduled_date)}
-              </span>
-            )}
             {item.due_date && (
               <span
                 class={`card-due ${isOverdue ? 'card-due-overdue' : ''}`}

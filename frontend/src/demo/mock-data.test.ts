@@ -44,11 +44,6 @@ describe('Mock data coverage (AC4)', () => {
     expect(overdue.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('has 1+ item with a scheduled date', () => {
-    const withScheduled = rootItems.filter(i => i.scheduled_date);
-    expect(withScheduled.length).toBeGreaterThanOrEqual(1);
-  });
-
   it('has items with labels assigned', () => {
     const withLabels = rootItems.filter(i => i.labels);
     expect(withLabels.length).toBeGreaterThanOrEqual(1);

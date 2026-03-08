@@ -609,11 +609,6 @@ body {
   opacity: 0.6;
 }
 
-.card-scheduled {
-  white-space: nowrap;
-  color: var(--color-text-secondary);
-}
-
 .card-due {
   white-space: nowrap;
   font-weight: 600;

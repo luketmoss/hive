@@ -131,9 +131,9 @@ describe('Sheets API label CRUD', () => {
     // GET Items!A2:N
     mockFetch.mockResolvedValueOnce(
       mockSheetsGetResponse([
-        ['id-1', 'Task 1', '', 'To Do', '', '', '', 'Errands, Home', '', '', '', '', '1', ''],
-        ['id-2', 'Task 2', '', 'To Do', '', '', '', 'Home', '', '', '', '', '2', ''],
-        ['id-3', 'Task 3', '', 'Done', '', '', '', '', '', '', '', '', '3', ''],
+        ['id-1', 'Task 1', '', 'To Do', '', '', 'Errands, Home', '', '', '', '', '1', ''],
+        ['id-2', 'Task 2', '', 'To Do', '', '', 'Home', '', '', '', '', '2', ''],
+        ['id-3', 'Task 3', '', 'Done', '', '', '', '', '', '', '', '3', ''],
       ])
     );
     // PUT for item id-1 (only this item has Errands)
@@ -145,7 +145,7 @@ describe('Sheets API label CRUD', () => {
     expect(mockFetch).toHaveBeenCalledTimes(2);
     const putCall = mockFetch.mock.calls[1];
     const putUrl = putCall[0] as string;
-    expect(putUrl).toContain('Items!H2'); // row 2 (index 0 + 2)
+    expect(putUrl).toContain('Items!G2'); // row 2 (index 0 + 2)
     const putBody = JSON.parse(putCall[1].body);
     expect(putBody.values).toEqual([['Shopping, Home']]);
   });
@@ -154,8 +154,8 @@ describe('Sheets API label CRUD', () => {
   it('cascadeLabelUpdate removes a label from items when newName is empty', async () => {
     mockFetch.mockResolvedValueOnce(
       mockSheetsGetResponse([
-        ['id-1', 'Task 1', '', 'To Do', '', '', '', 'Errands, Home', '', '', '', '', '1', ''],
-        ['id-2', 'Task 2', '', 'To Do', '', '', '', 'Errands', '', '', '', '', '2', ''],
+        ['id-1', 'Task 1', '', 'To Do', '', '', 'Errands, Home', '', '', '', '', '1', ''],
+        ['id-2', 'Task 2', '', 'To Do', '', '', 'Errands', '', '', '', '', '2', ''],
       ])
     );
     // Two PUT calls (both items have Errands)
@@ -177,7 +177,7 @@ describe('Sheets API label CRUD', () => {
   it('cascadeLabelUpdate does nothing when no items reference the label', async () => {
     mockFetch.mockResolvedValueOnce(
       mockSheetsGetResponse([
-        ['id-1', 'Task 1', '', 'To Do', '', '', '', 'Home', '', '', '', '', '1', ''],
+        ['id-1', 'Task 1', '', 'To Do', '', '', 'Home', '', '', '', '', '1', ''],
       ])
     );
 

@@ -133,7 +133,6 @@ function makeItem(overrides: Partial<ItemWithRow> = {}): ItemWithRow {
     status: 'To Do',
     owner: 'Luke',
     due_date: '',
-    scheduled_date: '',
     labels: '',
     parent_id: '',
     created_at: '2025-01-01T00:00:00Z',
