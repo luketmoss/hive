@@ -3,6 +3,37 @@ import { useEffect, useRef } from 'preact/hooks';
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+const isIOS = () => /iP(hone|ad|od)/i.test(navigator.userAgent);
+
+function lockScroll(): () => void {
+  const scrollY = window.scrollY;
+  const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+  const body = document.body;
+
+  if (isIOS()) {
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.width = '100%';
+  } else {
+    body.style.overflow = 'hidden';
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+  }
+
+  return () => {
+    if (isIOS()) {
+      body.style.position = '';
+      body.style.top = '';
+      body.style.width = '';
+      window.scrollTo(0, scrollY);
+    } else {
+      body.style.overflow = '';
+      body.style.paddingRight = '';
+    }
+  };
+}
+
 /**
  * Traps focus within a container element. When the user tabs past the last
  * focusable element, focus wraps to the first; shift-tabbing past the first
@@ -13,6 +44,9 @@ const FOCUSABLE_SELECTOR =
  *
  * Initial focus targets `[autofocus]` or `[data-autofocus]` inside the
  * container, falling back to the first focusable element.
+ *
+ * Also locks background scroll while the trap is active and restores
+ * the exact scroll position on unmount.
  */
 export function useFocusTrap(onEscape?: () => void) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -26,6 +60,9 @@ export function useFocusTrap(onEscape?: () => void) {
 
     // Capture the element that had focus when the trap mounted
     triggerRef.current = document.activeElement as HTMLElement | null;
+
+    // Lock background scroll
+    const unlockScroll = lockScroll();
 
     // Focus the autofocus element, or fall back to the first focusable element
     const autofocusEl = container.querySelector<HTMLElement>('[autofocus], [data-autofocus]');
@@ -72,6 +109,7 @@ export function useFocusTrap(onEscape?: () => void) {
 
     return () => {
       container.removeEventListener('keydown', handleKeyDown);
+      unlockScroll();
       // Restore focus to the trigger element on unmount
       if (triggerRef.current && typeof triggerRef.current.focus === 'function') {
         triggerRef.current.focus();
