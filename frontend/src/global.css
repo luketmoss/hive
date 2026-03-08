@@ -177,6 +177,11 @@ body {
   text-align: center;
 }
 
+.login-logo {
+  display: block;
+  margin: 0 auto 14px;
+}
+
 .login-card h1 {
   font-size: 36px;
   margin-bottom: 8px;
@@ -302,6 +307,18 @@ body {
   padding: 0 20px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.board-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.board-header-logo {
+  width: 26px;
+  height: 26px;
   flex-shrink: 0;
 }
 
@@ -2499,5 +2516,13 @@ body {
 
   .profile-dialog form input[type="text"] {
     min-height: 44px;
+  }
+}
+
+/* === Board header logo responsive (#30) === */
+@media (max-width: 479px) {
+  .board-header-logo {
+    width: 20px;
+    height: 20px;
   }
 }
