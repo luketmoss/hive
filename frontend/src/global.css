@@ -1428,6 +1428,7 @@ body {
   border-radius: var(--radius-sm);
   font-family: inherit;
   color: var(--color-text);
+  background: var(--color-surface);
 }
 
 .subtask-date-input:focus {
@@ -1494,6 +1495,7 @@ body {
   font-size: 14px;
   font-family: inherit;
   color: var(--color-text);
+  background: var(--color-surface);
   outline: none;
 }
 
