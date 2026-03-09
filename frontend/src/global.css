@@ -553,6 +553,19 @@ body {
   opacity: 0.5;
 }
 
+.card-wrapper {
+  position: relative;
+}
+
+/* AC2: Drop position indicator for within-column reorder */
+.drop-indicator {
+  height: 2px;
+  background: var(--color-primary);
+  border-radius: 1px;
+  margin: -1px 0;
+  pointer-events: none;
+}
+
 .card-row {
   display: flex;
   align-items: flex-start;
@@ -570,14 +583,22 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
+  width: 24px;
   min-height: 28px;
+  padding: 4px 2px;
   cursor: grab;
   border-radius: var(--radius-sm);
   color: var(--color-text-secondary);
   opacity: 0.5;
   transition: opacity 0.15s, background 0.15s;
-  touch-action: none; /* AC4: prevent scroll when dragging via handle on touch */
+  touch-action: none; /* prevent scroll when dragging via handle on touch */
+}
+
+/* AC1: Hide drag handle on touch devices — users use Alt+Arrow instead */
+@media (pointer: coarse) {
+  .drag-handle {
+    display: none;
+  }
 }
 
 .drag-handle:hover {

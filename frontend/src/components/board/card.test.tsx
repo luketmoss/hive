@@ -265,6 +265,79 @@ describe('Card', () => {
     });
   });
 
+  // Issue #115 — Reorder within column
+  describe('Issue #115: Reorder within column', () => {
+    // AC4: Alt+ArrowUp/Down for keyboard reorder
+    describe('AC4: Keyboard reorder within column (Alt+Arrow)', () => {
+      it('calls onReorder with "up" when Alt+ArrowUp is pressed', () => {
+        const onReorder = vi.fn();
+        const item = makeItem({ id: 'reorder-up', status: 'To Do' });
+        const { container } = render(<Card item={item} onReorder={onReorder} />);
+        const card = container.querySelector('.card') as HTMLElement;
+
+        fireEvent.keyDown(card, { key: 'ArrowUp', altKey: true });
+        expect(onReorder).toHaveBeenCalledWith('reorder-up', 'up');
+      });
+
+      it('calls onReorder with "down" when Alt+ArrowDown is pressed', () => {
+        const onReorder = vi.fn();
+        const item = makeItem({ id: 'reorder-down', status: 'To Do' });
+        const { container } = render(<Card item={item} onReorder={onReorder} />);
+        const card = container.querySelector('.card') as HTMLElement;
+
+        fireEvent.keyDown(card, { key: 'ArrowDown', altKey: true });
+        expect(onReorder).toHaveBeenCalledWith('reorder-down', 'down');
+      });
+
+      it('does NOT intercept ArrowUp/Down without Alt (preserves browser scroll)', () => {
+        const onReorder = vi.fn();
+        const item = makeItem({ id: 'no-alt', status: 'To Do' });
+        const { container } = render(<Card item={item} onReorder={onReorder} />);
+        const card = container.querySelector('.card') as HTMLElement;
+
+        fireEvent.keyDown(card, { key: 'ArrowUp' });
+        fireEvent.keyDown(card, { key: 'ArrowDown' });
+        expect(onReorder).not.toHaveBeenCalled();
+      });
+
+      it('does not call onReorder when Alt+Arrow pressed without the prop', () => {
+        const item = makeItem({ id: 'no-handler', status: 'In Progress' });
+        const { container } = render(<Card item={item} />);
+        const card = container.querySelector('.card') as HTMLElement;
+
+        // Should not throw
+        fireEvent.keyDown(card, { key: 'ArrowUp', altKey: true });
+        fireEvent.keyDown(card, { key: 'ArrowDown', altKey: true });
+      });
+
+      it('ArrowLeft/ArrowRight still work for column movement (not affected by Alt)', () => {
+        const onMoveStatus = vi.fn();
+        const onReorder = vi.fn();
+        const item = makeItem({ id: 'both', status: 'To Do' });
+        const { container } = render(
+          <Card item={item} onMoveStatus={onMoveStatus} onReorder={onReorder} />
+        );
+        const card = container.querySelector('.card') as HTMLElement;
+
+        fireEvent.keyDown(card, { key: 'ArrowRight' });
+        expect(onMoveStatus).toHaveBeenCalledWith('both', 'In Progress');
+        expect(onReorder).not.toHaveBeenCalled();
+      });
+    });
+
+    // AC6: Updated card ARIA label
+    describe('AC6: Updated card ARIA label', () => {
+      it('includes Alt+Up/Down reorder instructions in aria-label', () => {
+        const item = makeItem({ title: 'Test Task', status: 'To Do' });
+        const { container } = render(<Card item={item} />);
+        const card = container.querySelector('.card') as HTMLElement;
+        const label = card.getAttribute('aria-label');
+        expect(label).toContain('Alt+Up/Down to reorder within column');
+        expect(label).toContain('Left/Right arrows to move between columns');
+      });
+    });
+  });
+
   // Issue #12 — Description preview
   describe('Description preview (Issue #12)', () => {
     // AC1: Non-empty description shows truncated preview below title

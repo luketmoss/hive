@@ -386,7 +386,17 @@ export async function moveItem(
   }
 
   const oldItem = { ...item };
-  const updated = { ...applyStatusSideEffects(item, newStatus), sheetRow: item.sheetRow };
+
+  // AC3: Place item at bottom of target column (sort_order = max + 1)
+  const maxSortOrder = items.value
+    .filter(i => i.status === newStatus && !i.parent_id)
+    .reduce((max, i) => Math.max(max, i.sort_order), 0);
+
+  const updated = {
+    ...applyStatusSideEffects(item, newStatus),
+    sort_order: maxSortOrder + 1,
+    sheetRow: item.sheetRow,
+  };
 
   // Optimistic update
   items.value = items.value.map(i => i.id === itemId ? updated : i);
@@ -556,6 +566,55 @@ export async function reorderSubtasks(
     if (!isReauthFailure(err)) {
       showToast('Failed to reorder sub-tasks: ' + err.message, 'error');
     }
+  }
+}
+
+export async function reorderItem(
+  itemId: string,
+  newIndex: number,
+  columnItems: ItemWithRow[],
+  actor: string,
+  token: string
+): Promise<boolean> {
+  const item = columnItems.find(i => i.id === itemId);
+  if (!item) return false;
+
+  const oldIndex = columnItems.indexOf(item);
+  if (oldIndex === newIndex) return true;
+
+  // Build new order: remove the item, insert at newIndex, renumber densely
+  const reordered = columnItems.filter(i => i.id !== itemId);
+  reordered.splice(newIndex, 0, item);
+
+  const oldItems = [...items.value];
+  const updates: ItemWithRow[] = reordered.map((it, i) => ({
+    ...it,
+    sort_order: i + 1,
+    updated_at: new Date().toISOString(),
+  }));
+
+  // Optimistic update
+  items.value = items.value.map(i => {
+    const updated = updates.find(u => u.id === i.id);
+    return updated ?? i;
+  });
+
+  // AC5: Toast with position announcement (screen reader accessible via aria-live)
+  showToast(`${item.title} moved to position ${newIndex + 1} of ${reordered.length} in ${item.status}`);
+
+  try {
+    for (const updated of updates) {
+      await updateItemRow(updated.sheetRow, updated, token);
+    }
+    await appendAuditEntry(itemId, 'reordered', 'sort_order', String(oldIndex + 1), String(newIndex + 1), actor, token);
+    await refreshItems(token);
+    return true;
+  } catch (err: any) {
+    items.value = oldItems;
+    if (!isReauthFailure(err)) {
+      showToast('Failed to reorder item: ' + err.message, 'error');
+    }
+    return false;
   }
 }
 

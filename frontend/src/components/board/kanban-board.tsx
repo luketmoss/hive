@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
 import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme } from '../../state/board-store';
-import { moveItem } from '../../state/actions';
+import { moveItem, reorderItem } from '../../state/actions';
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts';
 import type { Shortcut } from '../../hooks/use-keyboard-shortcuts';
 import { Column } from './column';
@@ -142,6 +142,12 @@ export function KanbanBoard() {
     }
   };
 
+  const handleReorder = (itemId: string, newIndex: number, columnItems: ItemWithRow[]) => {
+    if (token) {
+      reorderItem(itemId, newIndex, columnItems, user?.name || 'web', token);
+    }
+  };
+
   // Check if the current board is empty (zero items for this board, ignoring filters)
   const isBoardEmpty = boardItems.value.length === 0;
 
@@ -157,6 +163,7 @@ export function KanbanBoard() {
               status={status}
               items={columns.value[status]}
               onDrop={handleDrop}
+              onReorder={handleReorder}
               onMoveStatus={handleMoveStatus}
               {...(status === 'Done' ? {
                 allDoneCount: allDoneItems.value.length,
@@ -195,6 +202,7 @@ export function KanbanBoard() {
                     status={status}
                     items={swimlaneItems.filter(i => i.status === status)}
                     onDrop={handleDrop}
+                    onReorder={handleReorder}
                     onMoveStatus={handleMoveStatus}
                     compact
                   />
