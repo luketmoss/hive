@@ -9,9 +9,11 @@ const STATUS_ORDER: ItemStatus[] = ['To Do', 'In Progress', 'Done'];
 interface Props {
   item: ItemWithRow;
   onMoveStatus?: (itemId: string, newStatus: ItemStatus) => void;
+  onReorder?: (itemId: string, direction: 'up' | 'down') => void;
+  columnItems?: ItemWithRow[];
 }
 
-export function Card({ item, onMoveStatus }: Props) {
+export function Card({ item, onMoveStatus, onReorder, columnItems }: Props) {
   const childCount = getChildCount(item.id);
   const itemLabels = item.labels
     ? item.labels.split(',').map(l => l.trim()).filter(Boolean)
@@ -21,8 +23,9 @@ export function Card({ item, onMoveStatus }: Props) {
     parseLocalDate(item.due_date) < new Date(new Date().toDateString());
 
   const handleDragStart = (e: DragEvent) => {
-    // Set the drag data on the card (the draggable handle is inside)
     e.dataTransfer?.setData('text/plain', item.id);
+    // Store the source column status so drop targets can detect within-column vs cross-column
+    e.dataTransfer?.setData('application/x-hive-status', item.status);
     // Add dragging class to the card (parent of handle)
     const card = (e.currentTarget as HTMLElement).closest('.card') as HTMLElement;
     if (card) card.classList.add('card-dragging');
@@ -45,8 +48,17 @@ export function Card({ item, onMoveStatus }: Props) {
       selectedItemId.value = item.id;
     }
 
-    // Arrow keys for moving between columns
-    if (onMoveStatus && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+    // AC4: Alt+ArrowUp/Down for within-column reorder
+    if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault();
+      if (onReorder) {
+        onReorder(item.id, e.key === 'ArrowUp' ? 'up' : 'down');
+      }
+      return;
+    }
+
+    // Arrow keys for moving between columns (only without Alt)
+    if (!e.altKey && onMoveStatus && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
       e.preventDefault();
       const currentIndex = STATUS_ORDER.indexOf(item.status);
       if (currentIndex === -1) return;
@@ -62,7 +74,7 @@ export function Card({ item, onMoveStatus }: Props) {
       class="card"
       tabIndex={0}
       role="button"
-      aria-label={`${item.title}, ${item.status}. Press Enter to open details, arrow keys to move between columns.`}
+      aria-label={`${item.title}, ${item.status}. Press Enter to open details. Alt+Up/Down to reorder within column, Left/Right arrows to move between columns.`}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       data-item-id={item.id}

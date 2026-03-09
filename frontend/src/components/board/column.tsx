@@ -1,3 +1,4 @@
+import { useState } from 'preact/hooks';
 import { Card } from './card';
 import type { ItemStatus, ItemWithRow } from '../../api/types';
 
@@ -5,6 +6,7 @@ interface Props {
   status: ItemStatus;
   items: ItemWithRow[];
   onDrop: (itemId: string, newStatus: ItemStatus) => void;
+  onReorder?: (itemId: string, newIndex: number, columnItems: ItemWithRow[]) => void;
   onMoveStatus?: (itemId: string, newStatus: ItemStatus) => void;
   compact?: boolean;
   /** Total count of all Done items (for "View all N completed" link). */
@@ -23,23 +25,108 @@ const STATUS_COLORS: Record<ItemStatus, string> = {
   'Done': 'var(--color-done)',
 };
 
-export function Column({ status, items, onDrop, onMoveStatus, compact, allDoneCount, hasArchived, archiveTriggerRef, onOpenArchive }: Props) {
+export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact, allDoneCount, hasArchived, archiveTriggerRef, onOpenArchive }: Props) {
+  // Track the insertion indicator position for within-column reorder
+  const [dropIndicator, setDropIndicator] = useState<{ index: number; position: 'above' | 'below' } | null>(null);
+  const [isDragFromSameColumn, setIsDragFromSameColumn] = useState(false);
+
   const handleDragOver = (e: DragEvent) => {
     e.preventDefault();
-    (e.currentTarget as HTMLElement).classList.add('column-drag-over');
+
+    // Check if drag is from the same column
+    const sourceStatus = e.dataTransfer?.types.includes('application/x-hive-status') ?? false;
+    const target = (e.target as HTMLElement).closest('.card') as HTMLElement;
+
+    if (!target) {
+      // Dragging over column but not over a card
+      setDropIndicator(null);
+      (e.currentTarget as HTMLElement).classList.add('column-drag-over');
+      return;
+    }
+
+    const targetId = target.getAttribute('data-item-id');
+    const targetIndex = items.findIndex(i => i.id === targetId);
+    if (targetIndex === -1) {
+      (e.currentTarget as HTMLElement).classList.add('column-drag-over');
+      return;
+    }
+
+    // Detect if source is from same column by checking data transfer types
+    // We can't read the data during dragover, but we track it via the type
+    const rect = target.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const position: 'above' | 'below' = e.clientY < midY ? 'above' : 'below';
+
+    setDropIndicator({ index: targetIndex, position });
+    // Remove column-level highlight when showing card-level indicator
+    (e.currentTarget as HTMLElement).classList.remove('column-drag-over');
+  };
+
+  const handleDragEnter = (e: DragEvent) => {
+    // Check if this is a same-column drag
+    // We use a temporary check - actual status comparison happens on drop
+    setIsDragFromSameColumn(true);
   };
 
   const handleDragLeave = (e: DragEvent) => {
-    (e.currentTarget as HTMLElement).classList.remove('column-drag-over');
+    // Only clear if leaving the column entirely
+    const relatedTarget = e.relatedTarget as HTMLElement | null;
+    const column = e.currentTarget as HTMLElement;
+    if (!relatedTarget || !column.contains(relatedTarget)) {
+      setDropIndicator(null);
+      setIsDragFromSameColumn(false);
+      column.classList.remove('column-drag-over');
+    }
   };
 
   const handleDrop = (e: DragEvent) => {
     e.preventDefault();
     (e.currentTarget as HTMLElement).classList.remove('column-drag-over');
+    setDropIndicator(null);
+    setIsDragFromSameColumn(false);
+
     const itemId = e.dataTransfer?.getData('text/plain');
-    if (itemId) {
-      onDrop(itemId, status);
+    const sourceStatus = e.dataTransfer?.getData('application/x-hive-status');
+    if (!itemId) return;
+
+    // Same-column reorder
+    if (sourceStatus === status && onReorder) {
+      const target = (e.target as HTMLElement).closest('.card') as HTMLElement;
+      if (target) {
+        const targetId = target.getAttribute('data-item-id');
+        const targetIndex = items.findIndex(i => i.id === targetId);
+        if (targetIndex !== -1) {
+          const rect = target.getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+          let newIndex = e.clientY < midY ? targetIndex : targetIndex + 1;
+          // Adjust: if dragged item was before the target, account for removal
+          const sourceIndex = items.findIndex(i => i.id === itemId);
+          if (sourceIndex !== -1 && sourceIndex < newIndex) {
+            newIndex--;
+          }
+          if (sourceIndex !== newIndex) {
+            onReorder(itemId, newIndex, items);
+          }
+          return;
+        }
+      }
+      // Dropped on empty area of same column — no-op
+      return;
     }
+
+    // Cross-column drop
+    onDrop(itemId, status);
+  };
+
+  const handleKeyboardReorder = (itemId: string, direction: 'up' | 'down') => {
+    if (!onReorder) return;
+    const currentIndex = items.findIndex(i => i.id === itemId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= items.length) return;
+
+    onReorder(itemId, newIndex, items);
   };
 
   return (
@@ -48,6 +135,7 @@ export function Column({ status, items, onDrop, onMoveStatus, compact, allDoneCo
       role="region"
       aria-label={`${status} column, ${items.length} ${items.length === 1 ? 'item' : 'items'}`}
       onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       style={{ '--column-color': STATUS_COLORS[status] } as any}
@@ -68,8 +156,21 @@ export function Column({ status, items, onDrop, onMoveStatus, compact, allDoneCo
         )}
       </div>
       <div class="column-cards">
-        {items.map(item => (
-          <Card key={item.id} item={item} onMoveStatus={onMoveStatus} />
+        {items.map((item, index) => (
+          <div key={item.id} class="card-wrapper">
+            {dropIndicator && dropIndicator.index === index && dropIndicator.position === 'above' && (
+              <div class="drop-indicator" />
+            )}
+            <Card
+              item={item}
+              onMoveStatus={onMoveStatus}
+              onReorder={handleKeyboardReorder}
+              columnItems={items}
+            />
+            {dropIndicator && dropIndicator.index === index && dropIndicator.position === 'below' && (
+              <div class="drop-indicator" />
+            )}
+          </div>
         ))}
         {items.length === 0 && (
           <div class="column-empty">No items</div>

@@ -35,6 +35,30 @@ function makeItem(overrides: Partial<ItemWithRow> = {}): ItemWithRow {
   };
 }
 
+describe('Column reorder (Issue #115)', () => {
+  it('wraps cards in .card-wrapper elements', () => {
+    const items = [
+      makeItem({ id: '1', title: 'Task 1' }),
+      makeItem({ id: '2', title: 'Task 2' }),
+    ];
+    const { container } = render(
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={vi.fn()} />
+    );
+    const wrappers = container.querySelectorAll('.card-wrapper');
+    expect(wrappers.length).toBe(2);
+  });
+
+  it('passes onReorder prop and renders cards', () => {
+    const onReorder = vi.fn();
+    const items = [makeItem({ id: '1', title: 'Task 1' })];
+    const { container } = render(
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} />
+    );
+    const cards = container.querySelectorAll('.card');
+    expect(cards.length).toBe(1);
+  });
+});
+
 describe('Column ARIA roles (Issue #7)', () => {
   // AC4: Columns have region roles
   describe('AC4: Columns have region roles', () => {

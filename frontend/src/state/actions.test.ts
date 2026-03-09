@@ -61,7 +61,7 @@ vi.mock('../demo/mock-api', () => ({
   deletePermissionRow: vi.fn().mockResolvedValue(undefined),
 }));
 
-import { loadBoard, NotAllowedError, deleteSubtask, reorderSubtasks, createItemWithSubtasks } from './actions';
+import { loadBoard, NotAllowedError, deleteSubtask, reorderSubtasks, createItemWithSubtasks, reorderItem, moveItem } from './actions';
 import { owners, loading, items, activeBoardId, permissions, currentUserEmail } from './board-store';
 import * as sheetsApi from '../api/sheets';
 import type { ItemWithRow } from '../api/types';
@@ -376,5 +376,140 @@ describe('createItemWithSubtasks', () => {
 
     const child = mockCreateItemRow.mock.calls[1][0];
     expect(child.status).toBe('To Do');
+  });
+});
+
+describe('reorderItem (Issue #115)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('AC1: reorders items within a column and renumbers sort_order densely', async () => {
+    const itemA = makeItem({ id: 'a', title: 'Item A', sort_order: 1, sheetRow: 2, status: 'To Do' });
+    const itemB = makeItem({ id: 'b', title: 'Item B', sort_order: 2, sheetRow: 3, status: 'To Do' });
+    const itemC = makeItem({ id: 'c', title: 'Item C', sort_order: 3, sheetRow: 4, status: 'To Do' });
+    items.value = [itemA, itemB, itemC];
+    mockUpdateItemRow.mockResolvedValue(undefined);
+    mockFetchAllItems.mockResolvedValue([itemA, itemB, itemC]);
+
+    // Move item C to position 0 (before A) → new order: C(1), A(2), B(3)
+    await reorderItem('c', 0, [itemA, itemB, itemC], 'web', 'test-token');
+
+    // updateItemRow called for all 3 items with correct sort_order
+    expect(mockUpdateItemRow).toHaveBeenCalledTimes(3);
+
+    // First call: C at position 1 (sheetRow 4)
+    expect(mockUpdateItemRow.mock.calls[0][0]).toBe(4); // C's sheetRow
+    expect(mockUpdateItemRow.mock.calls[0][1].sort_order).toBe(1);
+    expect(mockUpdateItemRow.mock.calls[0][1].id).toBe('c');
+
+    // Second call: A at position 2 (sheetRow 2)
+    expect(mockUpdateItemRow.mock.calls[1][0]).toBe(2); // A's sheetRow
+    expect(mockUpdateItemRow.mock.calls[1][1].sort_order).toBe(2);
+    expect(mockUpdateItemRow.mock.calls[1][1].id).toBe('a');
+
+    // Third call: B at position 3 (sheetRow 3)
+    expect(mockUpdateItemRow.mock.calls[2][0]).toBe(3); // B's sheetRow
+    expect(mockUpdateItemRow.mock.calls[2][1].sort_order).toBe(3);
+    expect(mockUpdateItemRow.mock.calls[2][1].id).toBe('b');
+  });
+
+  it('AC1: returns true and does nothing when item is already at the target index', async () => {
+    const itemA = makeItem({ id: 'a', title: 'Item A', sort_order: 1, sheetRow: 2, status: 'To Do' });
+    const itemB = makeItem({ id: 'b', title: 'Item B', sort_order: 2, sheetRow: 3, status: 'To Do' });
+    items.value = [itemA, itemB];
+    mockFetchAllItems.mockResolvedValue([itemA, itemB]);
+
+    const result = await reorderItem('a', 0, [itemA, itemB], 'web', 'test-token');
+
+    expect(result).toBe(true);
+    expect(mockUpdateItemRow).not.toHaveBeenCalled();
+  });
+
+  it('AC5: shows toast with position announcement after reorder', async () => {
+    const itemA = makeItem({ id: 'a', title: 'Item A', sort_order: 1, sheetRow: 2, status: 'To Do' });
+    const itemB = makeItem({ id: 'b', title: 'Item B', sort_order: 2, sheetRow: 3, status: 'To Do' });
+    items.value = [itemA, itemB];
+    mockUpdateItemRow.mockResolvedValue(undefined);
+    mockFetchAllItems.mockResolvedValue([itemA, itemB]);
+
+    const result = await reorderItem('b', 0, [itemA, itemB], 'web', 'test-token');
+    expect(result).toBe(true);
+  });
+
+  it('returns false if item is not found in columnItems', async () => {
+    items.value = [];
+    const result = await reorderItem('non-existent', 0, [], 'web', 'test-token');
+    expect(result).toBe(false);
+    expect(mockUpdateItemRow).not.toHaveBeenCalled();
+  });
+
+  it('rolls back items on API failure', async () => {
+    const itemA = makeItem({ id: 'a', title: 'Item A', sort_order: 1, sheetRow: 2, status: 'To Do' });
+    const itemB = makeItem({ id: 'b', title: 'Item B', sort_order: 2, sheetRow: 3, status: 'To Do' });
+    items.value = [itemA, itemB];
+
+    mockUpdateItemRow.mockRejectedValue(new Error('Network error'));
+
+    const result = await reorderItem('b', 0, [itemA, itemB], 'web', 'test-token');
+
+    expect(result).toBe(false);
+    // Should roll back to original sort orders
+    const rolledBackA = items.value.find(i => i.id === 'a');
+    const rolledBackB = items.value.find(i => i.id === 'b');
+    expect(rolledBackA!.sort_order).toBe(1);
+    expect(rolledBackB!.sort_order).toBe(2);
+  });
+
+  it('logs audit entry with old and new positions (1-based)', async () => {
+    const itemA = makeItem({ id: 'a', title: 'Item A', sort_order: 1, sheetRow: 2, status: 'To Do' });
+    const itemB = makeItem({ id: 'b', title: 'Item B', sort_order: 2, sheetRow: 3, status: 'To Do' });
+    items.value = [itemA, itemB];
+    mockUpdateItemRow.mockResolvedValue(undefined);
+    mockFetchAllItems.mockResolvedValue([itemA, itemB]);
+
+    // Move b from index 1 to index 0
+    await reorderItem('b', 0, [itemA, itemB], 'web', 'test-token');
+
+    // oldIndex=1 → position 2, newIndex=0 → position 1
+    expect(mockAppendAuditEntry).toHaveBeenCalledWith(
+      'b', 'reordered', 'sort_order', '2', '1', 'web', 'test-token'
+    );
+  });
+});
+
+describe('moveItem AC3: cross-column places at bottom', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('sets sort_order to max+1 of target column when moving between columns', async () => {
+    const todoItem = makeItem({ id: 'moving', title: 'Moving', sort_order: 1, sheetRow: 2, status: 'To Do' });
+    const inProgressA = makeItem({ id: 'ip-a', title: 'IP A', sort_order: 5, sheetRow: 3, status: 'In Progress' });
+    const inProgressB = makeItem({ id: 'ip-b', title: 'IP B', sort_order: 10, sheetRow: 4, status: 'In Progress', owner: 'Luke' });
+    items.value = [todoItem, inProgressA, inProgressB];
+    mockFetchAllItems.mockResolvedValue([todoItem, inProgressA, inProgressB]);
+
+    await moveItem('moving', 'In Progress', 'web', 'test-token');
+
+    // updateItemRow should have been called with sort_order = 11 (max In Progress sort_order=10 + 1)
+    expect(mockUpdateItemRow).toHaveBeenCalledTimes(1);
+    const updatedItem = mockUpdateItemRow.mock.calls[0][1];
+    expect(updatedItem.sort_order).toBe(11);
+    expect(updatedItem.status).toBe('In Progress');
+  });
+
+  it('sets sort_order to 1 when target column is empty', async () => {
+    const todoItem = makeItem({ id: 'moving', title: 'Moving', sort_order: 5, sheetRow: 2, status: 'To Do' });
+    items.value = [todoItem];
+    mockFetchAllItems.mockResolvedValue([todoItem]);
+
+    await moveItem('moving', 'In Progress', 'web', 'test-token');
+
+    // updateItemRow should have been called with sort_order = 1
+    expect(mockUpdateItemRow).toHaveBeenCalledTimes(1);
+    const updatedItem = mockUpdateItemRow.mock.calls[0][1];
+    expect(updatedItem.sort_order).toBe(1);
+    expect(updatedItem.status).toBe('In Progress');
   });
 });
