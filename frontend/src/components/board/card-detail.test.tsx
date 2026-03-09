@@ -1458,3 +1458,195 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
     });
   });
 });
+
+// --- Issue #116: Sub-task title edit ---
+
+describe('CardDetail sub-task title editing (Issue #116)', () => {
+  const childItem = {
+    id: 'child-1',
+    title: 'Buy groceries for the week including fresh vegetables and fruit',
+    description: '',
+    status: 'To Do' as const,
+    owner: 'Luke',
+    due_date: '',
+    labels: '',
+    parent_id: 'detail-test-1',
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+    completed_at: '',
+    sort_order: 1,
+    created_by: 'luke@example.com',
+    sheetRow: 3,
+  };
+
+  beforeEach(() => {
+    mockSelectedItemId = 'detail-test-1';
+    mockChildren = [childItem];
+    mockItems = [childItem];
+    mockUpdateItem.mockReset().mockResolvedValue(true);
+  });
+
+  // AC1: Sub-task title displays without single-line truncation
+  describe('AC1: Sub-task title displays up to 2 lines', () => {
+    it('renders subtask title without white-space:nowrap (2-line clamp is CSS-only)', () => {
+      const { container } = renderCardDetail();
+      const title = container.querySelector('.subtask-title');
+      expect(title).not.toBeNull();
+      expect(title!.textContent).toBe(childItem.title);
+    });
+  });
+
+  // AC2: Clicking a sub-task title enters edit mode
+  describe('AC2: Clicking a sub-task title enters edit mode', () => {
+    it('renders title with role="button" and aria-label', () => {
+      const { container } = renderCardDetail();
+      const title = container.querySelector('.subtask-title');
+      expect(title).not.toBeNull();
+      expect(title!.getAttribute('role')).toBe('button');
+      expect(title!.getAttribute('tabindex')).toBe('0');
+      expect(title!.getAttribute('aria-label')).toBe(`Edit sub-task: ${childItem.title}`);
+    });
+
+    it('shows an input pre-filled with current title on click', () => {
+      const { container } = renderCardDetail();
+      const title = container.querySelector('.subtask-title') as HTMLElement;
+      fireEvent.click(title);
+
+      const input = container.querySelector('.subtask-title-input') as HTMLInputElement;
+      expect(input).not.toBeNull();
+      expect(input.value).toBe(childItem.title);
+    });
+  });
+
+  // AC3: Editing saves on Enter or focus loss
+  describe('AC3: Editing saves on Enter or blur', () => {
+    it('saves updated title on Enter and shows success toast', async () => {
+      const { container } = renderCardDetail();
+      const title = container.querySelector('.subtask-title') as HTMLElement;
+      fireEvent.click(title);
+
+      const input = container.querySelector('.subtask-title-input') as HTMLInputElement;
+      fireEvent.input(input, { target: { value: 'Updated groceries' } });
+
+      await act(async () => {
+        fireEvent.keyDown(input, { key: 'Enter' });
+      });
+
+      expect(mockUpdateItem).toHaveBeenCalledWith('child-1', { title: 'Updated groceries' }, 'Luke', 'test-token');
+      expect(showToast).toHaveBeenCalledWith('Sub-task updated', 'success');
+
+      // Input should be gone, back to display mode
+      expect(container.querySelector('.subtask-title-input')).toBeNull();
+    });
+
+    it('saves updated title on blur', async () => {
+      const { container } = renderCardDetail();
+      const title = container.querySelector('.subtask-title') as HTMLElement;
+      fireEvent.click(title);
+
+      const input = container.querySelector('.subtask-title-input') as HTMLInputElement;
+      fireEvent.input(input, { target: { value: 'Blurred title' } });
+
+      await act(async () => {
+        fireEvent.blur(input);
+      });
+
+      expect(mockUpdateItem).toHaveBeenCalledWith('child-1', { title: 'Blurred title' }, 'Luke', 'test-token');
+      expect(showToast).toHaveBeenCalledWith('Sub-task updated', 'success');
+    });
+
+    it('does not save if title is unchanged', async () => {
+      const { container } = renderCardDetail();
+      const title = container.querySelector('.subtask-title') as HTMLElement;
+      fireEvent.click(title);
+
+      const input = container.querySelector('.subtask-title-input') as HTMLInputElement;
+      // Don't change the value — just blur
+      await act(async () => {
+        fireEvent.blur(input);
+      });
+
+      expect(mockUpdateItem).not.toHaveBeenCalled();
+    });
+  });
+
+  // AC4: Escape cancels the edit
+  describe('AC4: Escape cancels the edit', () => {
+    it('restores original title and makes no save request on Escape', () => {
+      const { container } = renderCardDetail();
+      const title = container.querySelector('.subtask-title') as HTMLElement;
+      fireEvent.click(title);
+
+      const input = container.querySelector('.subtask-title-input') as HTMLInputElement;
+      fireEvent.input(input, { target: { value: 'Changed but cancelled' } });
+      fireEvent.keyDown(input, { key: 'Escape' });
+
+      // Should be back to display mode
+      expect(container.querySelector('.subtask-title-input')).toBeNull();
+      const restoredTitle = container.querySelector('.subtask-title');
+      expect(restoredTitle).not.toBeNull();
+      expect(restoredTitle!.textContent).toBe(childItem.title);
+      expect(mockUpdateItem).not.toHaveBeenCalled();
+    });
+  });
+
+  // AC5: Empty title is rejected on save
+  describe('AC5: Empty title is rejected on save', () => {
+    it('does not save when title is cleared to blank', async () => {
+      const { container } = renderCardDetail();
+      const title = container.querySelector('.subtask-title') as HTMLElement;
+      fireEvent.click(title);
+
+      const input = container.querySelector('.subtask-title-input') as HTMLInputElement;
+      fireEvent.input(input, { target: { value: '' } });
+
+      await act(async () => {
+        fireEvent.keyDown(input, { key: 'Enter' });
+      });
+
+      expect(mockUpdateItem).not.toHaveBeenCalled();
+      // Should revert to display mode
+      expect(container.querySelector('.subtask-title-input')).toBeNull();
+      const restoredTitle = container.querySelector('.subtask-title');
+      expect(restoredTitle!.textContent).toBe(childItem.title);
+    });
+
+    it('does not save when title is only whitespace', async () => {
+      const { container } = renderCardDetail();
+      const title = container.querySelector('.subtask-title') as HTMLElement;
+      fireEvent.click(title);
+
+      const input = container.querySelector('.subtask-title-input') as HTMLInputElement;
+      fireEvent.input(input, { target: { value: '   ' } });
+
+      await act(async () => {
+        fireEvent.blur(input);
+      });
+
+      expect(mockUpdateItem).not.toHaveBeenCalled();
+    });
+  });
+
+  // AC6: Keyboard users can reach and activate title edit
+  describe('AC6: Keyboard activation of title edit', () => {
+    it('activates edit mode on Enter key', () => {
+      const { container } = renderCardDetail();
+      const title = container.querySelector('.subtask-title') as HTMLElement;
+      fireEvent.keyDown(title, { key: 'Enter' });
+
+      const input = container.querySelector('.subtask-title-input') as HTMLInputElement;
+      expect(input).not.toBeNull();
+      expect(input.value).toBe(childItem.title);
+    });
+
+    it('activates edit mode on Space key', () => {
+      const { container } = renderCardDetail();
+      const title = container.querySelector('.subtask-title') as HTMLElement;
+      fireEvent.keyDown(title, { key: ' ' });
+
+      const input = container.querySelector('.subtask-title-input') as HTMLInputElement;
+      expect(input).not.toBeNull();
+      expect(input.value).toBe(childItem.title);
+    });
+  });
+});

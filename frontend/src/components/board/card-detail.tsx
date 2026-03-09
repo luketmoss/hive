@@ -134,6 +134,38 @@ export function CardDetail() {
     reorderSubtasks(children[idx].id, children[swapIdx].id, actor, token);
   };
 
+  // #116: Per-subtask title editing
+  const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
+  const [editingSubtaskDraft, setEditingSubtaskDraft] = useState('');
+
+  const startEditSubtaskTitle = (childId: string, currentTitle: string) => {
+    setEditingSubtaskId(childId);
+    setEditingSubtaskDraft(currentTitle);
+  };
+
+  const commitSubtaskTitleEdit = async (childId: string) => {
+    const trimmed = editingSubtaskDraft.trim();
+    setEditingSubtaskId(null);
+    if (!trimmed) {
+      // AC5: Empty title — restore original, no save
+      return;
+    }
+    const child = children.find(c => c.id === childId);
+    if (!child || trimmed === child.title) return;
+    if (!token) return;
+    const ok = await updateItem(childId, { title: trimmed }, actor, token);
+    if (ok) {
+      showToast('Sub-task updated', 'success');
+    } else {
+      showToast('Failed to update sub-task', 'error');
+    }
+  };
+
+  const cancelSubtaskTitleEdit = () => {
+    setEditingSubtaskId(null);
+    setEditingSubtaskDraft('');
+  };
+
   // #88 AC5: Touch-friendly sub-task reorder
   const [reorderAnnouncement, setReorderAnnouncement] = useState('');
   const touchDragRef = useRef<{
@@ -388,7 +420,35 @@ export function CardDetail() {
                       aria-label={child.title}
                       onChange={() => toggleChildStatus(child.id, child.status)}
                     />
-                    <span class="subtask-title">{child.title}</span>
+                    {editingSubtaskId === child.id ? (
+                      <input
+                        type="text"
+                        class="subtask-title-input"
+                        value={editingSubtaskDraft}
+                        aria-label={`Edit sub-task title`}
+                        autoFocus
+                        onInput={(e) => setEditingSubtaskDraft((e.target as HTMLInputElement).value)}
+                        onBlur={() => commitSubtaskTitleEdit(child.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') { e.preventDefault(); commitSubtaskTitleEdit(child.id); }
+                          if (e.key === 'Escape') { e.stopPropagation(); cancelSubtaskTitleEdit(); }
+                        }}
+                      />
+                    ) : (
+                      <span
+                        class="subtask-title"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Edit sub-task: ${child.title}`}
+                        onClick={() => startEditSubtaskTitle(child.id, child.title)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            startEditSubtaskTitle(child.id, child.title);
+                          }
+                        }}
+                      >{child.title}</span>
+                    )}
                     <SubtaskDates child={child} onSave={handleSubtaskDateSave} />
                     <select
                       class="subtask-owner-select"
