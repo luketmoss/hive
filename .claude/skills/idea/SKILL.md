@@ -67,20 +67,29 @@ gh issue create --repo luketmoss/hive --title "<title>" --label "<label>" --body
 
 Omit `--label` for features and chores (use the title prefix instead).
 
-### Step 4: Add to the project board
+### Step 4: Add to the project board and set status
 
+Add the issue to the board:
 ```bash
 gh project item-add 2 --owner luketmoss --url <issue-url>
 ```
 
-The issue will default to the "To Do" column.
+Then get the item ID and explicitly set the status to **To Do** (`2ed3c08e`):
+```bash
+gh project item-list 2 --owner luketmoss --format json --limit 100 --jq '.items[] | select(.content.number == <issue-number>) | .id'
+```
+```bash
+gh api graphql -f query='mutation { updateProjectV2ItemFieldValue(input: { projectId: "PVT_kwHOAJR9ys4BQe_8" itemId: "<ITEM_ID>" fieldId: "PVTSSF_lAHOAJR9ys4BQe_8zg-lvnE" value: { singleSelectOptionId: "2ed3c08e" } }) { projectV2Item { id } } }'
+```
+
+Note: `gh project item-add` does NOT set the status automatically — the GraphQL mutation is required.
 
 ## Definition of Done
 
 - [ ] GitHub issue exists with a clear, descriptive title
 - [ ] Issue has the correct label (`bug` or `enhancement`) or title prefix (`[Feature]`/`[Chore]`)
 - [ ] Issue body has Summary, Context, Initial Scope, and Open Questions sections
-- [ ] Issue is on the Hive project board in the "To Do" column
+- [ ] Issue is on the Hive project board with status explicitly set to "To Do" via GraphQL mutation
 - [ ] Issue URL has been shown to the user
 
 ## Handoff
