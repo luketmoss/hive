@@ -11,11 +11,25 @@
 //   ?action=updateItem&payload={"id":"uuid","changes":{"status":"Done"},"actor":"smoke-test"}
 //   ?action=deleteItem&payload={"id":"uuid","actor":"smoke-test"}
 
+function validateApiKey(key) {
+  var expected = PropertiesService.getScriptProperties().getProperty('API_KEY');
+  if (!expected) throw new Error('API_KEY not configured in script properties');
+  if (key !== expected) return false;
+  return true;
+}
+
 function doGet(e) {
   var action = e.parameter.action;
   var result;
 
   try {
+    // Authenticate — every request must include a valid API key
+    if (!validateApiKey(e.parameter.key)) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: false, error: 'Invalid or missing API key' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     // Parse payload for write operations
     var payload = e.parameter.payload ? JSON.parse(e.parameter.payload) : {};
 
@@ -29,6 +43,7 @@ function doGet(e) {
             owner: e.parameter.owner,
             label: e.parameter.label,
             parent_id: e.parameter.parent_id,
+            board_id: e.parameter.board_id,
             roots_only: e.parameter.roots_only,
           }),
         };
@@ -53,6 +68,10 @@ function doGet(e) {
 
       case 'getLabels':
         result = { success: true, data: getLabels() };
+        break;
+
+      case 'getBoards':
+        result = { success: true, data: getBoards() };
         break;
 
       // --- Write operations (data in payload param) ---
@@ -103,6 +122,14 @@ function doPost(e) {
 
   try {
     var body = JSON.parse(e.postData.contents);
+
+    // Authenticate
+    if (!validateApiKey(body.key)) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: false, error: 'Invalid or missing API key' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     var action = body.action;
     var actor = body.actor || 'api';
 

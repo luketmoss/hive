@@ -21,6 +21,10 @@ function getItems(filters) {
       var pid = filters.parent_id;
       items = items.filter(function(i) { return i.parent_id === pid; });
     }
+    if (filters.board_id) {
+      var bid = filters.board_id;
+      items = items.filter(function(i) { return i.board_id === bid; });
+    }
     if (filters.roots_only === 'true') {
       items = items.filter(function(i) { return !i.parent_id; });
     }
@@ -65,6 +69,7 @@ function createItem(data, actor) {
     completed_at: status === 'Done' ? now : '',
     sort_order: data.sort_order != null ? data.sort_order : getNextSortOrder(allItems, status),
     created_by: data.created_by || actor,
+    board_id: data.board_id || '',
   };
 
   if (item.status === 'In Progress' && !item.owner) {
@@ -116,7 +121,7 @@ function updateItem(id, changes, actor) {
   // Apply other field changes
   var updatableFields = [
     'title', 'description', 'owner', 'due_date',
-    'labels', 'parent_id', 'sort_order',
+    'labels', 'parent_id', 'sort_order', 'board_id',
   ];
 
   for (var i = 0; i < updatableFields.length; i++) {

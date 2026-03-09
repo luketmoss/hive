@@ -16,8 +16,9 @@ var COL = {
   COMPLETED_AT: 10,
   SORT_ORDER: 11,
   CREATED_BY: 12,
+  BOARD_ID: 13,
 };
 
-var ITEM_COLUMN_COUNT = 13;
+var ITEM_COLUMN_COUNT = 14;
 
 var VALID_STATUSES = ['To Do', 'In Progress', 'Done'];

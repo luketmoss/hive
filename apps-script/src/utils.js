@@ -39,6 +39,7 @@ function rowToItem(row) {
     completed_at: row[COL.COMPLETED_AT] ? String(row[COL.COMPLETED_AT]) : '',
     sort_order: Number(row[COL.SORT_ORDER]) || 0,
     created_by: row[COL.CREATED_BY] || '',
+    board_id: row[COL.BOARD_ID] || '',
   };
 }
 
@@ -57,6 +58,7 @@ function itemToRow(item) {
     item.completed_at,
     item.sort_order,
     item.created_by,
+    item.board_id,
   ];
 }
 

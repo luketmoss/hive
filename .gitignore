@@ -39,3 +39,4 @@ board_full.json
 hive_fields.json
 hive_items.json
 hive_projects.json
+*.clasp.json.bak
