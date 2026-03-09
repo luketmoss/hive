@@ -3,6 +3,9 @@ import { labels as labelsStore } from '../../state/board-store';
 import type { ItemWithRow, ItemStatus } from '../../api/types';
 import { LabelBadge } from '../shared/label-badge';
 
+/** Tracks the status of the card currently being dragged (same module, readable during dragover). */
+export let currentDragStatus: string | null = null;
+
 /** Ordered statuses for keyboard column navigation */
 const STATUS_ORDER: ItemStatus[] = ['To Do', 'In Progress', 'Done'];
 
@@ -26,12 +29,15 @@ export function Card({ item, onMoveStatus, onReorder, columnItems }: Props) {
     e.dataTransfer?.setData('text/plain', item.id);
     // Store the source column status so drop targets can detect within-column vs cross-column
     e.dataTransfer?.setData('application/x-hive-status', item.status);
+    // Track source status at module level (readable during dragover, unlike dataTransfer values)
+    currentDragStatus = item.status;
     // Add dragging class to the card (parent of handle)
     const card = (e.currentTarget as HTMLElement).closest('.card') as HTMLElement;
     if (card) card.classList.add('card-dragging');
   };
 
   const handleDragEnd = (e: DragEvent) => {
+    currentDragStatus = null;
     const card = (e.currentTarget as HTMLElement).closest('.card') as HTMLElement;
     if (card) card.classList.remove('card-dragging');
   };

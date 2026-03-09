@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { Card } from './card';
+import { Card, currentDragStatus } from './card';
 import type { ItemStatus, ItemWithRow } from '../../api/types';
 
 interface Props {
@@ -28,13 +28,22 @@ const STATUS_COLORS: Record<ItemStatus, string> = {
 export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact, allDoneCount, hasArchived, archiveTriggerRef, onOpenArchive }: Props) {
   // Track the insertion indicator position for within-column reorder
   const [dropIndicator, setDropIndicator] = useState<{ index: number; position: 'above' | 'below' } | null>(null);
-  const [isDragFromSameColumn, setIsDragFromSameColumn] = useState(false);
 
   const handleDragOver = (e: DragEvent) => {
     e.preventDefault();
 
-    // Check if drag is from the same column
-    const sourceStatus = e.dataTransfer?.types.includes('application/x-hive-status') ?? false;
+    // AC2: Only show drop indicator for same-column drags.
+    // The HTML5 drag API does not allow reading dataTransfer values during dragover,
+    // so we rely on the module-level currentDragStatus set in card.tsx handleDragStart.
+    const isSameColumn = currentDragStatus !== null && currentDragStatus === status;
+
+    if (!isSameColumn) {
+      // Cross-column drag — show column-level highlight only, no insertion line
+      setDropIndicator(null);
+      (e.currentTarget as HTMLElement).classList.add('column-drag-over');
+      return;
+    }
+
     const target = (e.target as HTMLElement).closest('.card') as HTMLElement;
 
     if (!target) {
@@ -51,8 +60,6 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
       return;
     }
 
-    // Detect if source is from same column by checking data transfer types
-    // We can't read the data during dragover, but we track it via the type
     const rect = target.getBoundingClientRect();
     const midY = rect.top + rect.height / 2;
     const position: 'above' | 'below' = e.clientY < midY ? 'above' : 'below';
@@ -62,19 +69,12 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
     (e.currentTarget as HTMLElement).classList.remove('column-drag-over');
   };
 
-  const handleDragEnter = (e: DragEvent) => {
-    // Check if this is a same-column drag
-    // We use a temporary check - actual status comparison happens on drop
-    setIsDragFromSameColumn(true);
-  };
-
   const handleDragLeave = (e: DragEvent) => {
     // Only clear if leaving the column entirely
     const relatedTarget = e.relatedTarget as HTMLElement | null;
     const column = e.currentTarget as HTMLElement;
     if (!relatedTarget || !column.contains(relatedTarget)) {
       setDropIndicator(null);
-      setIsDragFromSameColumn(false);
       column.classList.remove('column-drag-over');
     }
   };
@@ -83,7 +83,6 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
     e.preventDefault();
     (e.currentTarget as HTMLElement).classList.remove('column-drag-over');
     setDropIndicator(null);
-    setIsDragFromSameColumn(false);
 
     const itemId = e.dataTransfer?.getData('text/plain');
     const sourceStatus = e.dataTransfer?.getData('application/x-hive-status');
@@ -135,7 +134,6 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
       role="region"
       aria-label={`${status} column, ${items.length} ${items.length === 1 ? 'item' : 'items'}`}
       onDragOver={handleDragOver}
-      onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       style={{ '--column-color': STATUS_COLORS[status] } as any}
