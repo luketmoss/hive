@@ -535,9 +535,19 @@ body {
   border-radius: var(--radius);
   padding: 12px;
   box-shadow: var(--shadow);
-  cursor: default;
-  transition: box-shadow 0.15s, opacity 0.15s;
+  transition: box-shadow 0.15s, opacity 0.15s, transform 0.15s;
   user-select: none;
+}
+
+/* AC8: cursor: grab on pointer (fine) devices to signal draggability */
+@media (pointer: fine) {
+  .card {
+    cursor: grab;
+  }
+  .card-arming,
+  .card-dragging {
+    cursor: grabbing;
+  }
 }
 
 .card:hover {
@@ -547,6 +557,20 @@ body {
 .card:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring), var(--shadow-lg);
+}
+
+/* AC4: Visual hold feedback — subtle lift during arm state */
+.card-arming {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-lg);
+}
+
+/* AC4: Suppress arm animation for reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .card-arming {
+    transform: none;
+    box-shadow: var(--shadow);
+  }
 }
 
 .card-dragging {
@@ -566,57 +590,8 @@ body {
   pointer-events: none;
 }
 
-.card-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-
 .card-content {
-  flex: 1;
   min-width: 0;
-}
-
-/* Drag handle: 6-dot grip icon */
-.drag-handle {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  min-height: 28px;
-  padding: 4px 2px;
-  cursor: grab;
-  border-radius: var(--radius-sm);
-  color: var(--color-text-secondary);
-  opacity: 0.5;
-  transition: opacity 0.15s, background 0.15s;
-  touch-action: none; /* prevent scroll when dragging via handle on touch */
-}
-
-/* AC1: Hide drag handle on touch devices — users use Alt+Arrow instead */
-@media (pointer: coarse) {
-  .drag-handle {
-    display: none;
-  }
-}
-
-.drag-handle:hover {
-  opacity: 1;
-  background: var(--overlay-lg);
-}
-
-.drag-handle:active {
-  cursor: grabbing;
-}
-
-.drag-handle-dots {
-  display: block;
-  width: 8px;
-  height: 16px;
-  background-image: radial-gradient(circle, currentColor 1.2px, transparent 1.2px);
-  background-size: 4px 4px;
-  background-position: 0 0, 4px 0;
 }
 
 .card-title {
