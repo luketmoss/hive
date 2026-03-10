@@ -19,6 +19,7 @@ const { mockBoardStore } = vi.hoisted(() => {
     showCreateModal: { value: true },
     owners: { value: [{ name: 'Mom', google_account: 'mom@test.com' }, { name: 'Dad', google_account: 'dad@test.com' }] },
     labels: { value: [{ label: 'Urgent', color: '#ff0000' }] },
+    openDetailWithTitleEdit: { value: false },
   };
   return { mockBoardStore };
 });

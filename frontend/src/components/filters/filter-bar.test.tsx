@@ -22,6 +22,7 @@ vi.mock('../../state/board-store', () => ({
   groupBy: mockGroupBy,
   owners: mockOwners,
   labels: mockLabels,
+  openDetailWithTitleEdit: { value: false },
 }));
 
 afterEach(() => {

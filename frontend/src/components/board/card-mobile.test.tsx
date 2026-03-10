@@ -1,12 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/preact';
 import { Card } from './card';
-import { selectedItemId } from '../../state/board-store';
+import { selectedItemId, openDetailWithTitleEdit } from '../../state/board-store';
 import type { ItemWithRow } from '../../api/types';
 
 // Mock board-store
 vi.mock('../../state/board-store', () => ({
   selectedItemId: { value: null },
+  openDetailWithTitleEdit: { value: false },
   labels: { value: [] },
   getChildCount: () => ({ done: 0, total: 0 }),
 }));
@@ -32,62 +33,14 @@ function makeItem(overrides: Partial<ItemWithRow> = {}): ItemWithRow {
   };
 }
 
-describe('Issue #118: Hold-to-drag interaction', () => {
+describe('Issue #126: Immediate drag + title button', () => {
   beforeEach(() => {
     selectedItemId.value = null;
-    vi.useFakeTimers();
+    openDetailWithTitleEdit.value = false;
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  // AC5: Drag handle removed from all viewports
-  describe('AC5: Drag handle removed', () => {
-    it('no drag handle element is rendered on the card', () => {
-      const item = makeItem();
-      const { container } = render(<Card item={item} />);
-      expect(container.querySelector('.drag-handle')).toBeNull();
-      expect(container.querySelector('.drag-handle-dots')).toBeNull();
-    });
-
-    it('no card-row wrapper is rendered (flat card-content layout)', () => {
-      const item = makeItem();
-      const { container } = render(<Card item={item} />);
-      expect(container.querySelector('.card-row')).toBeNull();
-    });
-
-    it('accessibility tree does not contain "Drag to reorder" label', () => {
-      const item = makeItem();
-      const { container } = render(<Card item={item} />);
-      const elements = container.querySelectorAll('[aria-label="Drag to reorder"]');
-      expect(elements.length).toBe(0);
-    });
-  });
-
-  // AC1: Single click opens card detail
-  describe('AC1: Single click opens card detail', () => {
-    it('clicking the card body opens the detail panel', () => {
-      const item = makeItem({ id: 'click-test' });
-      const { container } = render(<Card item={item} />);
-      const card = container.querySelector('.card') as HTMLElement;
-
-      fireEvent.click(card);
-      expect(selectedItemId.value).toBe('click-test');
-    });
-
-    it('clicking card-content area opens the detail panel', () => {
-      const item = makeItem({ id: 'content-click' });
-      const { container } = render(<Card item={item} />);
-      const content = container.querySelector('.card-content') as HTMLElement;
-
-      fireEvent.click(content);
-      expect(selectedItemId.value).toBe('content-click');
-    });
-  });
-
-  // AC2: Hold-to-drag — card is draggable
-  describe('AC2: Card is draggable (hold-to-drag)', () => {
+  // AC1: Drag begins immediately (no hold delay)
+  describe('AC1: Drag begins immediately on mousedown + move', () => {
     it('card div has draggable attribute', () => {
       const item = makeItem();
       const { container } = render(<Card item={item} />);
@@ -95,16 +48,11 @@ describe('Issue #118: Hold-to-drag interaction', () => {
       expect(card.getAttribute('draggable')).toBe('true');
     });
 
-    it('dragstart is allowed after hold threshold (200ms)', () => {
-      const item = makeItem({ id: 'drag-armed' });
+    it('dragstart is allowed immediately (no hold threshold)', () => {
+      const item = makeItem({ id: 'drag-immediate' });
       const { container } = render(<Card item={item} />);
       const card = container.querySelector('.card') as HTMLElement;
 
-      // Press and hold
-      fireEvent.mouseDown(card, { button: 0 });
-      vi.advanceTimersByTime(200);
-
-      // Drag should proceed (not prevented)
       const dataTransferData: Record<string, string> = {};
       const mockEvent = {
         dataTransfer: {
@@ -113,92 +61,176 @@ describe('Issue #118: Hold-to-drag interaction', () => {
       };
 
       fireEvent.dragStart(card, mockEvent);
-      // After armed, dragstart should set data (not be prevented)
-      expect(dataTransferData['text/plain']).toBe('drag-armed');
+      expect(dataTransferData['text/plain']).toBe('drag-immediate');
+      expect(dataTransferData['application/x-hive-status']).toBe('To Do');
     });
   });
 
-  // AC3: Accidental drag (before hold threshold) is suppressed
-  describe('AC3: Accidental drag before hold threshold is suppressed', () => {
-    it('dragstart is prevented if hold duration < 200ms', () => {
-      const item = makeItem({ id: 'early-drag' });
+  // AC2: Card title has a distinct clickable affordance (CSS tested in responsive.test.ts)
+  describe('AC2: Card title is a button element', () => {
+    it('card title is rendered as a <button> element', () => {
+      const item = makeItem({ title: 'My Title' });
       const { container } = render(<Card item={item} />);
-      const card = container.querySelector('.card') as HTMLElement;
-
-      // Press but do not wait long enough
-      fireEvent.mouseDown(card, { button: 0 });
-      vi.advanceTimersByTime(100); // only 100ms, less than 200ms threshold
-
-      // fireEvent returns false when preventDefault() was called
-      const dragAllowed = fireEvent.dragStart(card);
-      expect(dragAllowed).toBe(false);
-    });
-
-    it('dragstart is prevented if no mousedown occurred', () => {
-      const item = makeItem({ id: 'no-press' });
-      const { container } = render(<Card item={item} />);
-      const card = container.querySelector('.card') as HTMLElement;
-
-      // fireEvent returns false when preventDefault() was called
-      const dragAllowed = fireEvent.dragStart(card);
-      expect(dragAllowed).toBe(false);
+      const title = container.querySelector('.card-title');
+      expect(title).not.toBeNull();
+      expect(title!.tagName).toBe('BUTTON');
+      expect(title!.textContent).toBe('My Title');
     });
   });
 
-  // AC4: Visual hold feedback (arm state)
-  describe('AC4: Visual arm-state feedback', () => {
-    it('adds card-arming class after 100ms hold', () => {
-      const item = makeItem();
+  // AC3: Clicking card title opens detail with title in edit mode
+  describe('AC3: Clicking card title opens detail in edit mode', () => {
+    it('clicking the title button sets openDetailWithTitleEdit and selectedItemId', () => {
+      const item = makeItem({ id: 'title-click' });
+      const { container } = render(<Card item={item} />);
+      const title = container.querySelector('.card-title') as HTMLElement;
+
+      fireEvent.click(title);
+      expect(openDetailWithTitleEdit.value).toBe(true);
+      expect(selectedItemId.value).toBe('title-click');
+    });
+  });
+
+  // AC4: Clicking card body (non-title) opens detail without edit mode
+  describe('AC4: Clicking card body opens detail without edit mode', () => {
+    it('clicking the card body sets selectedItemId without title edit', () => {
+      const item = makeItem({ id: 'body-click' });
       const { container } = render(<Card item={item} />);
       const card = container.querySelector('.card') as HTMLElement;
 
-      fireEvent.mouseDown(card, { button: 0 });
-      expect(card.classList.contains('card-arming')).toBe(false);
-
-      vi.advanceTimersByTime(100);
-      expect(card.classList.contains('card-arming')).toBe(true);
+      // Click on the card (not the title)
+      fireEvent.click(card);
+      expect(openDetailWithTitleEdit.value).toBe(false);
+      expect(selectedItemId.value).toBe('body-click');
     });
 
-    it('removes card-arming class on mouseup before 200ms', () => {
-      const item = makeItem();
+    it('clicking card-content area opens detail without edit mode', () => {
+      const item = makeItem({ id: 'content-click' });
       const { container } = render(<Card item={item} />);
-      const card = container.querySelector('.card') as HTMLElement;
+      const content = container.querySelector('.card-content') as HTMLElement;
 
-      fireEvent.mouseDown(card, { button: 0 });
-      vi.advanceTimersByTime(100);
-      expect(card.classList.contains('card-arming')).toBe(true);
-
-      fireEvent.mouseUp(card);
-      expect(card.classList.contains('card-arming')).toBe(false);
+      fireEvent.click(content);
+      expect(selectedItemId.value).toBe('content-click');
+      expect(openDetailWithTitleEdit.value).toBe(false);
     });
+  });
 
-    it('removes card-arming class on mouse leave', () => {
+  // AC5: No arm-state animation
+  describe('AC5: No arm-state animation', () => {
+    it('no card-arming class is applied on mousedown + hold', () => {
       const item = makeItem();
       const { container } = render(<Card item={item} />);
       const card = container.querySelector('.card') as HTMLElement;
 
-      fireEvent.mouseDown(card, { button: 0 });
-      vi.advanceTimersByTime(100);
-      expect(card.classList.contains('card-arming')).toBe(true);
-
-      fireEvent.mouseLeave(card);
-      expect(card.classList.contains('card-arming')).toBe(false);
-    });
-
-    it('does not add card-arming class for right-click', () => {
-      const item = makeItem();
-      const { container } = render(<Card item={item} />);
-      const card = container.querySelector('.card') as HTMLElement;
-
-      fireEvent.mouseDown(card, { button: 2 });
-      vi.advanceTimersByTime(150);
+      // No mouseDown/mouseUp handlers at all, so no arming can happen
       expect(card.classList.contains('card-arming')).toBe(false);
     });
   });
 
-  // AC6: Touch devices — tap to open
-  describe('AC6: Touch devices — tap opens card detail', () => {
-    it('clicking the card on touch device opens detail (same as pointer click)', () => {
+  // AC6: Keyboard navigation — title button is sole tab stop
+  describe('AC6: Keyboard navigation via title button', () => {
+    it('Enter on title button opens detail in edit mode', () => {
+      const item = makeItem({ id: 'kb-enter' });
+      const { container } = render(<Card item={item} />);
+      const title = container.querySelector('.card-title') as HTMLElement;
+
+      fireEvent.keyDown(title, { key: 'Enter' });
+      expect(openDetailWithTitleEdit.value).toBe(true);
+      expect(selectedItemId.value).toBe('kb-enter');
+    });
+
+    it('Space on title button opens detail in edit mode', () => {
+      const item = makeItem({ id: 'kb-space' });
+      const { container } = render(<Card item={item} />);
+      const title = container.querySelector('.card-title') as HTMLElement;
+
+      fireEvent.keyDown(title, { key: ' ' });
+      expect(openDetailWithTitleEdit.value).toBe(true);
+      expect(selectedItemId.value).toBe('kb-space');
+    });
+
+    it('ArrowRight on title button moves card to next column', () => {
+      const onMoveStatus = vi.fn();
+      const item = makeItem({ id: 'kb-right', status: 'To Do' });
+      const { container } = render(<Card item={item} onMoveStatus={onMoveStatus} />);
+      const title = container.querySelector('.card-title') as HTMLElement;
+
+      fireEvent.keyDown(title, { key: 'ArrowRight' });
+      expect(onMoveStatus).toHaveBeenCalledWith('kb-right', 'In Progress');
+    });
+
+    it('ArrowLeft on title button moves card to previous column', () => {
+      const onMoveStatus = vi.fn();
+      const item = makeItem({ id: 'kb-left', status: 'In Progress' });
+      const { container } = render(<Card item={item} onMoveStatus={onMoveStatus} />);
+      const title = container.querySelector('.card-title') as HTMLElement;
+
+      fireEvent.keyDown(title, { key: 'ArrowLeft' });
+      expect(onMoveStatus).toHaveBeenCalledWith('kb-left', 'To Do');
+    });
+
+    it('Alt+ArrowUp on title button calls onReorder', () => {
+      const onReorder = vi.fn();
+      const item = makeItem({ id: 'kb-reorder' });
+      const { container } = render(<Card item={item} onReorder={onReorder} />);
+      const title = container.querySelector('.card-title') as HTMLElement;
+
+      fireEvent.keyDown(title, { key: 'ArrowUp', altKey: true });
+      expect(onReorder).toHaveBeenCalledWith('kb-reorder', 'up');
+    });
+
+    it('Alt+ArrowDown on title button calls onReorder down', () => {
+      const onReorder = vi.fn();
+      const item = makeItem({ id: 'kb-reorder-down' });
+      const { container } = render(<Card item={item} onReorder={onReorder} />);
+      const title = container.querySelector('.card-title') as HTMLElement;
+
+      fireEvent.keyDown(title, { key: 'ArrowDown', altKey: true });
+      expect(onReorder).toHaveBeenCalledWith('kb-reorder-down', 'down');
+    });
+  });
+
+  // AC7: No nested ARIA interactive element
+  describe('AC7: No nested ARIA interactive element', () => {
+    it('card container div has no role="button"', () => {
+      const item = makeItem();
+      const { container } = render(<Card item={item} />);
+      const card = container.querySelector('.card') as HTMLElement;
+      expect(card.getAttribute('role')).toBeNull();
+    });
+
+    it('card container div has no tabIndex', () => {
+      const item = makeItem();
+      const { container } = render(<Card item={item} />);
+      const card = container.querySelector('.card') as HTMLElement;
+      // tabIndex attribute should not be present on the container
+      expect(card.getAttribute('tabindex')).toBeNull();
+    });
+
+    it('card title button has an accessible label', () => {
+      const item = makeItem({ title: 'Buy Groceries', status: 'To Do' });
+      const { container } = render(<Card item={item} />);
+      const title = container.querySelector('.card-title') as HTMLElement;
+      expect(title.getAttribute('aria-label')).toContain('Buy Groceries');
+    });
+
+    it('card title button is not nested inside another interactive element', () => {
+      const item = makeItem();
+      const { container } = render(<Card item={item} />);
+      const title = container.querySelector('.card-title') as HTMLElement;
+      // Walk up the tree — no ancestor should be a button or have role="button"
+      let parent = title.parentElement;
+      while (parent && parent !== container) {
+        expect(parent.tagName).not.toBe('BUTTON');
+        expect(parent.getAttribute('role')).not.toBe('button');
+        parent = parent.parentElement;
+      }
+    });
+  });
+
+  // AC8: Touch devices not regressed
+  describe('AC8: Touch devices — tap opens card detail', () => {
+    it('clicking the card on touch device opens detail', () => {
       const item = makeItem({ id: 'touch-tap' });
       const { container } = render(<Card item={item} />);
       const card = container.querySelector('.card') as HTMLElement;
@@ -208,48 +240,7 @@ describe('Issue #118: Hold-to-drag interaction', () => {
     });
   });
 
-  // AC7: Keyboard interactions unchanged
-  describe('AC7: Keyboard interactions unchanged', () => {
-    it('Enter opens card detail', () => {
-      const item = makeItem({ id: 'keyboard-enter' });
-      const { container } = render(<Card item={item} />);
-      const card = container.querySelector('.card') as HTMLElement;
-
-      fireEvent.keyDown(card, { key: 'Enter' });
-      expect(selectedItemId.value).toBe('keyboard-enter');
-    });
-
-    it('Space opens card detail', () => {
-      const item = makeItem({ id: 'keyboard-space' });
-      const { container } = render(<Card item={item} />);
-      const card = container.querySelector('.card') as HTMLElement;
-
-      fireEvent.keyDown(card, { key: ' ' });
-      expect(selectedItemId.value).toBe('keyboard-space');
-    });
-
-    it('Alt+ArrowUp calls onReorder', () => {
-      const onReorder = vi.fn();
-      const item = makeItem({ id: 'kb-reorder' });
-      const { container } = render(<Card item={item} onReorder={onReorder} />);
-      const card = container.querySelector('.card') as HTMLElement;
-
-      fireEvent.keyDown(card, { key: 'ArrowUp', altKey: true });
-      expect(onReorder).toHaveBeenCalledWith('kb-reorder', 'up');
-    });
-
-    it('ArrowRight moves between columns', () => {
-      const onMoveStatus = vi.fn();
-      const item = makeItem({ id: 'kb-move', status: 'To Do' });
-      const { container } = render(<Card item={item} onMoveStatus={onMoveStatus} />);
-      const card = container.querySelector('.card') as HTMLElement;
-
-      fireEvent.keyDown(card, { key: 'ArrowRight' });
-      expect(onMoveStatus).toHaveBeenCalledWith('kb-move', 'In Progress');
-    });
-  });
-
-  // Card layout structure (updated for #118)
+  // Card layout structure
   describe('Card layout structure', () => {
     it('card contains card-content directly (no card-row wrapper)', () => {
       const item = makeItem();
@@ -260,13 +251,11 @@ describe('Issue #118: Hold-to-drag interaction', () => {
       expect(card.querySelector('.card-row')).toBeNull();
     });
 
-    it('card title is inside card-content', () => {
-      const item = makeItem({ title: 'Nested Title' });
+    it('no drag handle element is rendered on the card', () => {
+      const item = makeItem();
       const { container } = render(<Card item={item} />);
-      const content = container.querySelector('.card-content');
-      const title = content!.querySelector('.card-title');
-      expect(title).not.toBeNull();
-      expect(title!.textContent).toBe('Nested Title');
+      expect(container.querySelector('.drag-handle')).toBeNull();
+      expect(container.querySelector('.drag-handle-dots')).toBeNull();
     });
   });
 });

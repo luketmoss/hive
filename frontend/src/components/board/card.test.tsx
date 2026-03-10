@@ -7,6 +7,7 @@ import type { ItemWithRow } from '../../api/types';
 // Mock board-store to avoid signal dependency issues
 vi.mock('../../state/board-store', () => ({
   selectedItemId: { value: null },
+  openDetailWithTitleEdit: { value: false },
   labels: { value: [] },
   getChildCount: () => ({ done: 0, total: 0 }),
 }));
@@ -156,50 +157,50 @@ describe('Card', () => {
 
   // Issue #6 — Keyboard accessibility
   describe('Keyboard accessibility (Issue #6)', () => {
-    // AC1: Cards are keyboard-focusable and activatable
-    describe('AC1: Cards are keyboard-focusable and activatable', () => {
-      it('has tabIndex=0 so it participates in tab order', () => {
+    // AC1: Title button is keyboard-focusable and activatable (#126 updated)
+    describe('AC1: Title button is keyboard-focusable and activatable', () => {
+      it('title button has tabIndex=0 so it participates in tab order', () => {
+        const item = makeItem();
+        const { container } = render(<Card item={item} />);
+        const title = container.querySelector('.card-title') as HTMLElement;
+        expect(title.getAttribute('tabindex')).toBe('0');
+      });
+
+      it('card container has no role="button" (#126 AC7)', () => {
         const item = makeItem();
         const { container } = render(<Card item={item} />);
         const card = container.querySelector('.card') as HTMLElement;
-        expect(card.getAttribute('tabindex')).toBe('0');
+        expect(card.getAttribute('role')).toBeNull();
       });
 
-      it('has role="button" for assistive technology', () => {
-        const item = makeItem();
-        const { container } = render(<Card item={item} />);
-        const card = container.querySelector('.card') as HTMLElement;
-        expect(card.getAttribute('role')).toBe('button');
-      });
-
-      it('has an aria-label with the item title and status', () => {
+      it('title button has an aria-label with the item title and status', () => {
         const item = makeItem({ title: 'Buy groceries', status: 'In Progress' });
         const { container } = render(<Card item={item} />);
-        const card = container.querySelector('.card') as HTMLElement;
-        const label = card.getAttribute('aria-label');
+        const title = container.querySelector('.card-title') as HTMLElement;
+        const label = title.getAttribute('aria-label');
         expect(label).toContain('Buy groceries');
         expect(label).toContain('In Progress');
       });
 
-      it('opens detail panel when Enter is pressed on focused card', () => {
+      it('opens detail panel when Enter is pressed on title button', () => {
         selectedItemId.value = null;
 
         const item = makeItem({ id: 'enter-test' });
         const { container } = render(<Card item={item} />);
-        const card = container.querySelector('.card') as HTMLElement;
+        const title = container.querySelector('.card-title') as HTMLElement;
 
-        fireEvent.keyDown(card, { key: 'Enter' });
+        fireEvent.keyDown(title, { key: 'Enter' });
         expect(selectedItemId.value).toBe('enter-test');
       });
 
-      it('opens detail panel when Space is pressed on focused card', () => {
+      it('opens detail panel when Space is pressed on title button', () => {
         selectedItemId.value = null;
 
         const item = makeItem({ id: 'space-test' });
         const { container } = render(<Card item={item} />);
-        const card = container.querySelector('.card') as HTMLElement;
+        const title = container.querySelector('.card-title') as HTMLElement;
 
-        fireEvent.keyDown(card, { key: ' ' });
+        fireEvent.keyDown(title, { key: ' ' });
         expect(selectedItemId.value).toBe('space-test');
       });
 
@@ -211,25 +212,25 @@ describe('Card', () => {
       });
     });
 
-    // AC2: Keyboard alternative to drag-and-drop
+    // AC2: Keyboard alternative to drag-and-drop (via title button)
     describe('AC2: Keyboard alternative to drag-and-drop', () => {
-      it('calls onMoveStatus with next status when ArrowRight is pressed', () => {
+      it('calls onMoveStatus with next status when ArrowRight is pressed on title', () => {
         const onMoveStatus = vi.fn();
         const item = makeItem({ id: 'move-right', status: 'To Do' });
         const { container } = render(<Card item={item} onMoveStatus={onMoveStatus} />);
-        const card = container.querySelector('.card') as HTMLElement;
+        const title = container.querySelector('.card-title') as HTMLElement;
 
-        fireEvent.keyDown(card, { key: 'ArrowRight' });
+        fireEvent.keyDown(title, { key: 'ArrowRight' });
         expect(onMoveStatus).toHaveBeenCalledWith('move-right', 'In Progress');
       });
 
-      it('calls onMoveStatus with previous status when ArrowLeft is pressed', () => {
+      it('calls onMoveStatus with previous status when ArrowLeft is pressed on title', () => {
         const onMoveStatus = vi.fn();
         const item = makeItem({ id: 'move-left', status: 'In Progress' });
         const { container } = render(<Card item={item} onMoveStatus={onMoveStatus} />);
-        const card = container.querySelector('.card') as HTMLElement;
+        const title = container.querySelector('.card-title') as HTMLElement;
 
-        fireEvent.keyDown(card, { key: 'ArrowLeft' });
+        fireEvent.keyDown(title, { key: 'ArrowLeft' });
         expect(onMoveStatus).toHaveBeenCalledWith('move-left', 'To Do');
       });
 
@@ -237,9 +238,9 @@ describe('Card', () => {
         const onMoveStatus = vi.fn();
         const item = makeItem({ id: 'no-right', status: 'Done' });
         const { container } = render(<Card item={item} onMoveStatus={onMoveStatus} />);
-        const card = container.querySelector('.card') as HTMLElement;
+        const title = container.querySelector('.card-title') as HTMLElement;
 
-        fireEvent.keyDown(card, { key: 'ArrowRight' });
+        fireEvent.keyDown(title, { key: 'ArrowRight' });
         expect(onMoveStatus).not.toHaveBeenCalled();
       });
 
@@ -247,45 +248,45 @@ describe('Card', () => {
         const onMoveStatus = vi.fn();
         const item = makeItem({ id: 'no-left', status: 'To Do' });
         const { container } = render(<Card item={item} onMoveStatus={onMoveStatus} />);
-        const card = container.querySelector('.card') as HTMLElement;
+        const title = container.querySelector('.card-title') as HTMLElement;
 
-        fireEvent.keyDown(card, { key: 'ArrowLeft' });
+        fireEvent.keyDown(title, { key: 'ArrowLeft' });
         expect(onMoveStatus).not.toHaveBeenCalled();
       });
 
       it('does not call onMoveStatus when arrow keys pressed without the prop', () => {
         const item = makeItem({ id: 'no-handler', status: 'In Progress' });
         const { container } = render(<Card item={item} />);
-        const card = container.querySelector('.card') as HTMLElement;
+        const title = container.querySelector('.card-title') as HTMLElement;
 
         // Should not throw
-        fireEvent.keyDown(card, { key: 'ArrowRight' });
-        fireEvent.keyDown(card, { key: 'ArrowLeft' });
+        fireEvent.keyDown(title, { key: 'ArrowRight' });
+        fireEvent.keyDown(title, { key: 'ArrowLeft' });
       });
     });
   });
 
   // Issue #115 — Reorder within column
   describe('Issue #115: Reorder within column', () => {
-    // AC4: Alt+ArrowUp/Down for keyboard reorder
+    // AC4: Alt+ArrowUp/Down for keyboard reorder (via title button)
     describe('AC4: Keyboard reorder within column (Alt+Arrow)', () => {
-      it('calls onReorder with "up" when Alt+ArrowUp is pressed', () => {
+      it('calls onReorder with "up" when Alt+ArrowUp is pressed on title', () => {
         const onReorder = vi.fn();
         const item = makeItem({ id: 'reorder-up', status: 'To Do' });
         const { container } = render(<Card item={item} onReorder={onReorder} />);
-        const card = container.querySelector('.card') as HTMLElement;
+        const title = container.querySelector('.card-title') as HTMLElement;
 
-        fireEvent.keyDown(card, { key: 'ArrowUp', altKey: true });
+        fireEvent.keyDown(title, { key: 'ArrowUp', altKey: true });
         expect(onReorder).toHaveBeenCalledWith('reorder-up', 'up');
       });
 
-      it('calls onReorder with "down" when Alt+ArrowDown is pressed', () => {
+      it('calls onReorder with "down" when Alt+ArrowDown is pressed on title', () => {
         const onReorder = vi.fn();
         const item = makeItem({ id: 'reorder-down', status: 'To Do' });
         const { container } = render(<Card item={item} onReorder={onReorder} />);
-        const card = container.querySelector('.card') as HTMLElement;
+        const title = container.querySelector('.card-title') as HTMLElement;
 
-        fireEvent.keyDown(card, { key: 'ArrowDown', altKey: true });
+        fireEvent.keyDown(title, { key: 'ArrowDown', altKey: true });
         expect(onReorder).toHaveBeenCalledWith('reorder-down', 'down');
       });
 
@@ -293,21 +294,21 @@ describe('Card', () => {
         const onReorder = vi.fn();
         const item = makeItem({ id: 'no-alt', status: 'To Do' });
         const { container } = render(<Card item={item} onReorder={onReorder} />);
-        const card = container.querySelector('.card') as HTMLElement;
+        const title = container.querySelector('.card-title') as HTMLElement;
 
-        fireEvent.keyDown(card, { key: 'ArrowUp' });
-        fireEvent.keyDown(card, { key: 'ArrowDown' });
+        fireEvent.keyDown(title, { key: 'ArrowUp' });
+        fireEvent.keyDown(title, { key: 'ArrowDown' });
         expect(onReorder).not.toHaveBeenCalled();
       });
 
       it('does not call onReorder when Alt+Arrow pressed without the prop', () => {
         const item = makeItem({ id: 'no-handler', status: 'In Progress' });
         const { container } = render(<Card item={item} />);
-        const card = container.querySelector('.card') as HTMLElement;
+        const title = container.querySelector('.card-title') as HTMLElement;
 
         // Should not throw
-        fireEvent.keyDown(card, { key: 'ArrowUp', altKey: true });
-        fireEvent.keyDown(card, { key: 'ArrowDown', altKey: true });
+        fireEvent.keyDown(title, { key: 'ArrowUp', altKey: true });
+        fireEvent.keyDown(title, { key: 'ArrowDown', altKey: true });
       });
 
       it('ArrowLeft/ArrowRight still work for column movement (not affected by Alt)', () => {
@@ -317,23 +318,23 @@ describe('Card', () => {
         const { container } = render(
           <Card item={item} onMoveStatus={onMoveStatus} onReorder={onReorder} />
         );
-        const card = container.querySelector('.card') as HTMLElement;
+        const title = container.querySelector('.card-title') as HTMLElement;
 
-        fireEvent.keyDown(card, { key: 'ArrowRight' });
+        fireEvent.keyDown(title, { key: 'ArrowRight' });
         expect(onMoveStatus).toHaveBeenCalledWith('both', 'In Progress');
         expect(onReorder).not.toHaveBeenCalled();
       });
     });
 
-    // AC6: Updated card ARIA label
-    describe('AC6: Updated card ARIA label', () => {
-      it('includes Alt+Up/Down reorder instructions in aria-label', () => {
+    // AC6: Updated title button ARIA label
+    describe('AC6: Updated title button ARIA label', () => {
+      it('title button includes reorder and column move instructions in aria-label', () => {
         const item = makeItem({ title: 'Test Task', status: 'To Do' });
         const { container } = render(<Card item={item} />);
-        const card = container.querySelector('.card') as HTMLElement;
-        const label = card.getAttribute('aria-label');
-        expect(label).toContain('Alt+Up/Down to reorder within column');
-        expect(label).toContain('Left/Right arrows to move between columns');
+        const title = container.querySelector('.card-title') as HTMLElement;
+        const label = title.getAttribute('aria-label');
+        expect(label).toContain('Alt+Up/Down to reorder');
+        expect(label).toContain('Arrow keys to move between columns');
       });
     });
   });

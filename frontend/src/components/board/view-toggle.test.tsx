@@ -27,6 +27,7 @@ vi.mock('../../state/board-store', () => ({
   showCreateModal: { value: false },
   selectedItem: { value: null },
   selectedItemId: { value: null },
+  openDetailWithTitleEdit: { value: false },
   groupBy: { value: 'none' },
   owners: { value: [] },
   labels: { value: [] },

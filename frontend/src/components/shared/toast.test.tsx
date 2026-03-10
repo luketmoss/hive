@@ -13,6 +13,7 @@ vi.mock('../../state/board-store', () => ({
   toastMessage: {
     get value() { return mockToastMessage; },
   },
+  openDetailWithTitleEdit: { value: false },
 }));
 
 describe('Toast ARIA roles (Issue #7)', () => {

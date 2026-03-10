@@ -70,18 +70,22 @@ describe('Responsive CSS (Issue #10)', () => {
     });
   });
 
-  // #118: Hold-to-drag CSS styles
-  describe('#118: Hold-to-drag card styles', () => {
+  // #126: Immediate drag + title button styles
+  describe('#126: Card drag and title button styles', () => {
     it('card has cursor: grab inside @media (pointer: fine)', () => {
       expect(css).toMatch(/@media\s*\(pointer:\s*fine\)\s*\{[^}]*\.card\s*\{[^}]*cursor:\s*grab/);
     });
 
-    it('card-arming has scale transform for visual feedback', () => {
-      expect(css).toMatch(/\.card-arming\s*\{[^}]*transform:\s*scale\(1\.02\)/);
+    it('card-title has cursor: pointer inside @media (pointer: fine)', () => {
+      expect(css).toMatch(/@media\s*\(pointer:\s*fine\)\s*\{[\s\S]*?\.card\s+\.card-title\s*\{[^}]*cursor:\s*pointer/);
     });
 
-    it('card-arming animation suppressed for prefers-reduced-motion', () => {
-      expect(css).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[^}]*\.card-arming\s*\{[^}]*transform:\s*none/);
+    it('no card-arming styles remain (removed in #126)', () => {
+      expect(css).not.toMatch(/\.card-arming/);
+    });
+
+    it('card-title has underline on hover', () => {
+      expect(css).toMatch(/\.card-title:hover\s*\{[^}]*text-decoration:\s*underline/);
     });
 
     it('no drag-handle styles remain (removed in #118)', () => {

@@ -1,5 +1,4 @@
-import { useRef } from 'preact/hooks';
-import { selectedItemId, getChildCount } from '../../state/board-store';
+import { selectedItemId, getChildCount, openDetailWithTitleEdit } from '../../state/board-store';
 import { labels as labelsStore } from '../../state/board-store';
 import type { ItemWithRow, ItemStatus } from '../../api/types';
 import { LabelBadge } from '../shared/label-badge';
@@ -9,11 +8,6 @@ export let currentDragStatus: string | null = null;
 
 /** Ordered statuses for keyboard column navigation */
 const STATUS_ORDER: ItemStatus[] = ['To Do', 'In Progress', 'Done'];
-
-/** Hold duration (ms) before drag is armed */
-const DRAG_ARM_DELAY = 200;
-/** Visual feedback starts at this fraction of the arm delay */
-const ARM_VISUAL_DELAY = 100;
 
 interface Props {
   item: ItemWithRow;
@@ -31,57 +25,7 @@ export function Card({ item, onMoveStatus, onReorder, columnItems }: Props) {
   const isOverdue = item.due_date && item.status !== 'Done' &&
     parseLocalDate(item.due_date) < new Date(new Date().toDateString());
 
-  // Hold-to-drag state refs (not signals — avoid re-renders on pointer events)
-  const dragArmed = useRef(false);
-  const armTimerId = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const visualTimerId = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  const clearTimers = () => {
-    if (armTimerId.current !== null) { clearTimeout(armTimerId.current); armTimerId.current = null; }
-    if (visualTimerId.current !== null) { clearTimeout(visualTimerId.current); visualTimerId.current = null; }
-  };
-
-  const handleMouseDown = (e: MouseEvent) => {
-    // Only left button
-    if (e.button !== 0) return;
-
-    dragArmed.current = false;
-    clearTimers();
-
-    // At ARM_VISUAL_DELAY, show arming feedback
-    visualTimerId.current = setTimeout(() => {
-      cardRef.current?.classList.add('card-arming');
-    }, ARM_VISUAL_DELAY);
-
-    // At DRAG_ARM_DELAY, arm drag
-    armTimerId.current = setTimeout(() => {
-      dragArmed.current = true;
-    }, DRAG_ARM_DELAY);
-  };
-
-  const handleMouseUp = () => {
-    clearTimers();
-    dragArmed.current = false;
-    cardRef.current?.classList.remove('card-arming');
-  };
-
-  const handleMouseLeave = () => {
-    clearTimers();
-    dragArmed.current = false;
-    cardRef.current?.classList.remove('card-arming');
-  };
-
   const handleDragStart = (e: DragEvent) => {
-    if (!dragArmed.current) {
-      // Hold threshold not met — suppress drag, let click handler open detail
-      e.preventDefault();
-      return;
-    }
-
-    clearTimers();
-    cardRef.current?.classList.remove('card-arming');
-
     e.dataTransfer?.setData('text/plain', item.id);
     e.dataTransfer?.setData('application/x-hive-status', item.status);
     currentDragStatus = item.status;
@@ -92,21 +36,32 @@ export function Card({ item, onMoveStatus, onReorder, columnItems }: Props) {
 
   const handleDragEnd = (e: DragEvent) => {
     currentDragStatus = null;
-    dragArmed.current = false;
-    clearTimers();
     const card = e.currentTarget as HTMLElement;
     card.classList.remove('card-dragging');
-    card.classList.remove('card-arming');
   };
 
-  const handleClick = (e: MouseEvent) => {
+  /** Click on the card body (non-title) opens detail without edit mode */
+  const handleCardClick = (e: MouseEvent) => {
+    // If the click originated from the title button, let its own handler deal with it
+    if ((e.target as HTMLElement).closest('.card-title')) return;
+    openDetailWithTitleEdit.value = false;
     selectedItemId.value = item.id;
   };
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  /** Click on the title button opens detail in title-edit mode */
+  const handleTitleClick = (e: MouseEvent) => {
+    e.stopPropagation();
+    openDetailWithTitleEdit.value = true;
+    selectedItemId.value = item.id;
+  };
+
+  /** Keyboard handler on the title button — the sole tab stop per card */
+  const handleTitleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
+      openDetailWithTitleEdit.value = true;
       selectedItemId.value = item.id;
+      return;
     }
 
     // Alt+ArrowUp/Down for within-column reorder
@@ -132,23 +87,24 @@ export function Card({ item, onMoveStatus, onReorder, columnItems }: Props) {
 
   return (
     <div
-      ref={cardRef}
       class="card"
-      tabIndex={0}
-      role="button"
       draggable
-      aria-label={`${item.title}, ${item.status}. Press Enter to open details. Alt+Up/Down to reorder within column, Left/Right arrows to move between columns.`}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseLeave}
+      onClick={handleCardClick}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       data-item-id={item.id}
     >
       <div class="card-content">
-        <div class="card-title">{item.title}</div>
+        <button
+          class="card-title"
+          type="button"
+          tabIndex={0}
+          aria-label={`${item.title}, ${item.status}. Press Enter to edit title. Arrow keys to move between columns, Alt+Up/Down to reorder.`}
+          onClick={handleTitleClick}
+          onKeyDown={handleTitleKeyDown}
+        >
+          {item.title}
+        </button>
 
         {item.description && (
           <div class="card-description">{item.description}</div>

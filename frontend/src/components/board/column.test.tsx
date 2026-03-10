@@ -14,6 +14,7 @@ const cardMock = vi.hoisted(() => ({
 // Mock board-store for Card dependency
 vi.mock('../../state/board-store', () => ({
   selectedItemId: { value: null },
+  openDetailWithTitleEdit: { value: false },
   labels: { value: [] },
   getChildCount: () => ({ done: 0, total: 0 }),
 }));
