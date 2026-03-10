@@ -55,8 +55,8 @@
   --color-focus: #1976d2;
   --focus-ring: 0 0 0 2px var(--color-focus);
   --column-width: 320px;
-  --header-height: 56px;
-  --filter-height: 48px;
+  --header-height: 44px;
+  --control-bar-height: 44px;
 }
 
 /* === Dark mode token overrides === */
@@ -304,7 +304,7 @@ body {
   align-items: center;
   justify-content: space-between;
   height: var(--header-height);
-  padding: 0 20px;
+  padding: 0 16px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
@@ -323,7 +323,7 @@ body {
 }
 
 .board-header h1 {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
 }
 
@@ -333,10 +333,23 @@ body {
   gap: 12px;
 }
 
-.user-info {
+/* Legacy .user-info/.user-name removed in #132 — replaced by .user-dropdown-trigger */
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+/* === User Dropdown (#132 AC1) === */
+.user-dropdown {
+  position: relative;
+}
+
+.user-dropdown-trigger {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-size: 14px;
   color: var(--color-text-secondary);
   background: none;
@@ -348,31 +361,210 @@ body {
   min-height: 36px;
 }
 
-.user-info:hover,
-.user-info:focus-visible {
+.user-dropdown-trigger:hover,
+.user-dropdown-trigger:focus-visible {
   background: var(--overlay-md);
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
-.user-name {
+.user-dropdown-name {
   max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-@media (max-width: 767px) {
-  .user-info {
-    min-width: 44px;
-    min-height: 44px;
-  }
+.user-dropdown-caret {
+  font-size: 10px;
+  color: var(--color-text-secondary);
 }
 
-.user-avatar {
+.user-avatar-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 28px;
   height: 28px;
   border-radius: 50%;
+  background: var(--color-primary);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.user-dropdown-panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 200px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-dropdown-email {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  padding: 4px 0;
+}
+
+.user-dropdown-divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 4px 0;
+}
+
+.user-dropdown-signout {
+  background: none;
+  border: none;
+  padding: 8px 4px;
+  font-size: 14px;
+  color: var(--color-danger);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  border-radius: var(--radius-sm);
+}
+
+.user-dropdown-signout:hover {
+  background: var(--overlay-md);
+}
+
+.user-dropdown-signout:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* === Control Bar (#132 AC2) === */
+.control-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  min-height: var(--control-bar-height);
+  flex-wrap: wrap;
+}
+
+.control-bar-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.control-bar-separator {
+  width: 0;
+  height: 20px;
+  border-left: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.control-bar-filters {
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* On desktop, filter toggle is visible as inline button */
+.control-bar .filter-toggle {
+  display: flex;
+}
+
+/* Desktop: filter content as dropdown below */
+.control-bar-filter-content {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 8px 0;
+}
+
+.control-bar-filter-content-collapsed {
+  display: none;
+}
+
+/* Active filter chips inline */
+.control-bar-active-chips {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+}
+
+.control-bar-active-chips-expanded {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.control-bar-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.control-bar-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.control-bar-chip-remove:hover {
+  background: var(--overlay-md);
+}
+
+.control-bar-chip-more {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
+.control-bar-chip-more:hover {
+  background: var(--overlay-md);
+}
+
+.control-bar-chip-more:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 /* === Profile Dialog === */
@@ -1929,9 +2121,9 @@ body {
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-/* === View Toggle (mobile only) === */
+/* === View Toggle === */
 .view-toggle-bar {
-  display: none;   /* hidden on desktop by default */
+  display: none;   /* legacy standalone bar — hidden; now inside control-bar */
   gap: 4px;
   padding: 8px 20px 0;
   flex-shrink: 0;
@@ -2356,8 +2548,34 @@ body {
 
 /* === Responsive === */
 @media (max-width: 768px) {
-  .view-toggle-bar {
-    display: flex;    /* show toggle on mobile */
+  /* #132 AC5: Mobile header — hide name, avatar only */
+  .user-dropdown-name {
+    display: none;
+  }
+
+  .user-dropdown-caret {
+    display: none;
+  }
+
+  .user-dropdown-trigger {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  /* #132 AC5: Board selector max-width with ellipsis */
+  .board-switcher-select {
+    max-width: 160px;
+    text-overflow: ellipsis;
+  }
+
+  /* #132 AC5: Control bar wraps to two lines */
+  .control-bar {
+    padding: 6px 12px;
+  }
+
+  .control-bar-filters {
+    width: 100%;
   }
 
   .board-columns {
