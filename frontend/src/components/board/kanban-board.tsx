@@ -130,9 +130,9 @@ export function KanbanBoard() {
     showArchiveDialog.value = false;
   }, []);
 
-  const handleDrop = (itemId: string, newStatus: ItemStatus) => {
+  const handleDrop = (itemId: string, newStatus: ItemStatus, targetIndex?: number) => {
     if (token) {
-      moveItem(itemId, newStatus, user?.name || 'web', token);
+      moveItem(itemId, newStatus, user?.name || 'web', token, targetIndex);
     }
   };
 
