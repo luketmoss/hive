@@ -19,6 +19,7 @@ function daysAgo(days: number): string {
 
 // --- Owners ---
 export const MOCK_OWNERS: Owner[] = [
+  { name: 'Demo User', google_account: 'demo@hive.local' },
   { name: 'Mom', google_account: 'mom@family.com' },
   { name: 'Dad', google_account: 'dad@family.com' },
   { name: 'Kiddo', google_account: 'kiddo@family.com' },

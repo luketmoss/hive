@@ -65,12 +65,14 @@ export function CardDetail() {
     setConfirmingDelete(false);
   };
 
+  const currentUserOwnerName = owners.value.find(o => o.google_account.toLowerCase() === user?.email?.toLowerCase())?.name ?? '';
+
   const handleAddSubtask = () => {
     subtaskSubmittedRef.current = false;
     subtaskTitleRef.current = '';
     setAddingSubtask(true);
     setSubtaskTitle('');
-    setSubtaskOwner(item.owner);
+    setSubtaskOwner(currentUserOwnerName);
     setSubtaskDueDate('');
     // Focus the input after render
     requestAnimationFrame(() => {
