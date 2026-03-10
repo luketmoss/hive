@@ -99,12 +99,21 @@ vi.mock('../../state/actions', () => ({
   reorderItem: vi.fn(),
 }));
 
-// Mock FilterBar to avoid pulling in the full filter chain
-vi.mock('../filters/filter-bar', () => ({
-  FilterBar: () => <div data-testid="filter-bar" />,
+// Mock new components
+vi.mock('../header/user-dropdown', () => ({
+  UserDropdown: (props: any) => (
+    <div data-testid="user-dropdown">
+      <span data-testid="user-dropdown-name">{props.displayName}</span>
+      <button data-testid="user-dropdown-signout" onClick={props.onSignOut}>Sign out</button>
+    </div>
+  ),
 }));
 
-// Mock ListView, CardDetail, and CreateItemModal
+vi.mock('../header/control-bar', () => ({
+  ControlBar: () => <div data-testid="control-bar" />,
+}));
+
+// Mock other sub-components
 vi.mock('./list-view', () => ({
   ListView: () => <div data-testid="list-view" />,
 }));
@@ -113,9 +122,6 @@ vi.mock('./card-detail', () => ({
 }));
 vi.mock('../forms/create-item-modal', () => ({
   CreateItemModal: () => <div data-testid="create-modal" />,
-}));
-vi.mock('./board-switcher', () => ({
-  BoardSwitcher: () => null,
 }));
 vi.mock('./create-board-modal', () => ({
   CreateBoardModal: () => null,
@@ -131,9 +137,6 @@ vi.mock('../profile/profile-dialog', () => ({
 }));
 vi.mock('../archive/archive-dialog', () => ({
   ArchiveDialog: () => <div data-testid="archive-dialog" />,
-}));
-vi.mock('./theme-toggle', () => ({
-  ThemeToggle: () => <div data-testid="theme-toggle" />,
 }));
 vi.mock('../shared/hive-logo', () => ({
   HiveLogo: (props: any) => <svg data-testid="hive-logo" class={props.class} />,
@@ -157,7 +160,6 @@ function renderBoard() {
 }
 
 describe('KanbanBoard empty/welcome state (Issue #11)', () => {
-  // AC1: Empty board shows welcome message
   describe('AC1: Empty board shows welcome message', () => {
     it('shows welcome message when board has zero items', () => {
       mockState.items = [];
@@ -188,7 +190,6 @@ describe('KanbanBoard empty/welcome state (Issue #11)', () => {
     });
   });
 
-  // AC2: Empty columns still show standard "No items" text (not welcome)
   describe('AC2: Empty columns still show standard text', () => {
     it('renders columns with "No items" when board has items but some columns are empty', () => {
       mockState.items = [{
@@ -198,12 +199,10 @@ describe('KanbanBoard empty/welcome state (Issue #11)', () => {
         sort_order: 1, created_by: '', board_id: '', sheetRow: 2,
       }];
       const { container } = renderBoard();
-      // Board should show columns, not welcome
       const welcome = container.querySelector('[data-testid="board-welcome"]');
       expect(welcome).toBeNull();
 
       const emptyColumns = container.querySelectorAll('.column-empty');
-      // "In Progress" and "Done" columns should show "No items"
       expect(emptyColumns.length).toBe(2);
       emptyColumns.forEach(el => {
         expect(el.textContent).toBe('No items');
@@ -212,36 +211,33 @@ describe('KanbanBoard empty/welcome state (Issue #11)', () => {
   });
 });
 
-describe('KanbanBoard profile trigger (Issue #40)', () => {
-  // AC1: Profile trigger in header
-  describe('AC1: Profile trigger is a button with proper ARIA', () => {
-    it('renders user-info as a <button> element', () => {
+describe('KanbanBoard compact header (Issue #132)', () => {
+  describe('AC1: Header layout', () => {
+    it('renders UserDropdown instead of standalone theme toggle and sign out', () => {
       mockState.items = [];
       const { container } = renderBoard();
-      const trigger = container.querySelector('.user-info');
-      expect(trigger).not.toBeNull();
-      expect(trigger!.tagName).toBe('BUTTON');
+      const dropdown = container.querySelector('[data-testid="user-dropdown"]');
+      expect(dropdown).not.toBeNull();
+      // No standalone ThemeToggle or Sign out in header
+      const headerRight = container.querySelector('.board-header-right');
+      expect(headerRight!.querySelector('[data-testid="theme-toggle"]')).toBeNull();
     });
 
-    it('has aria-haspopup="dialog"', () => {
+    it('renders ControlBar', () => {
       mockState.items = [];
       const { container } = renderBoard();
-      const trigger = container.querySelector('.user-info');
-      expect(trigger!.getAttribute('aria-haspopup')).toBe('dialog');
+      expect(container.querySelector('[data-testid="control-bar"]')).not.toBeNull();
     });
 
-    it('shows user name with truncation class', () => {
+    it('does not render standalone view-toggle-bar', () => {
       mockState.items = [];
       const { container } = renderBoard();
-      const nameSpan = container.querySelector('.user-name');
-      expect(nameSpan).not.toBeNull();
-      expect(nameSpan!.textContent).toBe('Luke');
+      expect(container.querySelector('[data-testid="view-toggle-bar"]')).toBeNull();
     });
   });
 });
 
 describe('KanbanBoard ARIA labels (Issue #7)', () => {
-  // AC2: FAB has accessible label
   describe('AC2: FAB has accessible label', () => {
     it('FAB button has aria-label="Create new item"', () => {
       mockState.items = [];
@@ -325,7 +321,6 @@ describe('KanbanBoard keyboard shortcut (Issue #90)', () => {
 
       fireEvent.keyDown(document, { key: 'S', ctrlKey: true, shiftKey: true });
 
-      // Should still be true (unchanged), not toggled
       expect(mockState.showShareModal).toBe(true);
     });
   });
@@ -417,7 +412,6 @@ describe('KanbanBoard keyboard shortcuts (Issue #91)', () => {
       mockState.items = [];
       const { queryByTestId } = renderBoard();
 
-      // Real keyboards send shiftKey: true when typing '?' (Shift + /)
       fireEvent.keyDown(document, { key: '?', shiftKey: true });
 
       expect(queryByTestId('shortcuts-help')).not.toBeNull();

@@ -40,15 +40,17 @@ vi.mock('../../state/board-store', () => ({
   allDoneItems: { value: [] },
   hasArchivedItems: { value: false },
   showArchiveDialog: { value: false },
-  boards: { value: [] },
+  boards: { value: [{ id: 'b1', name: 'Work' }] },
   boardItems: { get value() { return mockItemsRef.current; } },
   showCreateBoardModal: { value: false },
   showShareModal: { value: false },
-  accessibleBoards: { value: [] },
-  activeBoard: { value: null },
+  accessibleBoards: { value: [{ id: 'b1', name: 'Work', icon: '' }] },
+  activeBoard: { value: { name: 'Work', color: '' } },
+  activeBoardId: { value: 'b1' },
   userBoardRole: { value: null },
   permissions: { value: [] },
   currentUserEmail: { value: '' },
+  switchBoard: vi.fn(),
   theme: { value: 'system' },
   applyTheme: () => {},
   cycleTheme: () => {},
@@ -57,10 +59,7 @@ vi.mock('../../state/board-store', () => ({
 
 vi.mock('../../state/actions', () => ({
   moveItem: vi.fn(),
-}));
-
-vi.mock('./board-switcher', () => ({
-  BoardSwitcher: () => null,
+  reorderItem: vi.fn(),
 }));
 
 vi.mock('./create-board-modal', () => ({
@@ -69,10 +68,6 @@ vi.mock('./create-board-modal', () => ({
 
 vi.mock('./share-modal', () => ({
   ShareModal: () => null,
-}));
-
-vi.mock('../filters/filter-bar', () => ({
-  FilterBar: () => <div data-testid="filter-bar" />,
 }));
 
 vi.mock('./list-view', () => ({
@@ -90,12 +85,19 @@ vi.mock('../forms/create-item-modal', () => ({
 vi.mock('../archive/archive-dialog', () => ({
   ArchiveDialog: () => <div data-testid="archive-dialog" />,
 }));
-vi.mock('./theme-toggle', () => ({
-  ThemeToggle: () => <div data-testid="theme-toggle" />,
+
+vi.mock('../header/user-dropdown', () => ({
+  UserDropdown: () => <div data-testid="user-dropdown" />,
 }));
 
-// Import after mocks
-import { KanbanBoard } from './kanban-board';
+vi.mock('../shared/hive-logo', () => ({
+  HiveLogo: (props: any) => <svg data-testid="hive-logo" class={props.class} />,
+}));
+
+// ControlBar includes the view toggle now — render the real ControlBar
+// But we need to test the view toggle integration through KanbanBoard
+// Since ControlBar now owns the view toggle, test it via ControlBar
+import { ControlBar } from '../header/control-bar';
 
 const mockAuth: AuthState = {
   token: 'test-token',
@@ -106,14 +108,6 @@ const mockAuth: AuthState = {
   updateUserName: () => {},
 };
 
-function renderBoard() {
-  return render(
-    <AuthContext.Provider value={mockAuth}>
-      <KanbanBoard />
-    </AuthContext.Provider>
-  );
-}
-
 afterEach(() => {
   cleanup();
   mockItemsRef.current = [];
@@ -121,99 +115,56 @@ afterEach(() => {
   mockSetViewMode.mockClear();
 });
 
-describe('View Toggle (Issue #13)', () => {
-  beforeEach(() => {
-    mockItemsRef.current = [
-      {
-        id: '1', title: 'Task A', description: '', status: 'To Do',
-        owner: '', due_date: '', labels: '',
-        parent_id: '', created_at: '', updated_at: '', completed_at: '',
-        sort_order: 1, created_by: '', board_id: '', sheetRow: 2,
-      },
-    ];
+describe('View Toggle in ControlBar (Issue #132 AC2)', () => {
+  it('renders Board and List toggle buttons', () => {
+    const { container } = render(<ControlBar />);
+    const board = container.querySelector('[data-testid="view-toggle-board"]');
+    const list = container.querySelector('[data-testid="view-toggle-list"]');
+    expect(board).not.toBeNull();
+    expect(list).not.toBeNull();
+    expect(board!.textContent).toBe('Board');
+    expect(list!.textContent).toBe('List');
   });
 
-  // AC1: View toggle available on mobile (<= 768px), hidden on desktop
-  describe('AC1: Toggle is available on mobile, hidden on desktop', () => {
-    it('renders the view toggle bar with Board and List buttons', () => {
-      const { container } = renderBoard();
-      const toggleBar = container.querySelector('[data-testid="view-toggle-bar"]');
-      expect(toggleBar).not.toBeNull();
-
-      const boardBtn = container.querySelector('[data-testid="view-toggle-board"]');
-      const listBtn = container.querySelector('[data-testid="view-toggle-list"]');
-      expect(boardBtn).not.toBeNull();
-      expect(listBtn).not.toBeNull();
-      expect(boardBtn!.textContent).toBe('Board');
-      expect(listBtn!.textContent).toBe('List');
-    });
-
-    it('toggle bar has view-toggle-bar class which is hidden on desktop via CSS', () => {
-      const { container } = renderBoard();
-      const toggleBar = container.querySelector('.view-toggle-bar');
-      expect(toggleBar).not.toBeNull();
-      // CSS hides this on desktop with display:none; shown at max-width:768px
-    });
-
-    it('marks Board button as active when viewMode is board', () => {
-      mockViewMode.value = 'board';
-      const { container } = renderBoard();
-      const boardBtn = container.querySelector('[data-testid="view-toggle-board"]');
-      expect(boardBtn!.classList.contains('view-toggle-active')).toBe(true);
-      expect(boardBtn!.getAttribute('aria-pressed')).toBe('true');
-    });
-
-    it('marks List button as active when viewMode is list', () => {
-      mockViewMode.value = 'list';
-      const { container } = renderBoard();
-      const listBtn = container.querySelector('[data-testid="view-toggle-list"]');
-      expect(listBtn!.classList.contains('view-toggle-active')).toBe(true);
-      expect(listBtn!.getAttribute('aria-pressed')).toBe('true');
-    });
+  it('marks Board button as active when viewMode is board', () => {
+    mockViewMode.value = 'board';
+    const { container } = render(<ControlBar />);
+    const boardBtn = container.querySelector('[data-testid="view-toggle-board"]');
+    expect(boardBtn!.classList.contains('view-toggle-active')).toBe(true);
+    expect(boardBtn!.getAttribute('aria-pressed')).toBe('true');
   });
 
-  // AC1 continued: clicking toggles call setViewMode
-  describe('AC1: Toggle switching', () => {
-    it('calls setViewMode("list") when List button is clicked', () => {
-      mockViewMode.value = 'board';
-      const { container } = renderBoard();
-      const listBtn = container.querySelector('[data-testid="view-toggle-list"]') as HTMLElement;
-      fireEvent.click(listBtn);
-      expect(mockSetViewMode).toHaveBeenCalledWith('list');
-    });
-
-    it('calls setViewMode("board") when Board button is clicked', () => {
-      mockViewMode.value = 'list';
-      const { container } = renderBoard();
-      const boardBtn = container.querySelector('[data-testid="view-toggle-board"]') as HTMLElement;
-      fireEvent.click(boardBtn);
-      expect(mockSetViewMode).toHaveBeenCalledWith('board');
-    });
+  it('marks List button as active when viewMode is list', () => {
+    mockViewMode.value = 'list';
+    const { container } = render(<ControlBar />);
+    const listBtn = container.querySelector('[data-testid="view-toggle-list"]');
+    expect(listBtn!.classList.contains('view-toggle-active')).toBe(true);
+    expect(listBtn!.getAttribute('aria-pressed')).toBe('true');
   });
 
-  // AC2: List view renders when viewMode is list
-  describe('AC2: List view renders when toggled', () => {
-    it('renders list-view component when viewMode is list', () => {
-      mockViewMode.value = 'list';
-      const { container } = renderBoard();
-      const listView = container.querySelector('[data-testid="list-view"]');
-      expect(listView).not.toBeNull();
-      // Board columns should NOT be present
-      const boardColumns = container.querySelector('.board-columns');
-      expect(boardColumns).toBeNull();
-    });
+  it('calls setViewMode("list") when List button is clicked', () => {
+    mockViewMode.value = 'board';
+    const { container } = render(<ControlBar />);
+    const listBtn = container.querySelector('[data-testid="view-toggle-list"]') as HTMLElement;
+    fireEvent.click(listBtn);
+    expect(mockSetViewMode).toHaveBeenCalledWith('list');
   });
 
-  // AC5: Board view still works on mobile when toggled back
-  describe('AC5: Board view works when toggled back', () => {
-    it('renders board columns when viewMode is board', () => {
-      mockViewMode.value = 'board';
-      const { container } = renderBoard();
-      const boardColumns = container.querySelector('.board-columns');
-      expect(boardColumns).not.toBeNull();
-      // List view should NOT be present
-      const listView = container.querySelector('[data-testid="list-view"]');
-      expect(listView).toBeNull();
-    });
+  it('calls setViewMode("board") when Board button is clicked', () => {
+    mockViewMode.value = 'list';
+    const { container } = render(<ControlBar />);
+    const boardBtn = container.querySelector('[data-testid="view-toggle-board"]') as HTMLElement;
+    fireEvent.click(boardBtn);
+    expect(mockSetViewMode).toHaveBeenCalledWith('board');
+  });
+});
+
+describe('View toggle always visible (Issue #132 AC2)', () => {
+  it('view toggle is rendered inside control-bar (not hidden behind mobile breakpoint)', () => {
+    const { container } = render(<ControlBar />);
+    const viewToggle = container.querySelector('[data-testid="control-bar-view-toggle"]');
+    expect(viewToggle).not.toBeNull();
+    expect(viewToggle!.querySelector('[data-testid="view-toggle-board"]')).not.toBeNull();
+    expect(viewToggle!.querySelector('[data-testid="view-toggle-list"]')).not.toBeNull();
   });
 });

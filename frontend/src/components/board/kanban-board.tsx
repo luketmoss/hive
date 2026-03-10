@@ -11,11 +11,10 @@ import { CreateItemModal } from '../forms/create-item-modal';
 import { CreateBoardModal } from './create-board-modal';
 import { ShareModal } from './share-modal';
 import { ShortcutsHelp } from './shortcuts-help';
-import { BoardSwitcher } from './board-switcher';
 import { ProfileDialog } from '../profile/profile-dialog';
 import { ArchiveDialog } from '../archive/archive-dialog';
-import { FilterBar } from '../filters/filter-bar';
-import { ThemeToggle } from './theme-toggle';
+import { UserDropdown } from '../header/user-dropdown';
+import { ControlBar } from '../header/control-bar';
 import { HiveLogo } from '../shared/hive-logo';
 import type { ItemStatus, ItemWithRow } from '../../api/types';
 
@@ -217,49 +216,25 @@ export function KanbanBoard() {
 
   return (
     <div class="board-layout">
+      {/* AC1: Slim header — logo + title on left, user dropdown on right */}
       <header class="board-header">
         <div class="board-header-left">
           <HiveLogo class="board-header-logo" />
           <h1>Hive</h1>
         </div>
         <div class="board-header-right">
-          <ThemeToggle />
           {user && (
-            <button
-              class="user-info"
-              onClick={() => setShowProfile(true)}
-              aria-haspopup="dialog"
-            >
-              {user.picture && <img src={user.picture} alt="" class="user-avatar" />}
-              <span class="user-name">{displayName}</span>
-            </button>
+            <UserDropdown
+              user={user}
+              displayName={displayName}
+              onSignOut={logout}
+            />
           )}
-          <button class="btn btn-ghost" onClick={logout}>Sign out</button>
         </div>
       </header>
 
-      <BoardSwitcher />
-
-      <FilterBar />
-
-      <div class="view-toggle-bar" data-testid="view-toggle-bar">
-        <button
-          class={`view-toggle-btn ${viewMode.value === 'board' ? 'view-toggle-active' : ''}`}
-          onClick={() => setViewMode('board')}
-          aria-pressed={viewMode.value === 'board'}
-          data-testid="view-toggle-board"
-        >
-          Board
-        </button>
-        <button
-          class={`view-toggle-btn ${viewMode.value === 'list' ? 'view-toggle-active' : ''}`}
-          onClick={() => setViewMode('list')}
-          aria-pressed={viewMode.value === 'list'}
-          data-testid="view-toggle-list"
-        >
-          List
-        </button>
-      </div>
+      {/* AC2: Unified control bar */}
+      <ControlBar />
 
       <main class="board-main">
         {isBoardEmpty ? (
