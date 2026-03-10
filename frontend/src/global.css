@@ -1315,6 +1315,11 @@ body {
   border-radius: var(--radius-sm);
   outline: none;
   background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.subtask-title-input:focus {
+  box-shadow: var(--focus-ring);
 }
 
 .subtask-done span {
