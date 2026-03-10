@@ -15,6 +15,7 @@ vi.mock('../../state/board-store', () => ({
     get value() { return mockSelectedItemId; },
     set value(v: string | null) { mockSelectedItemId = v; },
   },
+  openDetailWithTitleEdit: { value: false },
   selectedItem: {
     get value() {
       if (!mockSelectedItemId) return null;

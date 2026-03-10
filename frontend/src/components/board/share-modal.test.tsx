@@ -15,6 +15,7 @@ vi.mock('../../state/board-store', () => ({
   activeBoardId: { get value() { return mockBoardId.current; } },
   permissions: { get value() { return mockPerms.current; }, set value(v: any) { mockPerms.current = v; } },
   owners: { get value() { return mockOwners.current; } },
+  openDetailWithTitleEdit: { value: false },
 }));
 
 const mockShareBoard = vi.fn().mockResolvedValue(true);

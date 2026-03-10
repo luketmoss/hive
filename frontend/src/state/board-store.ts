@@ -68,6 +68,8 @@ export const groupBy = signal<'none' | 'owner' | 'label'>('none');
 
 // --- UI state ---
 export const selectedItemId = signal<string | null>(null);
+/** When true, CardDetail opens with the title EditableField in edit mode. */
+export const openDetailWithTitleEdit = signal(false);
 export const showCreateModal = signal(false);
 export const toastMessage = signal<{ text: string; type: 'success' | 'error' } | null>(null);
 

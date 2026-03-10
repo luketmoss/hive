@@ -54,6 +54,7 @@ vi.mock('../../state/board-store', () => ({
     set value(v: any) { mockState.selectedItem = v; },
   },
   selectedItemId: { value: null },
+  openDetailWithTitleEdit: { value: false },
   groupBy: { value: 'none' },
   owners: { value: [] },
   labels: { value: [] },

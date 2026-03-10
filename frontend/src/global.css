@@ -539,12 +539,14 @@ body {
   user-select: none;
 }
 
-/* AC8: cursor: grab on pointer (fine) devices to signal draggability */
+/* cursor: grab on card body, pointer on title (fine devices) */
 @media (pointer: fine) {
   .card {
     cursor: grab;
   }
-  .card-arming,
+  .card .card-title {
+    cursor: pointer;
+  }
   .card-dragging {
     cursor: grabbing;
   }
@@ -556,21 +558,7 @@ body {
 
 .card:focus-visible {
   outline: none;
-  box-shadow: var(--focus-ring), var(--shadow-lg);
-}
-
-/* AC4: Visual hold feedback — subtle lift during arm state */
-.card-arming {
-  transform: scale(1.02);
   box-shadow: var(--shadow-lg);
-}
-
-/* AC4: Suppress arm animation for reduced-motion preference */
-@media (prefers-reduced-motion: reduce) {
-  .card-arming {
-    transform: none;
-    box-shadow: var(--shadow);
-  }
 }
 
 .card-dragging {
@@ -595,9 +583,30 @@ body {
 }
 
 .card-title {
+  /* Reset button styles */
+  all: unset;
+  display: block;
+  width: 100%;
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 8px;
+  color: var(--color-text);
+  text-align: left;
+  /* Allow title text to wrap to 2 lines then truncate */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.card-title:hover {
+  text-decoration: underline;
+}
+
+.card-title:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
 }
 
 .card-meta {

@@ -19,6 +19,7 @@ vi.mock('../../state/board-store', () => ({
     },
   },
   selectedItemId: mockSelectedItemId,
+  openDetailWithTitleEdit: { value: false },
   labels: { value: [] },
   getChildCount: () => ({ done: 0, total: 0 }),
 }));
@@ -130,12 +131,12 @@ describe('ListView (Issue #13)', () => {
       expect(mockSelectedItemId.value).toBe('tap-test');
     });
 
-    it('opens detail panel when Enter is pressed on a card', () => {
+    it('opens detail panel when Enter is pressed on card title button', () => {
       mockItemsRef.current = [makeItem({ id: 'enter-test' })];
       const { container } = render(<ListView />);
 
-      const card = container.querySelector('.card') as HTMLElement;
-      fireEvent.keyDown(card, { key: 'Enter' });
+      const title = container.querySelector('.card-title') as HTMLElement;
+      fireEvent.keyDown(title, { key: 'Enter' });
       expect(mockSelectedItemId.value).toBe('enter-test');
     });
   });

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels as labelsStore, showToast } from '../../state/board-store';
+import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels as labelsStore, showToast, openDetailWithTitleEdit } from '../../state/board-store';
 import { updateItem, deleteItem, deleteSubtask, createItem, moveItem, reorderSubtasks } from '../../state/actions';
 import { validateOwnerChange } from '../../state/rules';
 import { LabelBadge } from '../shared/label-badge';
@@ -304,6 +304,8 @@ export function CardDetail() {
             label="Title"
             value={item.title}
             onSave={(v) => save('title', v)}
+            initialEditing={openDetailWithTitleEdit.value}
+            onEditStart={() => { openDetailWithTitleEdit.value = false; }}
           />
 
           <EditableField
@@ -629,15 +631,24 @@ function SaveFeedbackField({ label, children }: {
 
 // --- Inline editable field ---
 
-function EditableField({ label, value, onSave, multiline }: {
+function EditableField({ label, value, onSave, multiline, initialEditing, onEditStart }: {
   label: string;
   value: string;
   onSave: (value: string) => Promise<boolean>;
   multiline?: boolean;
+  /** When true, the field starts in edit mode on mount. */
+  initialEditing?: boolean;
+  /** Called once when initialEditing triggers edit mode. */
+  onEditStart?: () => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
+  const [editing, setEditing] = useState(!!initialEditing);
+  const [draft, setDraft] = useState(initialEditing ? value : value);
   const [feedback, setFeedback] = useState<'saved' | 'error' | null>(null);
+
+  // Clear the signal after consuming it
+  if (initialEditing && onEditStart) {
+    onEditStart();
+  }
 
   const commit = async () => {
     setEditing(false);
