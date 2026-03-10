@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/preact';
 import { Card } from './card';
 import { selectedItemId } from '../../state/board-store';
@@ -106,12 +106,10 @@ describe('Issue #118: Hold-to-drag interaction', () => {
 
       // Drag should proceed (not prevented)
       const dataTransferData: Record<string, string> = {};
-      const prevented = { value: false };
       const mockEvent = {
         dataTransfer: {
           setData: (type: string, value: string) => { dataTransferData[type] = value; },
         },
-        preventDefault: () => { prevented.value = true; },
       };
 
       fireEvent.dragStart(card, mockEvent);
@@ -272,6 +270,3 @@ describe('Issue #118: Hold-to-drag interaction', () => {
     });
   });
 });
-
-// Import afterEach for timer cleanup
-import { afterEach } from 'vitest';
