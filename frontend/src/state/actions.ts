@@ -373,7 +373,8 @@ export async function moveItem(
   itemId: string,
   newStatus: ItemStatus,
   actor: string,
-  token: string
+  token: string,
+  targetIndex?: number
 ): Promise<boolean> {
   const item = items.value.find(i => i.id === itemId);
   if (!item) return false;
@@ -386,11 +387,60 @@ export async function moveItem(
   }
 
   const oldItem = { ...item };
+  const oldItems = [...items.value];
 
-  // AC3: Place item at bottom of target column (sort_order = max + 1)
-  const maxSortOrder = items.value
-    .filter(i => i.status === newStatus && !i.parent_id)
-    .reduce((max, i) => Math.max(max, i.sort_order), 0);
+  // Get destination column items (root items only, sorted by sort_order)
+  const destColumnItems = items.value
+    .filter(i => i.status === newStatus && !i.parent_id && i.id !== itemId)
+    .sort((a, b) => a.sort_order - b.sort_order);
+
+  if (targetIndex !== undefined) {
+    // AC2: Insert at specific position and renumber the destination column
+    const movedItem: ItemWithRow = {
+      ...applyStatusSideEffects(item, newStatus),
+      sheetRow: item.sheetRow,
+    };
+
+    // Insert at the requested position
+    const reordered = [...destColumnItems];
+    const clampedIndex = Math.min(targetIndex, reordered.length);
+    reordered.splice(clampedIndex, 0, movedItem);
+
+    // Renumber all items in the destination column densely
+    const updates: ItemWithRow[] = reordered.map((it, i) => ({
+      ...it,
+      sort_order: i + 1,
+      updated_at: new Date().toISOString(),
+    }));
+
+    // Optimistic update
+    items.value = items.value.map(i => {
+      const updated = updates.find(u => u.id === i.id);
+      return updated ?? i;
+    });
+
+    // AC6: Screen reader announcement with position
+    const totalInColumn = reordered.length;
+    showToast(`${item.title} moved to ${newStatus}, position ${clampedIndex + 1} of ${totalInColumn}`);
+
+    try {
+      for (const updated of updates) {
+        await updateItemRow(updated.sheetRow, updated, token);
+      }
+      await appendAuditEntry(itemId, 'status_changed', 'status', oldItem.status, newStatus, actor, token);
+      await refreshItems(token);
+      return true;
+    } catch (err: any) {
+      items.value = oldItems;
+      if (!isReauthFailure(err)) {
+        showToast('Failed to move item: ' + err.message, 'error');
+      }
+      return false;
+    }
+  }
+
+  // AC3: No targetIndex — place item at bottom of target column (sort_order = max + 1)
+  const maxSortOrder = destColumnItems.reduce((max, i) => Math.max(max, i.sort_order), 0);
 
   const updated = {
     ...applyStatusSideEffects(item, newStatus),

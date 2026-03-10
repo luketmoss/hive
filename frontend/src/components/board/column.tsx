@@ -5,7 +5,7 @@ import type { ItemStatus, ItemWithRow } from '../../api/types';
 interface Props {
   status: ItemStatus;
   items: ItemWithRow[];
-  onDrop: (itemId: string, newStatus: ItemStatus) => void;
+  onDrop: (itemId: string, newStatus: ItemStatus, targetIndex?: number) => void;
   onReorder?: (itemId: string, newIndex: number, columnItems: ItemWithRow[]) => void;
   onMoveStatus?: (itemId: string, newStatus: ItemStatus) => void;
   compact?: boolean;
@@ -32,22 +32,10 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
   const handleDragOver = (e: DragEvent) => {
     e.preventDefault();
 
-    // AC2: Only show drop indicator for same-column drags.
-    // The HTML5 drag API does not allow reading dataTransfer values during dragover,
-    // so we rely on the module-level currentDragStatus set in card.tsx handleDragStart.
-    const isSameColumn = currentDragStatus !== null && currentDragStatus === status;
-
-    if (!isSameColumn) {
-      // Cross-column drag — show column-level highlight only, no insertion line
-      setDropIndicator(null);
-      (e.currentTarget as HTMLElement).classList.add('column-drag-over');
-      return;
-    }
-
     const target = (e.target as HTMLElement).closest('.card') as HTMLElement;
 
     if (!target) {
-      // Dragging over column but not over a card
+      // Dragging over column but not over a card — show column-level highlight
       setDropIndicator(null);
       (e.currentTarget as HTMLElement).classList.add('column-drag-over');
       return;
@@ -106,6 +94,8 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
           if (sourceIndex !== newIndex) {
             onReorder(itemId, newIndex, items);
           }
+          // AC7: Focus restoration after within-column reorder
+          restoreFocus(itemId);
           return;
         }
       }
@@ -113,8 +103,35 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
       return;
     }
 
-    // Cross-column drop
+    // Cross-column drop — compute target index from cursor position
+    const target = (e.target as HTMLElement).closest('.card') as HTMLElement;
+    if (target) {
+      const targetId = target.getAttribute('data-item-id');
+      const targetIndex = items.findIndex(i => i.id === targetId);
+      if (targetIndex !== -1) {
+        const rect = target.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        const insertIndex = e.clientY < midY ? targetIndex : targetIndex + 1;
+        onDrop(itemId, status, insertIndex);
+        // AC7: Focus restoration after cross-column drop
+        restoreFocus(itemId);
+        return;
+      }
+    }
+
+    // AC3: Dropped on empty space or empty column — place at end (no targetIndex)
     onDrop(itemId, status);
+    // AC7: Focus restoration
+    restoreFocus(itemId);
+  };
+
+  /** AC7: Restore focus to the moved card's title button after DOM update */
+  const restoreFocus = (itemId: string) => {
+    requestAnimationFrame(() => {
+      const card = document.querySelector(`[data-item-id="${itemId}"]`);
+      const titleBtn = card?.querySelector('.card-title') as HTMLElement | null;
+      titleBtn?.focus();
+    });
   };
 
   const handleKeyboardReorder = (itemId: string, direction: 'up' | 'down') => {

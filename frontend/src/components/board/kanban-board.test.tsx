@@ -29,6 +29,7 @@ afterEach(() => {
   mockState.selectedItem = null;
   mockState.accessibleBoards = [];
   mockSwitchBoard.mockClear();
+  mockMoveItem.mockClear();
 });
 
 vi.mock('../../state/board-store', () => ({
@@ -92,8 +93,10 @@ vi.mock('../../state/board-store', () => ({
   setTheme: () => {},
 }));
 
+const mockMoveItem = vi.fn();
 vi.mock('../../state/actions', () => ({
-  moveItem: vi.fn(),
+  moveItem: (...args: any[]) => mockMoveItem(...args),
+  reorderItem: vi.fn(),
 }));
 
 // Mock FilterBar to avoid pulling in the full filter chain
