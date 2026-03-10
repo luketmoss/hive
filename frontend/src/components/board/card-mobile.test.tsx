@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/preact';
 import { Card } from './card';
 import { selectedItemId } from '../../state/board-store';
@@ -32,126 +32,235 @@ function makeItem(overrides: Partial<ItemWithRow> = {}): ItemWithRow {
   };
 }
 
-describe('Mobile and responsive improvements (Issue #10)', () => {
+describe('Issue #118: Hold-to-drag interaction', () => {
   beforeEach(() => {
     selectedItemId.value = null;
+    vi.useFakeTimers();
   });
 
-  // AC3: Cards have a drag handle
-  describe('AC3: Cards have a visible drag handle', () => {
-    it('renders a drag handle element inside the card', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // AC5: Drag handle removed from all viewports
+  describe('AC5: Drag handle removed', () => {
+    it('no drag handle element is rendered on the card', () => {
       const item = makeItem();
       const { container } = render(<Card item={item} />);
-      const handle = container.querySelector('.drag-handle');
-      expect(handle).not.toBeNull();
+      expect(container.querySelector('.drag-handle')).toBeNull();
+      expect(container.querySelector('.drag-handle-dots')).toBeNull();
     });
 
-    it('drag handle contains a dots grip icon element', () => {
+    it('no card-row wrapper is rendered (flat card-content layout)', () => {
       const item = makeItem();
       const { container } = render(<Card item={item} />);
-      const dots = container.querySelector('.drag-handle-dots');
-      expect(dots).not.toBeNull();
+      expect(container.querySelector('.card-row')).toBeNull();
     });
 
-    it('drag handle has draggable attribute', () => {
+    it('accessibility tree does not contain "Drag to reorder" label', () => {
       const item = makeItem();
       const { container } = render(<Card item={item} />);
-      const handle = container.querySelector('.drag-handle') as HTMLElement;
-      expect(handle.getAttribute('draggable')).toBe('true');
+      const elements = container.querySelectorAll('[aria-label="Drag to reorder"]');
+      expect(elements.length).toBe(0);
     });
+  });
 
-    it('card div itself is NOT draggable', () => {
-      const item = makeItem();
-      const { container } = render(<Card item={item} />);
-      const card = container.querySelector('.card') as HTMLElement;
-      // The card element should not have draggable attribute
-      expect(card.getAttribute('draggable')).toBeNull();
-    });
-
-    it('drag handle has an accessible label', () => {
-      const item = makeItem();
-      const { container } = render(<Card item={item} />);
-      const handle = container.querySelector('.drag-handle') as HTMLElement;
-      expect(handle.getAttribute('aria-label')).toBe('Drag to reorder');
-    });
-
-    it('only the drag handle initiates drag (clicking card body opens detail)', () => {
-      selectedItemId.value = null;
+  // AC1: Single click opens card detail
+  describe('AC1: Single click opens card detail', () => {
+    it('clicking the card body opens the detail panel', () => {
       const item = makeItem({ id: 'click-test' });
       const { container } = render(<Card item={item} />);
-      const cardContent = container.querySelector('.card-content') as HTMLElement;
+      const card = container.querySelector('.card') as HTMLElement;
 
-      // Click on the card content area (not the handle)
-      fireEvent.click(cardContent);
+      fireEvent.click(card);
       expect(selectedItemId.value).toBe('click-test');
     });
 
-    it('clicking the drag handle does NOT open the detail panel', () => {
-      selectedItemId.value = null;
-      const item = makeItem({ id: 'handle-click-test' });
+    it('clicking card-content area opens the detail panel', () => {
+      const item = makeItem({ id: 'content-click' });
       const { container } = render(<Card item={item} />);
-      const handle = container.querySelector('.drag-handle') as HTMLElement;
+      const content = container.querySelector('.card-content') as HTMLElement;
 
-      fireEvent.click(handle);
-      expect(selectedItemId.value).toBeNull();
+      fireEvent.click(content);
+      expect(selectedItemId.value).toBe('content-click');
     });
   });
 
-  // AC3 continued: Drag handle fires drag events with item ID
-  describe('AC3: Drag handle fires correct drag events', () => {
-    it('sets item id in dataTransfer when drag starts from handle', () => {
-      const item = makeItem({ id: 'drag-item-1' });
-      const { container } = render(<Card item={item} />);
-      const handle = container.querySelector('.drag-handle') as HTMLElement;
-
-      const dataTransferData: Record<string, string> = {};
-      const mockDataTransfer = {
-        setData: (type: string, value: string) => { dataTransferData[type] = value; },
-      };
-
-      fireEvent.dragStart(handle, { dataTransfer: mockDataTransfer });
-      expect(dataTransferData['text/plain']).toBe('drag-item-1');
-    });
-  });
-
-  // AC4: Drag handle prevents accidental drags on touch
-  describe('AC4: Drag handle has touch-action none for touch safety', () => {
-    it('drag handle has touch-action: none in CSS (verified via class presence)', () => {
-      // This AC is implemented via CSS `touch-action: none` on .drag-handle.
-      // In jsdom we verify the element exists and has the correct class;
-      // the CSS rule is verified by inspecting the stylesheet content.
-      const item = makeItem();
-      const { container } = render(<Card item={item} />);
-      const handle = container.querySelector('.drag-handle');
-      expect(handle).not.toBeNull();
-      expect(handle!.classList.contains('drag-handle')).toBe(true);
-    });
-
-    it('card body (non-handle area) does not have draggable attribute', () => {
+  // AC2: Hold-to-drag — card is draggable
+  describe('AC2: Card is draggable (hold-to-drag)', () => {
+    it('card div has draggable attribute', () => {
       const item = makeItem();
       const { container } = render(<Card item={item} />);
       const card = container.querySelector('.card') as HTMLElement;
-      const content = container.querySelector('.card-content') as HTMLElement;
-      // Neither the card wrapper nor content area should be draggable
-      expect(card.getAttribute('draggable')).toBeNull();
-      expect(content.getAttribute('draggable')).toBeNull();
+      expect(card.getAttribute('draggable')).toBe('true');
+    });
+
+    it('dragstart is allowed after hold threshold (200ms)', () => {
+      const item = makeItem({ id: 'drag-armed' });
+      const { container } = render(<Card item={item} />);
+      const card = container.querySelector('.card') as HTMLElement;
+
+      // Press and hold
+      fireEvent.mouseDown(card, { button: 0 });
+      vi.advanceTimersByTime(200);
+
+      // Drag should proceed (not prevented)
+      const dataTransferData: Record<string, string> = {};
+      const mockEvent = {
+        dataTransfer: {
+          setData: (type: string, value: string) => { dataTransferData[type] = value; },
+        },
+      };
+
+      fireEvent.dragStart(card, mockEvent);
+      // After armed, dragstart should set data (not be prevented)
+      expect(dataTransferData['text/plain']).toBe('drag-armed');
     });
   });
 
-  // AC3/AC4: Card layout structure
-  describe('Card layout structure', () => {
-    it('card contains a card-row with handle and content', () => {
-      const item = makeItem();
+  // AC3: Accidental drag (before hold threshold) is suppressed
+  describe('AC3: Accidental drag before hold threshold is suppressed', () => {
+    it('dragstart is prevented if hold duration < 200ms', () => {
+      const item = makeItem({ id: 'early-drag' });
       const { container } = render(<Card item={item} />);
-      const row = container.querySelector('.card-row');
-      expect(row).not.toBeNull();
-      const handle = row!.querySelector('.drag-handle');
-      const content = row!.querySelector('.card-content');
-      expect(handle).not.toBeNull();
-      expect(content).not.toBeNull();
+      const card = container.querySelector('.card') as HTMLElement;
+
+      // Press but do not wait long enough
+      fireEvent.mouseDown(card, { button: 0 });
+      vi.advanceTimersByTime(100); // only 100ms, less than 200ms threshold
+
+      // fireEvent returns false when preventDefault() was called
+      const dragAllowed = fireEvent.dragStart(card);
+      expect(dragAllowed).toBe(false);
     });
 
-    it('card title is inside card-content (not at card root)', () => {
+    it('dragstart is prevented if no mousedown occurred', () => {
+      const item = makeItem({ id: 'no-press' });
+      const { container } = render(<Card item={item} />);
+      const card = container.querySelector('.card') as HTMLElement;
+
+      // fireEvent returns false when preventDefault() was called
+      const dragAllowed = fireEvent.dragStart(card);
+      expect(dragAllowed).toBe(false);
+    });
+  });
+
+  // AC4: Visual hold feedback (arm state)
+  describe('AC4: Visual arm-state feedback', () => {
+    it('adds card-arming class after 100ms hold', () => {
+      const item = makeItem();
+      const { container } = render(<Card item={item} />);
+      const card = container.querySelector('.card') as HTMLElement;
+
+      fireEvent.mouseDown(card, { button: 0 });
+      expect(card.classList.contains('card-arming')).toBe(false);
+
+      vi.advanceTimersByTime(100);
+      expect(card.classList.contains('card-arming')).toBe(true);
+    });
+
+    it('removes card-arming class on mouseup before 200ms', () => {
+      const item = makeItem();
+      const { container } = render(<Card item={item} />);
+      const card = container.querySelector('.card') as HTMLElement;
+
+      fireEvent.mouseDown(card, { button: 0 });
+      vi.advanceTimersByTime(100);
+      expect(card.classList.contains('card-arming')).toBe(true);
+
+      fireEvent.mouseUp(card);
+      expect(card.classList.contains('card-arming')).toBe(false);
+    });
+
+    it('removes card-arming class on mouse leave', () => {
+      const item = makeItem();
+      const { container } = render(<Card item={item} />);
+      const card = container.querySelector('.card') as HTMLElement;
+
+      fireEvent.mouseDown(card, { button: 0 });
+      vi.advanceTimersByTime(100);
+      expect(card.classList.contains('card-arming')).toBe(true);
+
+      fireEvent.mouseLeave(card);
+      expect(card.classList.contains('card-arming')).toBe(false);
+    });
+
+    it('does not add card-arming class for right-click', () => {
+      const item = makeItem();
+      const { container } = render(<Card item={item} />);
+      const card = container.querySelector('.card') as HTMLElement;
+
+      fireEvent.mouseDown(card, { button: 2 });
+      vi.advanceTimersByTime(150);
+      expect(card.classList.contains('card-arming')).toBe(false);
+    });
+  });
+
+  // AC6: Touch devices — tap to open
+  describe('AC6: Touch devices — tap opens card detail', () => {
+    it('clicking the card on touch device opens detail (same as pointer click)', () => {
+      const item = makeItem({ id: 'touch-tap' });
+      const { container } = render(<Card item={item} />);
+      const card = container.querySelector('.card') as HTMLElement;
+
+      fireEvent.click(card);
+      expect(selectedItemId.value).toBe('touch-tap');
+    });
+  });
+
+  // AC7: Keyboard interactions unchanged
+  describe('AC7: Keyboard interactions unchanged', () => {
+    it('Enter opens card detail', () => {
+      const item = makeItem({ id: 'keyboard-enter' });
+      const { container } = render(<Card item={item} />);
+      const card = container.querySelector('.card') as HTMLElement;
+
+      fireEvent.keyDown(card, { key: 'Enter' });
+      expect(selectedItemId.value).toBe('keyboard-enter');
+    });
+
+    it('Space opens card detail', () => {
+      const item = makeItem({ id: 'keyboard-space' });
+      const { container } = render(<Card item={item} />);
+      const card = container.querySelector('.card') as HTMLElement;
+
+      fireEvent.keyDown(card, { key: ' ' });
+      expect(selectedItemId.value).toBe('keyboard-space');
+    });
+
+    it('Alt+ArrowUp calls onReorder', () => {
+      const onReorder = vi.fn();
+      const item = makeItem({ id: 'kb-reorder' });
+      const { container } = render(<Card item={item} onReorder={onReorder} />);
+      const card = container.querySelector('.card') as HTMLElement;
+
+      fireEvent.keyDown(card, { key: 'ArrowUp', altKey: true });
+      expect(onReorder).toHaveBeenCalledWith('kb-reorder', 'up');
+    });
+
+    it('ArrowRight moves between columns', () => {
+      const onMoveStatus = vi.fn();
+      const item = makeItem({ id: 'kb-move', status: 'To Do' });
+      const { container } = render(<Card item={item} onMoveStatus={onMoveStatus} />);
+      const card = container.querySelector('.card') as HTMLElement;
+
+      fireEvent.keyDown(card, { key: 'ArrowRight' });
+      expect(onMoveStatus).toHaveBeenCalledWith('kb-move', 'In Progress');
+    });
+  });
+
+  // Card layout structure (updated for #118)
+  describe('Card layout structure', () => {
+    it('card contains card-content directly (no card-row wrapper)', () => {
+      const item = makeItem();
+      const { container } = render(<Card item={item} />);
+      const card = container.querySelector('.card') as HTMLElement;
+      const content = card.querySelector('.card-content');
+      expect(content).not.toBeNull();
+      expect(card.querySelector('.card-row')).toBeNull();
+    });
+
+    it('card title is inside card-content', () => {
       const item = makeItem({ title: 'Nested Title' });
       const { container } = render(<Card item={item} />);
       const content = container.querySelector('.card-content');

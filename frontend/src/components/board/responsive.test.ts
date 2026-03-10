@@ -70,25 +70,24 @@ describe('Responsive CSS (Issue #10)', () => {
     });
   });
 
-  // AC3: Drag handle CSS exists
-  describe('AC3: Drag handle styles exist', () => {
-    it('drag-handle class is defined with cursor: grab', () => {
-      expect(css).toMatch(/\.drag-handle\s*\{[^}]*cursor:\s*grab/);
+  // #118: Hold-to-drag CSS styles
+  describe('#118: Hold-to-drag card styles', () => {
+    it('card has cursor: grab inside @media (pointer: fine)', () => {
+      expect(css).toMatch(/@media\s*\(pointer:\s*fine\)\s*\{[^}]*\.card\s*\{[^}]*cursor:\s*grab/);
     });
 
-    it('drag-handle-dots class exists for the grip icon', () => {
-      expect(css).toContain('.drag-handle-dots');
+    it('card-arming has scale transform for visual feedback', () => {
+      expect(css).toMatch(/\.card-arming\s*\{[^}]*transform:\s*scale\(1\.02\)/);
     });
 
-    it('card cursor changed from grab to default (only handle has grab)', () => {
-      expect(css).toMatch(/\.card\s*\{[^}]*cursor:\s*default/);
+    it('card-arming animation suppressed for prefers-reduced-motion', () => {
+      expect(css).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[^}]*\.card-arming\s*\{[^}]*transform:\s*none/);
     });
-  });
 
-  // AC4: touch-action: none on drag handle
-  describe('AC4: Drag handle has touch-action none', () => {
-    it('drag-handle has touch-action: none CSS property', () => {
-      expect(css).toMatch(/\.drag-handle\s*\{[^}]*touch-action:\s*none/);
+    it('no drag-handle styles remain (removed in #118)', () => {
+      // .drag-handle should only exist as .subtask-drag-handle
+      const nonSubtaskHandles = css.replace(/\.subtask-drag-handle/g, '').match(/\.drag-handle/);
+      expect(nonSubtaskHandles).toBeNull();
     });
   });
 

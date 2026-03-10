@@ -1,3 +1,4 @@
+import { useRef } from 'preact/hooks';
 import { selectedItemId, getChildCount } from '../../state/board-store';
 import { labels as labelsStore } from '../../state/board-store';
 import type { ItemWithRow, ItemStatus } from '../../api/types';
@@ -8,6 +9,11 @@ export let currentDragStatus: string | null = null;
 
 /** Ordered statuses for keyboard column navigation */
 const STATUS_ORDER: ItemStatus[] = ['To Do', 'In Progress', 'Done'];
+
+/** Hold duration (ms) before drag is armed */
+const DRAG_ARM_DELAY = 200;
+/** Visual feedback starts at this fraction of the arm delay */
+const ARM_VISUAL_DELAY = 100;
 
 interface Props {
   item: ItemWithRow;
@@ -25,26 +31,75 @@ export function Card({ item, onMoveStatus, onReorder, columnItems }: Props) {
   const isOverdue = item.due_date && item.status !== 'Done' &&
     parseLocalDate(item.due_date) < new Date(new Date().toDateString());
 
+  // Hold-to-drag state refs (not signals — avoid re-renders on pointer events)
+  const dragArmed = useRef(false);
+  const armTimerId = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const visualTimerId = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const clearTimers = () => {
+    if (armTimerId.current !== null) { clearTimeout(armTimerId.current); armTimerId.current = null; }
+    if (visualTimerId.current !== null) { clearTimeout(visualTimerId.current); visualTimerId.current = null; }
+  };
+
+  const handleMouseDown = (e: MouseEvent) => {
+    // Only left button
+    if (e.button !== 0) return;
+
+    dragArmed.current = false;
+    clearTimers();
+
+    // At ARM_VISUAL_DELAY, show arming feedback
+    visualTimerId.current = setTimeout(() => {
+      cardRef.current?.classList.add('card-arming');
+    }, ARM_VISUAL_DELAY);
+
+    // At DRAG_ARM_DELAY, arm drag
+    armTimerId.current = setTimeout(() => {
+      dragArmed.current = true;
+    }, DRAG_ARM_DELAY);
+  };
+
+  const handleMouseUp = () => {
+    clearTimers();
+    dragArmed.current = false;
+    cardRef.current?.classList.remove('card-arming');
+  };
+
+  const handleMouseLeave = () => {
+    clearTimers();
+    dragArmed.current = false;
+    cardRef.current?.classList.remove('card-arming');
+  };
+
   const handleDragStart = (e: DragEvent) => {
+    if (!dragArmed.current) {
+      // Hold threshold not met — suppress drag, let click handler open detail
+      e.preventDefault();
+      return;
+    }
+
+    clearTimers();
+    cardRef.current?.classList.remove('card-arming');
+
     e.dataTransfer?.setData('text/plain', item.id);
-    // Store the source column status so drop targets can detect within-column vs cross-column
     e.dataTransfer?.setData('application/x-hive-status', item.status);
-    // Track source status at module level (readable during dragover, unlike dataTransfer values)
     currentDragStatus = item.status;
-    // Add dragging class to the card (parent of handle)
-    const card = (e.currentTarget as HTMLElement).closest('.card') as HTMLElement;
-    if (card) card.classList.add('card-dragging');
+
+    const card = e.currentTarget as HTMLElement;
+    card.classList.add('card-dragging');
   };
 
   const handleDragEnd = (e: DragEvent) => {
     currentDragStatus = null;
-    const card = (e.currentTarget as HTMLElement).closest('.card') as HTMLElement;
-    if (card) card.classList.remove('card-dragging');
+    dragArmed.current = false;
+    clearTimers();
+    const card = e.currentTarget as HTMLElement;
+    card.classList.remove('card-dragging');
+    card.classList.remove('card-arming');
   };
 
   const handleClick = (e: MouseEvent) => {
-    // Don't open detail if clicking the drag handle
-    if ((e.target as HTMLElement).closest('.drag-handle')) return;
     selectedItemId.value = item.id;
   };
 
@@ -54,7 +109,7 @@ export function Card({ item, onMoveStatus, onReorder, columnItems }: Props) {
       selectedItemId.value = item.id;
     }
 
-    // AC4: Alt+ArrowUp/Down for within-column reorder
+    // Alt+ArrowUp/Down for within-column reorder
     if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
       e.preventDefault();
       if (onReorder) {
@@ -77,75 +132,67 @@ export function Card({ item, onMoveStatus, onReorder, columnItems }: Props) {
 
   return (
     <div
+      ref={cardRef}
       class="card"
       tabIndex={0}
       role="button"
+      draggable
       aria-label={`${item.title}, ${item.status}. Press Enter to open details. Alt+Up/Down to reorder within column, Left/Right arrows to move between columns.`}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseLeave}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       data-item-id={item.id}
     >
-      <div class="card-row">
-        <span
-          class="drag-handle"
-          draggable
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          aria-label="Drag to reorder"
-          title="Drag to move"
-        >
-          <span class="drag-handle-dots" aria-hidden="true" />
-        </span>
-        <div class="card-content">
-          <div class="card-title">{item.title}</div>
+      <div class="card-content">
+        <div class="card-title">{item.title}</div>
 
-          {item.description && (
-            <div class="card-description">{item.description}</div>
+        {item.description && (
+          <div class="card-description">{item.description}</div>
+        )}
+
+        <div class="card-meta">
+          {item.owner ? (
+            <span class="card-owner">{item.owner}</span>
+          ) : (
+            <span class="card-unassigned">Unassigned</span>
           )}
-
-          <div class="card-meta">
-            {item.owner ? (
-              <span class="card-owner">{item.owner}</span>
-            ) : (
-              <span class="card-unassigned">Unassigned</span>
-            )}
-            {item.due_date && (
-              <span
-                class={`card-due ${isOverdue ? 'card-due-overdue' : ''}`}
-                aria-label={`Due date: ${formatDate(item.due_date)}${isOverdue ? ', overdue' : ''}`}
-              >
-                {'\u{23F0}'} Due: {formatDate(item.due_date)}{isOverdue ? ' (overdue)' : ''}
-              </span>
-            )}
-          </div>
-
-          {itemLabels.length > 0 && (
-            <div class="card-labels">
-              {itemLabels.map(label => (
-                <LabelBadge key={label} label={label} />
-              ))}
-            </div>
-          )}
-
-          {childCount.total > 0 && (
-            <div class="card-subtasks">
-              <div
-                class="subtask-bar"
-                style={{ '--progress': `${(childCount.done / childCount.total) * 100}%` } as any}
-              />
-              <span class="subtask-text">{childCount.done}/{childCount.total}</span>
-            </div>
+          {item.due_date && (
+            <span
+              class={`card-due ${isOverdue ? 'card-due-overdue' : ''}`}
+              aria-label={`Due date: ${formatDate(item.due_date)}${isOverdue ? ', overdue' : ''}`}
+            >
+              {'\u{23F0}'} Due: {formatDate(item.due_date)}{isOverdue ? ' (overdue)' : ''}
+            </span>
           )}
         </div>
+
+        {itemLabels.length > 0 && (
+          <div class="card-labels">
+            {itemLabels.map(label => (
+              <LabelBadge key={label} label={label} />
+            ))}
+          </div>
+        )}
+
+        {childCount.total > 0 && (
+          <div class="card-subtasks">
+            <div
+              class="subtask-bar"
+              style={{ '--progress': `${(childCount.done / childCount.total) * 100}%` } as any}
+            />
+            <span class="subtask-text">{childCount.done}/{childCount.total}</span>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 function parseLocalDate(dateStr: string): Date {
-  // Date-only strings (e.g. "2026-03-02") are parsed as UTC by JS,
-  // which shifts the day back in western timezones. Append T00:00:00
-  // so it's treated as local time instead.
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     return new Date(dateStr + 'T00:00:00');
   }
