@@ -17,7 +17,7 @@ vi.mock('../../auth/auth-context', () => ({
 const { mockBoardStore } = vi.hoisted(() => {
   const mockBoardStore = {
     showCreateModal: { value: true },
-    owners: { value: [{ name: 'Mom', google_account: 'mom@test.com' }, { name: 'Dad', google_account: 'dad@test.com' }] },
+    owners: { value: [{ name: 'Test User', google_account: 'test@example.com' }, { name: 'Mom', google_account: 'mom@test.com' }, { name: 'Dad', google_account: 'dad@test.com' }] },
     labels: { value: [{ label: 'Urgent', color: '#ff0000' }] },
   };
   return { mockBoardStore };
@@ -373,6 +373,86 @@ describe('CreateItemModal — Quick Date Shortcuts (Issue #82)', () => {
       fireEvent.submit(form);
 
       expect(mockCreateItem.mock.calls[0][0].due_date).toBe('2026-12-25');
+    });
+  });
+});
+
+// --- Auto-assign creator as default owner (Issue #112) ---
+describe('CreateItemModal — Auto-assign default owner (Issue #112)', () => {
+  beforeEach(() => {
+    mockCreateItem.mockClear();
+    mockCreateItemWithSubtasks.mockClear();
+    mockBoardStore.showCreateModal.value = true;
+  });
+
+  // AC1: Create Item modal pre-selects current user as owner
+  describe('AC1: Pre-selects current user as owner', () => {
+    it('owner dropdown defaults to the signed-in user when email matches an owner', () => {
+      // Mock auth user is test@example.com, owners include Test User with that email
+      const { container } = render(<CreateItemModal />);
+      const ownerSelect = container.querySelector('#owner') as HTMLSelectElement;
+      expect(ownerSelect.value).toBe('Test User');
+    });
+  });
+
+  // AC2: Owner is editable before saving
+  describe('AC2: Owner is editable before saving', () => {
+    it('user can change the pre-selected owner before submitting', () => {
+      const { container } = render(<CreateItemModal />);
+      const ownerSelect = container.querySelector('#owner') as HTMLSelectElement;
+      expect(ownerSelect.value).toBe('Test User');
+
+      fireEvent.change(ownerSelect, { target: { value: 'Mom' } });
+      expect(ownerSelect.value).toBe('Mom');
+
+      // Submit and verify the chosen owner is sent
+      const titleInput = container.querySelector('#title') as HTMLInputElement;
+      fireEvent.input(titleInput, { target: { value: 'My task' } });
+      const form = container.querySelector('form') as HTMLFormElement;
+      fireEvent.submit(form);
+
+      expect(mockCreateItem.mock.calls[0][0].owner).toBe('Mom');
+    });
+  });
+
+  // AC4: Staged subtasks inherit the task owner (existing behaviour preserved)
+  describe('AC4: Staged subtasks inherit the task owner', () => {
+    it('subtask inherits the pre-selected owner', () => {
+      const { container } = render(<CreateItemModal />);
+      const input = container.querySelector('#subtask-title') as HTMLInputElement;
+      fireEvent.input(input, { target: { value: 'Sub A' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+
+      const staged = container.querySelectorAll('.staged-subtask');
+      expect(staged[0].querySelector('.staged-subtask-owner')!.textContent).toBe('Test User');
+    });
+
+    it('subtask inherits after user changes owner', () => {
+      const { container } = render(<CreateItemModal />);
+      const ownerSelect = container.querySelector('#owner') as HTMLSelectElement;
+      fireEvent.change(ownerSelect, { target: { value: 'Dad' } });
+
+      const input = container.querySelector('#subtask-title') as HTMLInputElement;
+      fireEvent.input(input, { target: { value: 'Sub B' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+
+      const staged = container.querySelectorAll('.staged-subtask');
+      expect(staged[0].querySelector('.staged-subtask-owner')!.textContent).toBe('Dad');
+    });
+  });
+
+  // AC5: Graceful fallback when user not in owners list
+  describe('AC5: Fallback to Unassigned when user not in owners list', () => {
+    it('defaults to empty (Unassigned) when auth email does not match any owner', () => {
+      // Temporarily replace owners with none matching test@example.com
+      const original = mockBoardStore.owners.value;
+      mockBoardStore.owners.value = [{ name: 'Mom', google_account: 'mom@test.com' }];
+
+      const { container } = render(<CreateItemModal />);
+      const ownerSelect = container.querySelector('#owner') as HTMLSelectElement;
+      expect(ownerSelect.value).toBe('');
+
+      mockBoardStore.owners.value = original;
     });
   });
 });

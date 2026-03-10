@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'preact/hooks';
+import { useState, useRef, useCallback, useMemo } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
 import { showCreateModal, owners, labels as labelsStore } from '../../state/board-store';
 import { createItem, createItemWithSubtasks } from '../../state/actions';
@@ -10,9 +10,13 @@ import { QuickDateChips } from '../shared/quick-date-chips';
 
 export function CreateItemModal() {
   const { token, user } = useAuth();
+  const defaultOwner = useMemo(
+    () => owners.value.find(o => o.google_account.toLowerCase() === user?.email?.toLowerCase())?.name ?? '',
+    [user?.email]
+  );
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [owner, setOwner] = useState('');
+  const [owner, setOwner] = useState(defaultOwner);
   const [dueDate, setDueDate] = useState('');
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [subtasks, setSubtasks] = useState<StagedSubtask[]>([]);
