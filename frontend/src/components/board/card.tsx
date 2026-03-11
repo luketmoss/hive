@@ -1,6 +1,7 @@
 import { selectedItemId, getChildCount, openDetailWithTitleEdit } from '../../state/board-store';
 import { labels as labelsStore } from '../../state/board-store';
 import type { ItemWithRow, ItemStatus } from '../../api/types';
+import type { SortMode } from '../../state/board-store';
 import { LabelBadge } from '../shared/label-badge';
 
 /** Tracks the status of the card currently being dragged (same module, readable during dragover). */
@@ -14,9 +15,11 @@ interface Props {
   onMoveStatus?: (itemId: string, newStatus: ItemStatus) => void;
   onReorder?: (itemId: string, direction: 'up' | 'down') => void;
   columnItems?: ItemWithRow[];
+  /** AC9: Current sort mode — shows lock indicator when non-custom */
+  sortMode?: SortMode;
 }
 
-export function Card({ item, onMoveStatus, onReorder, columnItems }: Props) {
+export function Card({ item, onMoveStatus, onReorder, columnItems, sortMode }: Props) {
   const childCount = getChildCount(item.id);
   const itemLabels = item.labels
     ? item.labels.split(',').map(l => l.trim()).filter(Boolean)
@@ -85,6 +88,8 @@ export function Card({ item, onMoveStatus, onReorder, columnItems }: Props) {
     }
   };
 
+  const isDateSorted = sortMode && sortMode !== 'custom';
+
   return (
     <div
       class="card"
@@ -95,6 +100,16 @@ export function Card({ item, onMoveStatus, onReorder, columnItems }: Props) {
       data-item-id={item.id}
     >
       <div class="card-content">
+        {/* AC9: Lock indicator when column is in date-sort mode */}
+        {isDateSorted && (
+          <span
+            class="card-sort-lock"
+            title="Manual reorder unavailable in this sort mode"
+            aria-label="Manual reorder unavailable in this sort mode"
+          >
+            &#128274;
+          </span>
+        )}
         <button
           class="card-title"
           type="button"

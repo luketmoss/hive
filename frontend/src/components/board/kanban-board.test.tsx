@@ -99,6 +99,12 @@ vi.mock('../../state/board-store', () => ({
   applyTheme: () => {},
   cycleTheme: () => {},
   setTheme: () => {},
+  columnSortModes: {
+    get value() {
+      return { 'To Do': 'custom', 'In Progress': 'custom', 'Done': 'custom' };
+    },
+  },
+  setColumnSortMode: () => {},
 }));
 
 const mockMoveItem = vi.fn();

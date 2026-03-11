@@ -242,9 +242,53 @@ export function initActiveBoardFromUrl() {
   }
 }
 
+// --- Column sort ---
+export type SortMode = 'custom' | 'due_date' | 'created';
+
+function sortKey(status: ItemStatus): string {
+  return `hive-sort-${status.toLowerCase().replace(/ /g, '-')}`;
+}
+
+export function loadColumnSortModes(): Record<ItemStatus, SortMode> {
+  const modes: Record<ItemStatus, SortMode> = { 'To Do': 'custom', 'In Progress': 'custom', 'Done': 'custom' };
+  try {
+    for (const s of ['To Do', 'In Progress', 'Done'] as ItemStatus[]) {
+      const stored = localStorage.getItem(sortKey(s));
+      if (stored === 'custom' || stored === 'due_date' || stored === 'created') {
+        modes[s] = stored;
+      }
+    }
+  } catch { /* localStorage unavailable */ }
+  return modes;
+}
+
+export const columnSortModes = signal<Record<ItemStatus, SortMode>>(loadColumnSortModes());
+
+export function setColumnSortMode(status: ItemStatus, mode: SortMode) {
+  columnSortModes.value = { ...columnSortModes.value, [status]: mode };
+  try {
+    localStorage.setItem(sortKey(status), mode);
+  } catch { /* localStorage unavailable */ }
+}
+
+function sortItems(itemList: ItemWithRow[], mode: SortMode): ItemWithRow[] {
+  if (mode === 'due_date') {
+    return itemList.slice().sort((a, b) => {
+      if (!a.due_date && !b.due_date) return 0;
+      if (!a.due_date) return 1; // nulls last
+      if (!b.due_date) return -1;
+      return a.due_date.localeCompare(b.due_date);
+    });
+  }
+  if (mode === 'created') {
+    return itemList.slice().sort((a, b) => a.created_at.localeCompare(b.created_at));
+  }
+  return itemList.slice().sort(bySortOrder);
+}
+
 export const columns = computed(() => ({
-  'To Do': rootItems.value.filter(i => i.status === 'To Do').sort(bySortOrder),
-  'In Progress': rootItems.value.filter(i => i.status === 'In Progress').sort(bySortOrder),
+  'To Do': sortItems(rootItems.value.filter(i => i.status === 'To Do'), columnSortModes.value['To Do']),
+  'In Progress': sortItems(rootItems.value.filter(i => i.status === 'In Progress'), columnSortModes.value['In Progress']),
   'Done': recentDoneItems.value,
 }));
 
