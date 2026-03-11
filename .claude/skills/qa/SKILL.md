@@ -28,15 +28,28 @@ Parse the issue number from the input (strip `#` if present).
 
 ## Board Movement Helper
 
-Use this single command to move an issue to a board column. Replace `<ISSUE_NUMBER>` and `<COLUMN_NAME>`. The command starts with `gh project` so it matches the pre-approved permission pattern — do NOT rewrite it as separate variable assignments.
+All project IDs are hardcoded constants — never call `gh project list`, `gh project field-list`, or nested subshells to discover them.
 
+**Step 1:** Look up the board item ID for the issue (use `--limit 100` to avoid pagination misses):
 ```bash
-gh project item-edit \
-  --id "$(gh project item-list 2 --owner luketmoss --format json --jq '.items[] | select(.content.number == <ISSUE_NUMBER>) | .id')" \
-  --project-id "$(gh project list --owner luketmoss --format json --jq '.projects[] | select(.number == 2) | .id')" \
-  --field-id "$(gh project field-list 2 --owner luketmoss --format json --jq '.fields[] | select(.name == "Status") | .id')" \
-  --single-select-option-id "$(gh project field-list 2 --owner luketmoss --format json --jq '.fields[] | select(.name == "Status") | .options[] | select(.name == "<COLUMN_NAME>") | .id')"
+gh project item-list 2 --owner luketmoss --limit 100 --format json --jq '.items[] | select(.content.number == <ISSUE_NUMBER>) | .id'
 ```
+
+**Step 2:** Move it using the direct GraphQL mutation (replace `ITEM_ID` and `OPTION_ID`):
+```bash
+gh api graphql -f query='mutation { updateProjectV2ItemFieldValue(input: { projectId: "PVT_kwHOAJR9ys4BQe_8" itemId: "ITEM_ID" fieldId: "PVTSSF_lAHOAJR9ys4BQe_8zg-lvnE" value: { singleSelectOptionId: "OPTION_ID" } }) { projectV2Item { id } } }'
+```
+
+Column option IDs (from CLAUDE.md):
+| Column | Option ID |
+|--------|-----------|
+| To Do | `2ed3c08e` |
+| In Development | `cedf160f` |
+| Testing | `1bd1ca27` |
+| Code Review | `2e7d4fd2` |
+| Done | `2aaa3a20` |
+| Refined | `9e0d0478` |
+| Pick Up | `b9d77a66` |
 
 ## Process
 

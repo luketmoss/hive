@@ -99,6 +99,8 @@ When the user references an issue number, check its column and route accordingly
 Runs when an issue is in Refined (interactive session) or Pick Up (watcher). Also resumes correctly from In Development, Testing, or Code Review if the pipeline is restarted mid-flight.
 
 1. **Start dev**: If in Pick Up or Refined, move issue to **In Development**. Invoke `/dev` with the issue number.
+   - After dev completes, **do not perform visual verification inline** — that is QA's job. Immediately move to step 2.
+   - If a preview stop-hook fires after dev, satisfy it by invoking QA (which will start the preview server as part of its process).
 2. **QA**: Move issue to **Testing**. Invoke `/qa` with the issue number. **Tell it to post its QA report as a comment on the GitHub issue.**
    - If QA **fails with code issues**: Invoke `/dev` with the failure report. Re-invoke `/qa`. If it fails a second time, **stop — post a comment on the issue and tell the user**.
    - If QA **flags AC problems** (ambiguous, contradictory, or don't match real behaviour): Invoke `/pm` to negotiate AC updates (accept/defer/reject). Re-invoke `/dev` and `/qa` with updated ACs.
