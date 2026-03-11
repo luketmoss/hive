@@ -23,6 +23,9 @@ vi.mock('../api/sheets', () => ({
   fetchPermissions: vi.fn().mockResolvedValue([]),
   createPermissionRow: vi.fn().mockResolvedValue(undefined),
   deletePermissionRow: vi.fn().mockResolvedValue(undefined),
+  deleteBoardRow: vi.fn().mockResolvedValue(undefined),
+  deleteAllBoardPermissions: vi.fn().mockResolvedValue(undefined),
+  updateItemBoardId: vi.fn().mockResolvedValue(undefined),
   SheetsApiError: class extends Error {
     status: number;
     constructor(status: number, message: string) {
@@ -59,6 +62,9 @@ vi.mock('../demo/mock-api', () => ({
   fetchPermissions: vi.fn().mockResolvedValue([]),
   createPermissionRow: vi.fn().mockResolvedValue(undefined),
   deletePermissionRow: vi.fn().mockResolvedValue(undefined),
+  deleteBoardRow: vi.fn().mockResolvedValue(undefined),
+  deleteAllBoardPermissions: vi.fn().mockResolvedValue(undefined),
+  updateItemBoardId: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { loadBoard, NotAllowedError, deleteSubtask, reorderSubtasks, createItemWithSubtasks, reorderItem, moveItem } from './actions';

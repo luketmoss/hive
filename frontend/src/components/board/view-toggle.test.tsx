@@ -44,6 +44,7 @@ vi.mock('../../state/board-store', () => ({
   boardItems: { get value() { return mockItemsRef.current; } },
   showCreateBoardModal: { value: false },
   showShareModal: { value: false },
+  showDeleteBoardModal: { value: false },
   accessibleBoards: { value: [{ id: 'b1', name: 'Work', icon: '' }] },
   activeBoard: { value: { name: 'Work', color: '' } },
   activeBoardId: { value: 'b1' },
@@ -68,6 +69,9 @@ vi.mock('./create-board-modal', () => ({
 
 vi.mock('./share-modal', () => ({
   ShareModal: () => null,
+}));
+vi.mock('./delete-board-modal', () => ({
+  DeleteBoardModal: () => null,
 }));
 
 vi.mock('./list-view', () => ({

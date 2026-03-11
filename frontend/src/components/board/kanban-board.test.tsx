@@ -11,6 +11,7 @@ const mockState = {
   userBoardRole: null as string | null,
   showCreateModal: false,
   showCreateBoardModal: false,
+  showDeleteBoardModal: false,
   showArchiveDialog: false,
   selectedItem: null as any,
   accessibleBoards: [] as any[],
@@ -26,6 +27,7 @@ afterEach(() => {
   mockState.userBoardRole = null;
   mockState.showCreateModal = false;
   mockState.showCreateBoardModal = false;
+  mockState.showDeleteBoardModal = false;
   mockState.showArchiveDialog = false;
   mockState.selectedItem = null;
   mockState.accessibleBoards = [];
@@ -83,6 +85,10 @@ vi.mock('../../state/board-store', () => ({
     get value() { return mockState.showShareModal; },
     set value(v: boolean) { mockState.showShareModal = v; },
   },
+  showDeleteBoardModal: {
+    get value() { return mockState.showDeleteBoardModal; },
+    set value(v: boolean) { mockState.showDeleteBoardModal = v; },
+  },
   accessibleBoards: { get value() { return mockState.accessibleBoards; } },
   activeBoard: { value: null },
   userBoardRole: { get value() { return mockState.userBoardRole; } },
@@ -133,6 +139,9 @@ vi.mock('./create-board-modal', () => ({
 }));
 vi.mock('./share-modal', () => ({
   ShareModal: () => null,
+}));
+vi.mock('./delete-board-modal', () => ({
+  DeleteBoardModal: () => null,
 }));
 vi.mock('./shortcuts-help', () => ({
   ShortcutsHelp: ({ onClose }: any) => <div data-testid="shortcuts-help"><button onClick={onClose}>Close</button></div>,

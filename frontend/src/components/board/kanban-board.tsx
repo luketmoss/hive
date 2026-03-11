@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme } from '../../state/board-store';
+import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme } from '../../state/board-store';
 import { moveItem, reorderItem } from '../../state/actions';
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts';
 import type { Shortcut } from '../../hooks/use-keyboard-shortcuts';
@@ -10,6 +10,7 @@ import { CardDetail } from './card-detail';
 import { CreateItemModal } from '../forms/create-item-modal';
 import { CreateBoardModal } from './create-board-modal';
 import { ShareModal } from './share-modal';
+import { DeleteBoardModal } from './delete-board-modal';
 import { ShortcutsHelp } from './shortcuts-help';
 import { ProfileDialog } from '../profile/profile-dialog';
 import { ArchiveDialog } from '../archive/archive-dialog';
@@ -46,6 +47,7 @@ export function KanbanBoard() {
   /** True when no modal or overlay is open — shortcuts should be active. */
   const noModalOpen = () =>
     !showShareModal.value &&
+    !showDeleteBoardModal.value &&
     !showCreateModal.value &&
     !showCreateBoardModal.value &&
     !showArchiveDialog.value &&
@@ -264,6 +266,7 @@ export function KanbanBoard() {
       {showCreateModal.value && <CreateItemModal />}
       {showCreateBoardModal.value && <CreateBoardModal />}
       {showShareModal.value && <ShareModal />}
+      {showDeleteBoardModal.value && <DeleteBoardModal />}
       {showArchiveDialog.value && <ArchiveDialog onClose={handleCloseArchive} />}
       {showShortcutsHelp && <ShortcutsHelp onClose={() => setShowShortcutsHelp(false)} />}
       {showProfile && user && token && (

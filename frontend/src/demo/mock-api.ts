@@ -158,3 +158,17 @@ export async function deletePermissionRow(boardId: string, userEmail: string, _t
     p => !(p.board_id === boardId && p.user_email.toLowerCase() === userEmail.toLowerCase())
   );
 }
+
+export async function deleteBoardRow(boardId: string, _token: string): Promise<void> {
+  mockBoardsState.value = mockBoardsState.value.filter(b => b.id !== boardId);
+}
+
+export async function deleteAllBoardPermissions(boardId: string, _token: string): Promise<void> {
+  mockPermissionsState.value = mockPermissionsState.value.filter(p => p.board_id !== boardId);
+}
+
+export async function updateItemBoardId(sheetRow: number, newBoardId: string, _token: string): Promise<void> {
+  mockItemsState.value = mockItemsState.value.map(i =>
+    i.sheetRow === sheetRow ? { ...i, board_id: newBoardId } : i
+  );
+}

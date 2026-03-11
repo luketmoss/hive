@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { showShareModal, activeBoard, activeBoardId, permissions, owners } from '../../state/board-store';
+import { showShareModal, activeBoard, activeBoardId, permissions, owners, boards, showDeleteBoardModal, userBoardRole, accessibleBoards } from '../../state/board-store';
 import { shareBoard, unshareBoard, updateBoardAppearance } from '../../state/actions';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
 import { ColorPicker } from '../shared/color-picker';
@@ -235,6 +235,26 @@ export function ShareModal() {
                 </div>
               ))}
             </div>
+
+            {/* Danger zone — delete board (AC5: only visible to owners) */}
+            {userBoardRole.value === 'owner' && (
+              <div class="share-danger-zone">
+                <span class="share-danger-zone-label">Danger zone</span>
+                <button
+                  type="button"
+                  class="btn btn-danger share-delete-board-btn"
+                  disabled={accessibleBoards.value.length <= 1}
+                  title={accessibleBoards.value.length <= 1 ? 'This is your last board and cannot be deleted' : `Delete ${boardName}`}
+                  onClick={() => {
+                    showShareModal.value = false;
+                    showDeleteBoardModal.value = true;
+                  }}
+                  data-testid="delete-board-btn"
+                >
+                  Delete board
+                </button>
+              </div>
+            )}
           </div>
 
           <div class="modal-footer">

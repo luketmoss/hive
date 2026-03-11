@@ -9,12 +9,21 @@ const mockPerms = { current: [] as any[] };
 const mockOwners = { current: [] as any[] };
 const mockBoardId = { current: 'board-1' };
 
+const mockBoards = { current: [
+  { id: 'board-1', name: 'Test Board', created_at: '', created_by: '', color: '', icon: '' },
+  { id: 'board-2', name: 'Other Board', created_at: '', created_by: '', color: '', icon: '' },
+] };
+
 vi.mock('../../state/board-store', () => ({
   showShareModal: { value: true },
   activeBoard: { get value() { return { id: mockBoardId.current, name: 'Test Board' }; } },
   activeBoardId: { get value() { return mockBoardId.current; } },
   permissions: { get value() { return mockPerms.current; }, set value(v: any) { mockPerms.current = v; } },
   owners: { get value() { return mockOwners.current; } },
+  boards: { get value() { return mockBoards.current; } },
+  userBoardRole: { get value() { return 'owner'; } },
+  accessibleBoards: { get value() { return mockBoards.current; } },
+  showDeleteBoardModal: { value: false },
   openDetailWithTitleEdit: { value: false },
 }));
 

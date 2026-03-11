@@ -21,6 +21,9 @@ import {
   fetchPermissions as sheetsFetchPermissions,
   createPermissionRow as sheetsCreatePermissionRow,
   deletePermissionRow as sheetsDeletePermissionRow,
+  deleteBoardRow as sheetsDeleteBoardRow,
+  deleteAllBoardPermissions as sheetsDeleteAllBoardPermissions,
+  updateItemBoardId as sheetsUpdateItemBoardId,
 } from '../api/sheets';
 import {
   fetchAllItems as mockFetchAllItems,
@@ -43,6 +46,9 @@ import {
   fetchPermissions as mockFetchPermissions,
   createPermissionRow as mockCreatePermissionRow,
   deletePermissionRow as mockDeletePermissionRow,
+  deleteBoardRow as mockDeleteBoardRow,
+  deleteAllBoardPermissions as mockDeleteAllBoardPermissions,
+  updateItemBoardId as mockUpdateItemBoardId,
 } from '../demo/mock-api';
 import { isDemoMode } from '../demo/is-demo-mode';
 import { ReauthFailedError } from '../auth/reauth';
@@ -84,6 +90,9 @@ function api() {
       fetchPermissions: mockFetchPermissions,
       createPermissionRow: mockCreatePermissionRow,
       deletePermissionRow: mockDeletePermissionRow,
+      deleteBoardRow: mockDeleteBoardRow,
+      deleteAllBoardPermissions: mockDeleteAllBoardPermissions,
+      updateItemBoardId: mockUpdateItemBoardId,
     };
   }
   return {
@@ -107,6 +116,9 @@ function api() {
     fetchPermissions: sheetsFetchPermissions,
     createPermissionRow: sheetsCreatePermissionRow,
     deletePermissionRow: sheetsDeletePermissionRow,
+    deleteBoardRow: sheetsDeleteBoardRow,
+    deleteAllBoardPermissions: sheetsDeleteAllBoardPermissions,
+    updateItemBoardId: sheetsUpdateItemBoardId,
   };
 }
 
@@ -130,6 +142,9 @@ const updateBoardRowApi = (...args: Parameters<typeof sheetsUpdateBoardRow>) => 
 const fetchPermissionsApi = (...args: Parameters<typeof sheetsFetchPermissions>) => api().fetchPermissions(...args);
 const createPermissionRowApi = (...args: Parameters<typeof sheetsCreatePermissionRow>) => api().createPermissionRow(...args);
 const deletePermissionRowApi = (...args: Parameters<typeof sheetsDeletePermissionRow>) => api().deletePermissionRow(...args);
+const deleteBoardRowApi = (...args: Parameters<typeof sheetsDeleteBoardRow>) => api().deleteBoardRow(...args);
+const deleteAllBoardPermissionsApi = (...args: Parameters<typeof sheetsDeleteAllBoardPermissions>) => api().deleteAllBoardPermissions(...args);
+const updateItemBoardIdApi = (...args: Parameters<typeof sheetsUpdateItemBoardId>) => api().updateItemBoardId(...args);
 
 function generateUUID(): string {
   return crypto.randomUUID();
@@ -1015,5 +1030,107 @@ export async function refreshPermissions(token: string) {
   } catch (err: any) {
     if (isReauthFailure(err)) return;
     console.error('Permission refresh failed:', err);
+  }
+}
+
+// --- Delete board ---
+
+import { accessibleBoards } from './board-store';
+
+export type DeleteBoardMode = 'discard' | 'migrate';
+
+export async function deleteBoard(
+  boardId: string,
+  mode: DeleteBoardMode | null,
+  targetBoardId: string | null,
+  actor: string,
+  token: string
+): Promise<boolean> {
+  const board = boards.value.find(b => b.id === boardId);
+  if (!board) return false;
+
+  // Snapshot for rollback
+  const oldBoards = [...boards.value];
+  const oldPerms = [...permissions.value];
+  const oldItems = [...items.value];
+
+  const boardItemsList = items.value.filter(i => i.board_id === boardId);
+
+  // Optimistic update
+  boards.value = boards.value.filter(b => b.id !== boardId);
+  permissions.value = permissions.value.filter(p => p.board_id !== boardId);
+
+  if (mode === 'migrate' && targetBoardId) {
+    items.value = items.value.map(i =>
+      i.board_id === boardId ? { ...i, board_id: targetBoardId } : i
+    );
+  } else if (mode === 'discard') {
+    items.value = items.value.filter(i => i.board_id !== boardId);
+  }
+
+  // Switch to another board
+  const remaining = accessibleBoards.value;
+  if (targetBoardId && remaining.some(b => b.id === targetBoardId)) {
+    switchBoard(targetBoardId);
+  } else if (remaining.length > 0) {
+    switchBoard(remaining[0].id);
+  }
+
+  try {
+    // Perform item operations
+    if (mode === 'migrate' && targetBoardId) {
+      for (const item of boardItemsList) {
+        await updateItemBoardIdApi(item.sheetRow, targetBoardId, token);
+      }
+    } else if (mode === 'discard') {
+      // Delete from bottom to top to avoid row shifting
+      const sorted = [...boardItemsList].sort((a, b) => b.sheetRow - a.sheetRow);
+      for (const item of sorted) {
+        await deleteItemRow(item.sheetRow, token);
+      }
+      // Re-fetch to get updated row numbers
+      await refreshItems(token);
+    }
+
+    // Delete all permission rows for this board
+    await deleteAllBoardPermissionsApi(boardId, token);
+
+    // Delete the board row itself
+    await deleteBoardRowApi(boardId, token);
+
+    // Audit entry
+    await appendAuditEntry(boardId, 'board_deleted', '', board.name, '', actor, token);
+
+    // Refresh state from server
+    const [freshBoards, freshPerms, freshItems] = await Promise.all([
+      fetchBoardsApi(token),
+      fetchPermissionsApi(token),
+      fetchAllItems(token),
+    ]);
+    boards.value = freshBoards;
+    permissions.value = freshPerms;
+    items.value = freshItems;
+
+    // Toast
+    if (mode === 'migrate' && targetBoardId) {
+      const targetBoard = freshBoards.find(b => b.id === targetBoardId);
+      const targetName = targetBoard?.name || 'another board';
+      showToast(`${board.name} deleted \u2014 ${boardItemsList.length} item${boardItemsList.length !== 1 ? 's' : ''} moved to ${targetName}`);
+    } else {
+      showToast(`${board.name} deleted`);
+    }
+
+    return true;
+  } catch (err: any) {
+    // Rollback
+    boards.value = oldBoards;
+    permissions.value = oldPerms;
+    items.value = oldItems;
+    // Restore active board
+    switchBoard(boardId);
+    if (!isReauthFailure(err)) {
+      showToast('Failed to delete board: ' + err.message, 'error');
+    }
+    return false;
   }
 }
