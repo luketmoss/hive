@@ -1944,7 +1944,7 @@ body {
   position: fixed;
   inset: 0;
   background: var(--overlay-4xl);
-  z-index: 100;
+  z-index: 200;
   display: flex;
   align-items: center;
   justify-content: center;
