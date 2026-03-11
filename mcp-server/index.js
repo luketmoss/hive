@@ -155,7 +155,7 @@ server.tool(
       };
     const text = items
       .map((i) => {
-        const parts = [`- [${i.status}] **${i.title}**`];
+        const parts = [`- [${i.status}] **${i.title}** (id: ${i.id})`];
         if (i.owner) parts.push(`(${i.owner})`);
         if (i.due_date) parts.push(`due: ${i.due_date}`);
         if (i.labels) parts.push(`labels: ${i.labels}`);
