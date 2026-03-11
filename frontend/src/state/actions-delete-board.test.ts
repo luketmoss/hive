@@ -58,6 +58,7 @@ vi.mock('../api/sheets', () => ({
   fetchBoards: (...args: any[]) => mockFetchBoards(...args),
   createBoardRow: vi.fn(),
   updateBoardRow: vi.fn(),
+  renameBoardRow: vi.fn().mockResolvedValue(undefined),
   fetchPermissions: (...args: any[]) => mockFetchPermissions(...args),
   createPermissionRow: vi.fn(),
   deletePermissionRow: vi.fn(),
@@ -67,7 +68,32 @@ vi.mock('../api/sheets', () => ({
   SheetsApiError: class extends Error { status: number; constructor(s: number, m: string) { super(m); this.status = s; } },
 }));
 
-vi.mock('../demo/mock-api', () => ({}));
+vi.mock('../demo/mock-api', () => ({
+  fetchAllItems: vi.fn().mockResolvedValue([]),
+  fetchOwners: vi.fn().mockResolvedValue([]),
+  fetchLabels: vi.fn().mockResolvedValue([]),
+  createItemRow: vi.fn(),
+  updateItemRow: vi.fn(),
+  deleteItemRow: vi.fn(),
+  appendAuditEntry: vi.fn(),
+  createLabelRow: vi.fn(),
+  updateLabelRow: vi.fn(),
+  deleteLabelRow: vi.fn(),
+  fetchLabelsWithRows: vi.fn().mockResolvedValue([]),
+  cascadeLabelUpdate: vi.fn(),
+  cascadeOwnerUpdate: vi.fn(),
+  upsertOwner: vi.fn(),
+  fetchBoards: vi.fn().mockResolvedValue([]),
+  createBoardRow: vi.fn(),
+  updateBoardRow: vi.fn(),
+  renameBoardRow: vi.fn().mockResolvedValue(undefined),
+  fetchPermissions: vi.fn().mockResolvedValue([]),
+  createPermissionRow: vi.fn(),
+  deletePermissionRow: vi.fn(),
+  deleteBoardRow: vi.fn(),
+  deleteAllBoardPermissions: vi.fn(),
+  updateItemBoardId: vi.fn(),
+}));
 vi.mock('../demo/is-demo-mode', () => ({ isDemoMode: () => false }));
 vi.mock('../auth/reauth', () => ({ ReauthFailedError: class extends Error {} }));
 

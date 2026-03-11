@@ -15,9 +15,10 @@ export const BOARD_COLORS = [
 interface ColorPickerProps {
   value: string;
   onChange: (color: string) => void;
+  disabled?: boolean;
 }
 
-export function ColorPicker({ value, onChange }: ColorPickerProps) {
+export function ColorPicker({ value, onChange, disabled }: ColorPickerProps) {
   return (
     <div class="picker-row" role="radiogroup" aria-label="Board color">
       {BOARD_COLORS.map(c => (
@@ -30,6 +31,7 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
           aria-pressed={value === c.value}
           onClick={() => onChange(value === c.value ? '' : c.value)}
           title={c.label}
+          disabled={disabled}
         />
       ))}
     </div>
