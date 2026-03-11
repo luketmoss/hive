@@ -153,7 +153,8 @@ body {
   background: var(--color-danger);
   color: white;
 }
-.btn-danger:hover { background: var(--color-danger-hover); }
+.btn-danger:hover:not(:disabled) { background: var(--color-danger-hover); }
+.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-sm {
   padding: 4px 10px;
@@ -1161,6 +1162,83 @@ body {
   gap: 4px;
   font-size: 13px;
   color: var(--color-text-secondary);
+}
+
+/* === Danger zone in ShareModal === */
+
+.share-danger-zone {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--color-danger) 30%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.share-danger-zone-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-danger);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.share-delete-board-btn {
+  align-self: flex-start;
+}
+
+@media (max-width: 600px) {
+  .share-delete-board-btn {
+    min-height: 44px;
+  }
+}
+
+/* === Delete Board Modal === */
+
+.delete-board-modal {
+  width: 440px;
+}
+
+.delete-board-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.delete-board-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.delete-board-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.delete-board-target {
+  margin-left: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.delete-board-target label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.delete-board-target select {
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 /* === Shortcuts Help Overlay === */

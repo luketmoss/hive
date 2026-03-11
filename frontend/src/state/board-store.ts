@@ -194,6 +194,9 @@ export const showCreateBoardModal = signal(false);
 // --- UI state for share modal ---
 export const showShareModal = signal(false);
 
+// --- UI state for delete board modal ---
+export const showDeleteBoardModal = signal(false);
+
 /** Switch to a different board. Resets filters and selection but preserves view mode. */
 export function switchBoard(boardId: string) {
   activeBoardId.value = boardId;
