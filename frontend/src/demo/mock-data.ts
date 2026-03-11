@@ -51,6 +51,7 @@ export const MOCK_PERMISSIONS: BoardPermission[] = [
   { board_id: 'board-family', user_email: '*', role: 'member' },
   { board_id: 'board-work', user_email: 'dad@family.com', role: 'owner' },
   { board_id: 'board-work', user_email: 'mom@family.com', role: 'member' },
+  { board_id: 'board-work', user_email: 'demo@hive.local', role: 'member' },
 ];
 
 // --- Items ---

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels as labelsStore, showToast, openDetailWithTitleEdit } from '../../state/board-store';
+import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels as labelsStore, showToast, openDetailWithTitleEdit, accessibleBoards, activeBoardId, showMoveToBoardModal } from '../../state/board-store';
 import { updateItem, deleteItem, deleteSubtask, createItem, moveItem, reorderSubtasks } from '../../state/actions';
 import { validateOwnerChange } from '../../state/rules';
 import { LabelBadge } from '../shared/label-badge';
@@ -255,6 +255,12 @@ export function CardDetail() {
     setReorderAnnouncement(`Sub-task moved to position ${targetIdx + 1}`);
     setTimeout(() => setReorderAnnouncement(''), 3000);
   };
+
+  // --- Move to Board ---
+  // AC6: Hidden for subtasks. AC7: Hidden when only one accessible board.
+  const isSubtask = !!item.parent_id;
+  const otherBoards = accessibleBoards.value.filter(b => b.id !== activeBoardId.value);
+  const showMoveToBoard = !isSubtask && otherBoards.length > 0;
 
   const toggleChildStatus = (childId: string, currentStatus: ItemStatus) => {
     if (!token) return;
@@ -580,20 +586,33 @@ export function CardDetail() {
         </div>
 
         <div class="detail-footer">
-          {confirmingDelete ? (
-            <div
-              class="delete-confirm-inline"
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') { e.stopPropagation(); cancelDelete(); }
-              }}
-            >
-              <span class="delete-confirm-text">Are you sure?</span>
-              <button class="btn btn-ghost btn-sm" onClick={cancelDelete}>Cancel</button>
-              <button class="btn btn-danger btn-sm" onClick={confirmDelete}>Delete</button>
-            </div>
-          ) : (
-            <button class="btn btn-danger" onClick={handleDelete}>Delete</button>
-          )}
+          <div class="detail-footer-left">
+            {showMoveToBoard && (
+              <button
+                class="btn btn-ghost"
+                aria-label="Move to board"
+                onClick={() => { showMoveToBoardModal.value = true; }}
+              >
+                Move to board
+              </button>
+            )}
+          </div>
+          <div class="detail-footer-right">
+            {confirmingDelete ? (
+              <div
+                class="delete-confirm-inline"
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') { e.stopPropagation(); cancelDelete(); }
+                }}
+              >
+                <span class="delete-confirm-text">Are you sure?</span>
+                <button class="btn btn-ghost btn-sm" onClick={cancelDelete}>Cancel</button>
+                <button class="btn btn-danger btn-sm" onClick={confirmDelete}>Delete</button>
+              </div>
+            ) : (
+              <button class="btn btn-danger" onClick={handleDelete}>Delete</button>
+            )}
+          </div>
         </div>
       </div>
     </div>
