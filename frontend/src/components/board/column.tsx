@@ -43,6 +43,8 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
   // AC8: aria-live announcement text
   const [sortAnnouncement, setSortAnnouncement] = useState('');
 
+  const isDateSorted = sortMode && sortMode !== 'custom';
+
   const handleDragOver = (e: DragEvent) => {
     e.preventDefault();
 
@@ -92,8 +94,8 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
 
     // Same-column reorder
     if (sourceStatus === status) {
-      // AC5: If column is in date-sort mode, same-column drag is a no-op
-      if (sortMode && sortMode !== 'custom') {
+      // AC4: If column is in date-sort mode, same-column drag is a no-op
+      if (isDateSorted) {
         showToast('Reorder by drag is disabled when sorted by date', 'error');
         return;
       }
@@ -157,6 +159,11 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
 
   const handleKeyboardReorder = (itemId: string, direction: 'up' | 'down') => {
     if (!onReorder) return;
+    // AC5: Block keyboard reorder when date-sorted
+    if (isDateSorted) {
+      showToast('Reorder by drag is disabled when sorted by date', 'error');
+      return;
+    }
     const currentIndex = items.findIndex(i => i.id === itemId);
     if (currentIndex === -1) return;
 
@@ -201,7 +208,7 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
           )}
           {!compact && status !== 'Done' && sortMode !== undefined && (
             <select
-              class="column-sort-select"
+              class={`column-sort-select${isDateSorted ? ' column-sort-active' : ''}`}
               value={sortMode}
               onChange={handleSortChange}
               aria-label={`Sort ${status} column`}
@@ -233,7 +240,6 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
               onMoveStatus={onMoveStatus}
               onReorder={handleKeyboardReorder}
               columnItems={items}
-              sortMode={sortMode}
             />
             {dropIndicator && dropIndicator.index === index && dropIndicator.position === 'below' && (
               <div class="drop-indicator" />
