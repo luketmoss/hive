@@ -63,6 +63,28 @@ async function resolveBoard(boardName) {
   throw new Error(`Board "${boardName}" not found. Available boards: ${names}`);
 }
 
+// --- Position helpers ---
+
+async function resolvePosition(boardId, status, position) {
+  if (position === undefined) return undefined;
+
+  const result = await apiGet("getItems", { board_id: boardId, status });
+  const items = result.success ? result.data : [];
+  items.sort((a, b) => (a.sort_order ?? Infinity) - (b.sort_order ?? Infinity));
+
+  if (position === "top") return items.length ? (items[0].sort_order ?? 1) - 1 : 1;
+  if (position === "bottom" || position === undefined) return items.length ? (items[items.length - 1].sort_order ?? 1) + 1 : 1;
+
+  // Numeric index (1-based): insert at that position
+  const idx = Math.max(1, Math.min(Number(position), items.length + 1));
+  if (idx === 1) return items.length ? (items[0].sort_order ?? 1) - 1 : 1;
+  if (idx > items.length) return (items[items.length - 1].sort_order ?? 1) + 1;
+  // Place between idx-1 and idx
+  const before = items[idx - 2].sort_order ?? idx - 1;
+  const after = items[idx - 1].sort_order ?? idx;
+  return (before + after) / 2;
+}
+
 // --- MCP Server ---
 
 const server = new McpServer({
@@ -159,10 +181,16 @@ server.tool(
       .optional()
       .describe("Status (defaults to 'To Do')"),
     parent_id: z.string().optional().describe("ID of parent item (for creating sub-tasks)"),
+    position: z
+      .union([z.enum(["top", "bottom"]), z.coerce.number()])
+      .optional()
+      .describe("Position in column: 'top', 'bottom', or a 1-based index (default: bottom)"),
   },
-  async ({ board, title, description, owner, due_date, labels, status, parent_id }) => {
+  async ({ board, title, description, owner, due_date, labels, status, parent_id, position }) => {
     const resolved = await resolveBoard(board);
     const itemOwner = owner || DEFAULT_OWNER;
+    const itemStatus = status || "To Do";
+    const sort_order = await resolvePosition(resolved.id, itemStatus, position);
 
     const payload = {
       data: {
@@ -172,8 +200,9 @@ server.tool(
         due_date: due_date || "",
         labels: labels || "",
         board_id: resolved.id,
-        status: status || "To Do",
+        status: itemStatus,
         parent_id: parent_id || "",
+        ...(sort_order !== undefined && { sort_order }),
       },
       actor: "hive-mcp",
     };
@@ -208,8 +237,12 @@ server.tool(
     due_date: z.string().optional().describe("New due date in ISO format (YYYY-MM-DD)"),
     labels: z.string().optional().describe("New comma-separated labels (replaces existing)"),
     parent_id: z.string().optional().describe("New parent item ID"),
+    position: z
+      .union([z.enum(["top", "bottom"]), z.coerce.number()])
+      .optional()
+      .describe("Position in column: 'top', 'bottom', or a 1-based index"),
   },
-  async ({ item_id, title, description, status, owner, due_date, labels, parent_id }) => {
+  async ({ item_id, title, description, status, owner, due_date, labels, parent_id, position }) => {
     const changes = {};
     if (title !== undefined) changes.title = title;
     if (description !== undefined) changes.description = description;
@@ -218,6 +251,19 @@ server.tool(
     if (due_date !== undefined) changes.due_date = due_date;
     if (labels !== undefined) changes.labels = labels;
     if (parent_id !== undefined) changes.parent_id = parent_id;
+
+    // Resolve position — need board_id from the existing item if changing position
+    if (position !== undefined) {
+      // Fetch current item to get board_id and status
+      const itemResult = await apiGet("getItems", {});
+      const allItems = itemResult.success ? itemResult.data : [];
+      const current = allItems.find((i) => i.id === item_id);
+      if (current) {
+        const targetStatus = status || current.status;
+        const sort_order = await resolvePosition(current.board_id, targetStatus, position);
+        if (sort_order !== undefined) changes.sort_order = sort_order;
+      }
+    }
 
     if (Object.keys(changes).length === 0) {
       return { content: [{ type: "text", text: "No changes provided." }] };
