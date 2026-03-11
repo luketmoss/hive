@@ -159,6 +159,7 @@ server.tool(
         if (i.owner) parts.push(`(${i.owner})`);
         if (i.due_date) parts.push(`due: ${i.due_date}`);
         if (i.labels) parts.push(`labels: ${i.labels}`);
+        if (i.description) parts.push(`| ${i.description}`);
         return parts.join(" ");
       })
       .join("\n");
