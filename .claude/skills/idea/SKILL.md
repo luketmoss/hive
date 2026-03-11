@@ -67,9 +67,9 @@ gh issue create --repo luketmoss/hive --title "<title>" --label "<label>" --body
 
 Omit `--label` for features and chores (use the title prefix instead).
 
-### Step 4: Add to the project board and set status
+### Step 4: Add to the Hive project board and set status
 
-Add the issue to the board:
+Add the issue to the **Hive project only** (project 2). Do NOT add it to any other project:
 ```bash
 gh project item-add 2 --owner luketmoss --url <issue-url>
 ```

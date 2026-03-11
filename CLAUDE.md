@@ -110,8 +110,9 @@ Runs when an issue is in Refined (interactive session) or Pick Up (watcher). Als
    ```
    gh pr review <pr> --repo luketmoss/hive --approve --body "All pipeline stages passed."
    gh pr merge <pr> --repo luketmoss/hive --squash --delete-branch
+   gh issue close <issue> --repo luketmoss/hive
    ```
-   Move issue to **Done**.
+   Move issue to **Done** on the project board. Also close the GitHub issue (set its state to closed) with `gh issue close` — the board status and the GH issue state must both be updated.
 5. **Post final report** to the GitHub issue as a comment:
 
    ```
