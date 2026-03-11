@@ -104,6 +104,14 @@ function doGet(e) {
         result = { success: true };
         break;
 
+      case 'createLabel':
+        if (!payload.label) {
+          result = { success: false, error: 'payload.label field required' };
+          break;
+        }
+        result = { success: true, data: createLabel(payload) };
+        break;
+
       default:
         result = { success: false, error: 'Unknown action: "' + action + '"' };
     }

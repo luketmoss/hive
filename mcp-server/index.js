@@ -145,6 +145,21 @@ server.tool(
 );
 
 server.tool(
+  "hive_create_label",
+  "Create a new label for Hive board items",
+  {
+    label: z.string().describe("Label name"),
+    color: z.string().optional().describe("Label color (e.g., 'red', '#FF0000')"),
+  },
+  async ({ label, color }) => {
+    const result = await apiWrite("createLabel", { label, color: color || "" });
+    if (!result.success) return { content: [{ type: "text", text: `Error: ${result.error}` }] };
+    const l = result.data;
+    return { content: [{ type: "text", text: `Created label: **${l.label}**${l.color ? ` (${l.color})` : ""}` }] };
+  }
+);
+
+server.tool(
   "hive_list_items",
   "List items on a Hive kanban board, optionally filtered by status",
   {
