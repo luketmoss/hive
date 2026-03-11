@@ -1,18 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from 'preact/hooks';
 import { ThemeToggle } from '../board/theme-toggle';
+import { isDemoMode } from '../../demo/is-demo-mode';
 import type { UserInfo } from '../../api/types';
 
 interface UserDropdownProps {
   user: UserInfo;
   displayName: string;
   onSignOut: () => void;
+  onOpenProfile?: () => void;
 }
 
 /**
  * AC1: User dropdown replaces separate header controls.
  * Avatar + Name button opens a floating panel with email, theme toggle, and sign out.
  */
-export function UserDropdown({ user, displayName, onSignOut }: UserDropdownProps) {
+export function UserDropdown({ user, displayName, onSignOut, onOpenProfile }: UserDropdownProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -30,6 +32,11 @@ export function UserDropdown({ user, displayName, onSignOut }: UserDropdownProps
     closeDropdown();
     onSignOut();
   }, [closeDropdown, onSignOut]);
+
+  const handleOpenProfile = useCallback(() => {
+    closeDropdown();
+    onOpenProfile?.();
+  }, [closeDropdown, onOpenProfile]);
 
   // Close on Escape
   useEffect(() => {
@@ -99,7 +106,7 @@ export function UserDropdown({ user, displayName, onSignOut }: UserDropdownProps
         ref={triggerRef}
         class="user-dropdown-trigger"
         onClick={handleToggle}
-        aria-haspopup="true"
+        aria-haspopup="menu"
         aria-expanded={open}
         data-testid="user-dropdown-trigger"
       >
@@ -118,6 +125,7 @@ export function UserDropdown({ user, displayName, onSignOut }: UserDropdownProps
         <div
           ref={panelRef}
           class="user-dropdown-panel"
+          role="menu"
           onKeyDown={handlePanelKeyDown}
           data-testid="user-dropdown-panel"
         >
@@ -125,8 +133,22 @@ export function UserDropdown({ user, displayName, onSignOut }: UserDropdownProps
           <hr class="user-dropdown-divider" />
           <ThemeToggle />
           <hr class="user-dropdown-divider" />
+          {!isDemoMode() && onOpenProfile && (
+            <>
+              <button
+                class="user-dropdown-edit-profile"
+                role="menuitem"
+                onClick={handleOpenProfile}
+                data-testid="user-dropdown-edit-profile"
+              >
+                Edit profile
+              </button>
+              <hr class="user-dropdown-divider" />
+            </>
+          )}
           <button
             class="user-dropdown-signout"
+            role="menuitem"
             onClick={handleSignOut}
             data-testid="user-dropdown-signout"
           >

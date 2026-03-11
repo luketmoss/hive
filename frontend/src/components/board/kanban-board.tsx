@@ -228,6 +228,7 @@ export function KanbanBoard() {
               user={user}
               displayName={displayName}
               onSignOut={logout}
+              onOpenProfile={() => setShowProfile(true)}
             />
           )}
         </div>
@@ -272,6 +273,11 @@ export function KanbanBoard() {
           token={token}
           onClose={() => {
             setShowProfile(false);
+            // AC6: Return focus to dropdown trigger after dialog closes
+            requestAnimationFrame(() => {
+              const trigger = document.querySelector<HTMLElement>('[data-testid="user-dropdown-trigger"]');
+              trigger?.focus();
+            });
           }}
           onNameUpdated={updateUserName}
         />

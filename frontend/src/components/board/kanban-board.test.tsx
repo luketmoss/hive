@@ -106,6 +106,9 @@ vi.mock('../header/user-dropdown', () => ({
   UserDropdown: (props: any) => (
     <div data-testid="user-dropdown">
       <span data-testid="user-dropdown-name">{props.displayName}</span>
+      {props.onOpenProfile && (
+        <button data-testid="user-dropdown-edit-profile" onClick={props.onOpenProfile}>Edit profile</button>
+      )}
       <button data-testid="user-dropdown-signout" onClick={props.onSignOut}>Sign out</button>
     </div>
   ),
@@ -478,5 +481,19 @@ describe('List mode scroll — DOM structure (Issue #137)', () => {
     expect(boardMain).not.toBeNull();
     const listView = boardMain!.querySelector('.list-view');
     expect(listView).toBeNull();
+  });
+});
+
+describe('KanbanBoard — Edit profile integration (Issue #136)', () => {
+  // AC2: Clicking "Edit profile" in dropdown opens ProfileDialog
+  it('passes onOpenProfile to UserDropdown and shows ProfileDialog on click', () => {
+    mockState.items = [];
+    const { container } = renderBoard();
+    // The mock UserDropdown renders an "Edit profile" button if onOpenProfile is provided
+    const editBtn = container.querySelector('[data-testid="user-dropdown-edit-profile"]');
+    expect(editBtn).not.toBeNull();
+    fireEvent.click(editBtn as HTMLElement);
+    const dialog = container.querySelector('[data-testid="profile-dialog"]');
+    expect(dialog).not.toBeNull();
   });
 });
