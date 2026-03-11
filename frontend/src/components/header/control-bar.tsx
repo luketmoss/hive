@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'preact/hooks';
+import { useState, useEffect, useRef } from 'preact/hooks';
 import {
   boards, activeBoardId, switchBoard, showCreateBoardModal, showShareModal,
   accessibleBoards, activeBoard, userBoardRole,
@@ -7,9 +7,10 @@ import {
 } from '../../state/board-store';
 
 /**
- * AC2: Unified control bar merges board selector, share, view toggle, and filters.
- * AC3: Filter chip overflow handling.
- * AC5: Mobile layout adaptations.
+ * AC1/AC2: Desktop — filter chips always visible inline, no Filters toggle.
+ * AC3: Mobile — Filters toggle button, chips hidden until tapped.
+ * AC4–AC9: 3-dot overflow menu with view toggle + Board Settings (owner only).
+ * AC10: Active filter chips and Reset all always visible on desktop.
  */
 export function ControlBar() {
   const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -17,7 +18,12 @@ export function ControlBar() {
   const chipContainerRef = useRef<HTMLDivElement>(null);
   const [overflowCount, setOverflowCount] = useState(0);
 
-  // Detect if we're on mobile (for omitting keyboard shortcuts from select labels)
+  // 3-dot overflow menu state
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuBtnRef = useRef<HTMLButtonElement>(null);
+  const menuDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Detect if we're on mobile (for filter toggle visibility and label omission)
   const [isMobile, setIsMobile] = useState(
     typeof window !== 'undefined' ? window.innerWidth <= 768 : false
   );
@@ -27,6 +33,47 @@ export function ControlBar() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // AC9: Click-outside to dismiss 3-dot menu
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        menuDropdownRef.current && !menuDropdownRef.current.contains(e.target as Node) &&
+        menuBtnRef.current && !menuBtnRef.current.contains(e.target as Node)
+      ) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
+
+  // AC8: Escape and arrow key navigation in 3-dot menu
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMenuOpen(false);
+        menuBtnRef.current?.focus();
+        return;
+      }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const items = menuDropdownRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]');
+        if (!items || items.length === 0) return;
+        const focused = document.activeElement as HTMLElement;
+        const idx = Array.from(items).indexOf(focused);
+        if (e.key === 'ArrowDown') {
+          items[(idx + 1) % items.length].focus();
+        } else {
+          items[(idx - 1 + items.length) % items.length].focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [menuOpen]);
 
   // Build active filter chip data
   const activeChips = getActiveChips();
@@ -58,6 +105,7 @@ export function ControlBar() {
   useEffect(() => {
     setChipsExpanded(false);
     setFiltersExpanded(false);
+    setMenuOpen(false);
   }, [currentBoardId]);
 
   const handleBoardChange = (e: Event) => {
@@ -97,6 +145,9 @@ export function ControlBar() {
     );
   }
 
+  // AC3: Filter content collapsed only on mobile when toggle not expanded
+  const filterContentClass = `control-bar-filter-content${isMobile && !filtersExpanded ? ' control-bar-filter-content-collapsed' : ''}`;
+
   return (
     <div class="control-bar" data-testid="control-bar">
       {/* Board selector section */}
@@ -123,46 +174,6 @@ export function ControlBar() {
           ))}
           <option value="__new__">+ New Board...</option>
         </select>
-        {isOwner && (
-          <button
-            class="btn btn-ghost share-btn"
-            onClick={() => { showShareModal.value = true; }}
-            aria-label={`Share ${boardName}`}
-            title="Share board (Ctrl+Shift+S)"
-            data-testid="share-board-btn"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="18" cy="5" r="3" />
-              <circle cx="6" cy="12" r="3" />
-              <circle cx="18" cy="19" r="3" />
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-            </svg>
-          </button>
-        )}
-      </div>
-
-      {/* Separator */}
-      <span class="control-bar-separator" aria-hidden="true" />
-
-      {/* View toggle — always visible */}
-      <div class="control-bar-section" data-testid="control-bar-view-toggle">
-        <button
-          class={`view-toggle-btn${viewMode.value === 'board' ? ' view-toggle-active' : ''}`}
-          onClick={() => setViewMode('board')}
-          aria-pressed={viewMode.value === 'board'}
-          data-testid="view-toggle-board"
-        >
-          Board
-        </button>
-        <button
-          class={`view-toggle-btn${viewMode.value === 'list' ? ' view-toggle-active' : ''}`}
-          onClick={() => setViewMode('list')}
-          aria-pressed={viewMode.value === 'list'}
-          data-testid="view-toggle-list"
-        >
-          List
-        </button>
       </div>
 
       {/* Separator */}
@@ -170,6 +181,7 @@ export function ControlBar() {
 
       {/* Filters section */}
       <div class="control-bar-section control-bar-filters">
+        {/* AC3: Filters toggle button — only visible on mobile */}
         <button
           class="filter-toggle"
           aria-expanded={filtersExpanded}
@@ -181,10 +193,10 @@ export function ControlBar() {
           {activeCount > 0 && <span class="filter-badge">{activeCount}</span>}
         </button>
 
-        {/* Desktop inline filter chips */}
+        {/* AC1/AC2: Filter chips inline — always visible on desktop, toggleable on mobile */}
         <div
           id="control-bar-filter-content"
-          class={`control-bar-filter-content${filtersExpanded ? '' : ' control-bar-filter-content-collapsed'}`}
+          class={filterContentClass}
           data-testid="control-bar-filter-content"
         >
           {/* Owner chips */}
@@ -243,6 +255,7 @@ export function ControlBar() {
             })}
           </div>
 
+          {/* AC10: Reset all always visible on desktop when filters active */}
           {showReset && (
             <button
               class="btn btn-ghost btn-sm"
@@ -258,7 +271,7 @@ export function ControlBar() {
           )}
         </div>
 
-        {/* AC3: Active filter chips inline (desktop) */}
+        {/* Active filter chips inline */}
         {activeChips.length > 0 && (
           <div
             class={`control-bar-active-chips${chipsExpanded ? ' control-bar-active-chips-expanded' : ''}`}
@@ -294,6 +307,60 @@ export function ControlBar() {
                 data-testid="control-bar-chip-less"
               >
                 Show less
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* AC4: 3-dot overflow menu */}
+      <div class="control-bar-overflow" data-testid="control-bar-overflow">
+        <button
+          ref={menuBtnRef}
+          class="btn btn-ghost overflow-menu-btn"
+          aria-label="More options"
+          aria-expanded={menuOpen}
+          aria-haspopup="true"
+          onClick={() => setMenuOpen(prev => !prev)}
+          data-testid="overflow-menu-btn"
+        >
+          ⋯
+        </button>
+        {menuOpen && (
+          <div
+            ref={menuDropdownRef}
+            role="menu"
+            class="overflow-menu-dropdown"
+            data-testid="overflow-menu-dropdown"
+          >
+            {/* AC4/AC5: View toggle items */}
+            <button
+              role="menuitem"
+              class={`overflow-menu-item${viewMode.value === 'board' ? ' overflow-menu-item-checked' : ''}`}
+              aria-checked={viewMode.value === 'board'}
+              onClick={() => { setViewMode('board'); setMenuOpen(false); }}
+              data-testid="overflow-menu-view-board"
+            >
+              Board view
+            </button>
+            <button
+              role="menuitem"
+              class={`overflow-menu-item${viewMode.value === 'list' ? ' overflow-menu-item-checked' : ''}`}
+              aria-checked={viewMode.value === 'list'}
+              onClick={() => { setViewMode('list'); setMenuOpen(false); }}
+              data-testid="overflow-menu-view-list"
+            >
+              List view
+            </button>
+            {/* AC6/AC7: Board Settings — owners only */}
+            {isOwner && (
+              <button
+                role="menuitem"
+                class="overflow-menu-item"
+                onClick={() => { showShareModal.value = true; setMenuOpen(false); }}
+                data-testid="overflow-menu-board-settings"
+              >
+                Board Settings
               </button>
             )}
           </div>

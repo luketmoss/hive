@@ -501,22 +501,90 @@ body {
   gap: 6px;
 }
 
-/* On desktop, filter toggle is visible as inline button */
-.control-bar .filter-toggle {
-  display: flex;
-}
+/* AC2 (#154): On desktop, filter toggle is hidden — chips are always inline */
 
-/* Desktop: filter content as dropdown below */
+/* Desktop: filter content always visible inline */
 .control-bar-filter-content {
   display: flex;
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
-  padding: 8px 0;
 }
 
+/* Mobile-only collapsed state (applied via JS when isMobile && !filtersExpanded) */
 .control-bar-filter-content-collapsed {
   display: none;
+}
+
+/* === 3-dot Overflow Menu (#154) === */
+.control-bar-overflow {
+  position: relative;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.overflow-menu-btn {
+  font-size: 18px;
+  letter-spacing: 2px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  line-height: 1;
+  color: var(--color-text-secondary);
+}
+
+.overflow-menu-btn:hover {
+  background: var(--overlay-md);
+  color: var(--color-text);
+}
+
+.overflow-menu-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.overflow-menu-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  min-width: 160px;
+  z-index: 200;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.overflow-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  text-align: left;
+  width: 100%;
+}
+
+.overflow-menu-item:hover {
+  background: var(--overlay-md);
+}
+
+.overflow-menu-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.overflow-menu-item-checked {
+  color: var(--color-primary);
+  font-weight: 600;
 }
 
 /* Active filter chips inline */
@@ -923,16 +991,6 @@ body {
   border-radius: 10px;
   font-size: 11px;
   font-weight: 500;
-}
-
-/* AC9: Lock indicator on cards in date-sorted columns */
-.card-sort-lock {
-  display: block;
-  font-size: 11px;
-  opacity: 0.45;
-  text-align: right;
-  line-height: 1;
-  margin-bottom: 4px;
 }
 
 .card-subtasks {
