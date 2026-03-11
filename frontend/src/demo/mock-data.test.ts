@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MOCK_ITEMS, MOCK_OWNERS, MOCK_LABELS } from './mock-data';
+import { MOCK_ITEMS, MOCK_OWNERS, MOCK_LABELS, MOCK_PERMISSIONS, MOCK_BOARDS } from './mock-data';
 
 // Scenario 4: Mock data covers all board features
 
@@ -64,6 +64,21 @@ describe('Mock data coverage (AC4)', () => {
       expect(item.created_by).toBeTruthy();
       const matchingOwner = MOCK_OWNERS.find(o => o.google_account === item.created_by);
       expect(matchingOwner).toBeTruthy();
+    }
+  });
+
+  // AC9: Demo user has access to both boards (can see "Move to board" option)
+  it('demo user (demo@hive.local) has access to both Family Board and Work Projects', () => {
+    const demoEmail = 'demo@hive.local';
+    const boardIds = MOCK_BOARDS.map(b => b.id);
+    expect(boardIds).toContain('board-family');
+    expect(boardIds).toContain('board-work');
+
+    for (const boardId of boardIds) {
+      const hasAccess = MOCK_PERMISSIONS.some(
+        p => p.board_id === boardId && (p.user_email === demoEmail || p.user_email === '*')
+      );
+      expect(hasAccess).toBe(true);
     }
   });
 

@@ -409,6 +409,20 @@ export async function updateBoardRow(boardId: string, color: string, icon: strin
   });
 }
 
+/**
+ * Update the name for an existing board.
+ * Finds the board row by ID, then writes only column B.
+ */
+export async function renameBoardRow(boardId: string, name: string, token: string): Promise<void> {
+  return withReauth(token, async (t) => {
+    const rows = await sheetsGet('Boards!A2:A', t);
+    const rowIndex = rows.findIndex(row => (row[0] || '') === boardId);
+    if (rowIndex < 0) return; // Board not found — no-op
+    const sheetRow = rowIndex + 2; // 1-based + header
+    await sheetsUpdate(`Boards!B${sheetRow}`, [[name]], t);
+  });
+}
+
 // --- Permissions operations ---
 
 export async function fetchPermissions(token: string): Promise<BoardPermission[]> {

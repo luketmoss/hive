@@ -143,6 +143,12 @@ export async function updateBoardRow(boardId: string, color: string, icon: strin
   );
 }
 
+export async function renameBoardRow(boardId: string, name: string, _token: string): Promise<void> {
+  mockBoardsState.value = mockBoardsState.value.map(b =>
+    b.id === boardId ? { ...b, name } : b
+  );
+}
+
 // --- Permission operations (in-memory) ---
 
 export async function fetchPermissions(_token: string): Promise<BoardPermission[]> {
