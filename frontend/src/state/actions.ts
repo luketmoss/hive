@@ -1,4 +1,4 @@
-import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl, permissions, currentUserEmail } from './board-store';
+import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl, permissions, currentUserEmail, selectedItemId } from './board-store';
 import { validateStatusTransition, applyStatusSideEffects } from './rules';
 import {
   fetchAllItems as sheetsFetchAllItems,
@@ -1036,6 +1036,61 @@ export async function refreshPermissions(token: string) {
 // --- Delete board ---
 
 import { accessibleBoards } from './board-store';
+
+// --- Move item to another board ---
+
+export async function moveItemToBoard(
+  itemId: string,
+  targetBoardId: string,
+  actor: string,
+  token: string
+): Promise<boolean> {
+  const item = items.value.find(i => i.id === itemId);
+  if (!item) return false;
+
+  const oldBoardId = item.board_id;
+  if (oldBoardId === targetBoardId) return false;
+
+  // Collect item + all subtasks
+  const subtasks = items.value.filter(i => i.parent_id === itemId);
+  const allItems = [item, ...subtasks];
+
+  const oldItems = [...items.value];
+
+  // Optimistic update: change board_id for item and subtasks
+  items.value = items.value.map(i => {
+    if (i.id === itemId || i.parent_id === itemId) {
+      return { ...i, board_id: targetBoardId, updated_at: new Date().toISOString() };
+    }
+    return i;
+  });
+
+  // Close the detail panel
+  selectedItemId.value = null;
+
+  const targetBoard = boards.value.find(b => b.id === targetBoardId);
+  const targetName = targetBoard?.name || 'another board';
+  showToast(`Item moved to ${targetName}`);
+
+  try {
+    // Persist board_id changes
+    for (const it of allItems) {
+      await updateItemBoardIdApi(it.sheetRow, targetBoardId, token);
+    }
+    // Audit log
+    await appendAuditEntry(itemId, 'board_moved', 'board_id', oldBoardId, targetBoardId, actor, token);
+    await refreshItems(token);
+    return true;
+  } catch (err: any) {
+    // Rollback
+    items.value = oldItems;
+    selectedItemId.value = itemId;
+    if (!isReauthFailure(err)) {
+      showToast('Failed to move item: ' + err.message, 'error');
+    }
+    return false;
+  }
+}
 
 export type DeleteBoardMode = 'discard' | 'migrate';
 

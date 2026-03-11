@@ -81,6 +81,8 @@ vi.mock('../../state/board-store', () => ({
   items: { value: [] },
   owners: { value: [{ name: 'Luke', google_account: 'luke@example.com' }] },
   labels: { value: [] },
+  accessibleBoards: { value: [] },
+  activeBoardId: { value: 'board-1' },
 }));
 
 vi.mock('../../state/actions', () => ({
@@ -88,6 +90,7 @@ vi.mock('../../state/actions', () => ({
   deleteItem: vi.fn(),
   createItem: vi.fn(),
   moveItem: vi.fn(),
+  moveItemToBoard: vi.fn(),
 }));
 
 const mockAuth: AuthState = {
