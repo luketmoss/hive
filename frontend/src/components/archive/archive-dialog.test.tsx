@@ -24,7 +24,7 @@ afterEach(() => {
 
 function daysAgoISO(days: number): string {
   const d = new Date();
-  d.setHours(12, 0, 0, 0);        // anchor to noon so floor(diff/86400000) is stable
+  d.setHours(0, 0, 0, 0);         // anchor to midnight so floor(diff/86400000) is always >= days
   d.setDate(d.getDate() - days);
   return d.toISOString();
 }
