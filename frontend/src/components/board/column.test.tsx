@@ -364,7 +364,7 @@ describe('Column sort mode (Issue #157)', () => {
   it('AC1-3: Card component does not receive a sortMode prop', () => {
     const items = [makeItem({ id: '1', title: 'Task 1' })];
     const { container } = render(
-      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={vi.fn()} />
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={vi.fn()} sortMode="custom" />
     );
     // The Card mock just renders a div.card; no sortMode attribute present
     const card = container.querySelector('.card') as HTMLElement;
@@ -373,9 +373,9 @@ describe('Column sort mode (Issue #157)', () => {
     expect(container.querySelector('.card-sort-lock')).toBeNull();
   });
 
-  it('renders a sort dropdown with Custom, Due date, Created options', () => {
+  it('renders a sort dropdown with Custom, Due date, Created options when sortMode is provided', () => {
     const { container } = render(
-      <Column status="To Do" items={[]} onDrop={vi.fn()} />
+      <Column status="To Do" items={[]} onDrop={vi.fn()} sortMode="custom" />
     );
     const select = container.querySelector('.column-sort-select') as HTMLSelectElement;
     expect(select).not.toBeNull();
@@ -386,73 +386,54 @@ describe('Column sort mode (Issue #157)', () => {
     expect(options[2].value).toBe('created');
   });
 
-  it('sorts items by due date when due_date sort is selected', async () => {
+  it('renders items in the order passed by parent (sorting handled by parent)', () => {
     const items = [
-      makeItem({ id: 'no-date', title: 'No Date', due_date: '', sort_order: 1 }),
+      makeItem({ id: 'sooner', title: 'Sooner', due_date: '2026-03-01', sort_order: 1 }),
       makeItem({ id: 'later', title: 'Later', due_date: '2026-06-01', sort_order: 2 }),
-      makeItem({ id: 'sooner', title: 'Sooner', due_date: '2026-03-01', sort_order: 3 }),
     ];
     const { container } = render(
-      <Column status="To Do" items={items} onDrop={vi.fn()} />
+      <Column status="To Do" items={items} onDrop={vi.fn()} sortMode="due_date" />
     );
-    const select = container.querySelector('.column-sort-select') as HTMLSelectElement;
-
-    await act(() => {
-      fireEvent.change(select, { target: { value: 'due_date' } });
-    });
-
     const cardIds = Array.from(container.querySelectorAll('[data-item-id]')).map(el => el.getAttribute('data-item-id'));
-    // Sooner first, Later second, No Date last
-    expect(cardIds).toEqual(['sooner', 'later', 'no-date']);
+    expect(cardIds).toEqual(['sooner', 'later']);
   });
 
-  it('sorts items by created date when created sort is selected', async () => {
-    const items = [
-      makeItem({ id: 'newest', title: 'Newest', created_at: '2026-03-10T00:00:00Z', sort_order: 1 }),
-      makeItem({ id: 'oldest', title: 'Oldest', created_at: '2026-01-01T00:00:00Z', sort_order: 2 }),
-    ];
+  it('AC7: sort dropdown has active class when sortMode is due_date', () => {
     const { container } = render(
-      <Column status="To Do" items={items} onDrop={vi.fn()} />
+      <Column status="To Do" items={[]} onDrop={vi.fn()} sortMode="due_date" />
     );
     const select = container.querySelector('.column-sort-select') as HTMLSelectElement;
-
-    await act(() => {
-      fireEvent.change(select, { target: { value: 'created' } });
-    });
-
-    const cardIds = Array.from(container.querySelectorAll('[data-item-id]')).map(el => el.getAttribute('data-item-id'));
-    expect(cardIds).toEqual(['oldest', 'newest']);
-  });
-
-  it('AC7: sort dropdown gets active class when non-custom sort is selected', async () => {
-    const { container } = render(
-      <Column status="To Do" items={[]} onDrop={vi.fn()} />
-    );
-    const select = container.querySelector('.column-sort-select') as HTMLSelectElement;
-    expect(select.classList.contains('column-sort-active')).toBe(false);
-
-    await act(() => {
-      fireEvent.change(select, { target: { value: 'due_date' } });
-    });
-
     expect(select.classList.contains('column-sort-active')).toBe(true);
   });
 
-  it('AC7: active class is removed when switching back to custom', async () => {
+  it('AC7: sort dropdown has active class when sortMode is created', () => {
     const { container } = render(
-      <Column status="To Do" items={[]} onDrop={vi.fn()} />
+      <Column status="To Do" items={[]} onDrop={vi.fn()} sortMode="created" />
+    );
+    const select = container.querySelector('.column-sort-select') as HTMLSelectElement;
+    expect(select.classList.contains('column-sort-active')).toBe(true);
+  });
+
+  it('AC7: sort dropdown has no active class when sortMode is custom', () => {
+    const { container } = render(
+      <Column status="To Do" items={[]} onDrop={vi.fn()} sortMode="custom" />
+    );
+    const select = container.querySelector('.column-sort-select') as HTMLSelectElement;
+    expect(select.classList.contains('column-sort-active')).toBe(false);
+  });
+
+  it('AC7: calls onSortChange when dropdown changes', async () => {
+    const onSortChange = vi.fn();
+    const { container } = render(
+      <Column status="To Do" items={[]} onDrop={vi.fn()} sortMode="custom" onSortChange={onSortChange} />
     );
     const select = container.querySelector('.column-sort-select') as HTMLSelectElement;
 
     await act(() => {
       fireEvent.change(select, { target: { value: 'due_date' } });
     });
-    expect(select.classList.contains('column-sort-active')).toBe(true);
 
-    await act(() => {
-      fireEvent.change(select, { target: { value: 'custom' } });
-    });
-    expect(select.classList.contains('column-sort-active')).toBe(false);
+    expect(onSortChange).toHaveBeenCalledWith('due_date');
   });
 });
 
@@ -469,14 +450,8 @@ describe('Reorder blocked in date-sort mode (Issue #157)', () => {
       makeItem({ id: '2', title: 'Task 2', status: 'To Do', due_date: '2026-06-01' }),
     ];
     const { container } = render(
-      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} />
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} sortMode="due_date" />
     );
-
-    // Switch to due_date sort
-    const select = container.querySelector('.column-sort-select') as HTMLSelectElement;
-    await act(() => {
-      fireEvent.change(select, { target: { value: 'due_date' } });
-    });
 
     const card = container.querySelector('.card') as HTMLElement;
     const rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
@@ -510,16 +485,9 @@ describe('Reorder blocked in date-sort mode (Issue #157)', () => {
       makeItem({ id: '2', title: 'Task 2', status: 'To Do', sort_order: 2 }),
     ];
     const { container } = render(
-      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} />
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} sortMode="due_date" />
     );
 
-    // Switch to due_date sort
-    const select = container.querySelector('.column-sort-select') as HTMLSelectElement;
-    await act(() => {
-      fireEvent.change(select, { target: { value: 'due_date' } });
-    });
-
-    // Simulate Alt+ArrowDown on the first card title
     const titleBtn = container.querySelector('[data-item-id="1"] .card-title') as HTMLElement;
     await act(() => {
       fireEvent.keyDown(titleBtn, { key: 'ArrowDown', altKey: true });
@@ -536,13 +504,8 @@ describe('Reorder blocked in date-sort mode (Issue #157)', () => {
       makeItem({ id: '2', title: 'Task 2', status: 'To Do', sort_order: 2 }),
     ];
     const { container } = render(
-      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} />
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} sortMode="created" />
     );
-
-    const select = container.querySelector('.column-sort-select') as HTMLSelectElement;
-    await act(() => {
-      fireEvent.change(select, { target: { value: 'created' } });
-    });
 
     const titleBtn = container.querySelector('[data-item-id="2"] .card-title') as HTMLElement;
     await act(() => {
@@ -560,10 +523,9 @@ describe('Reorder blocked in date-sort mode (Issue #157)', () => {
       makeItem({ id: '2', title: 'Task 2', status: 'To Do', sort_order: 2 }),
     ];
     const { container } = render(
-      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} />
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} sortMode="custom" />
     );
 
-    // Default sort is custom — reorder should work
     const titleBtn = container.querySelector('[data-item-id="1"] .card-title') as HTMLElement;
     await act(() => {
       fireEvent.keyDown(titleBtn, { key: 'ArrowDown', altKey: true });

@@ -153,7 +153,8 @@ body {
   background: var(--color-danger);
   color: white;
 }
-.btn-danger:hover { background: var(--color-danger-hover); }
+.btn-danger:hover:not(:disabled) { background: var(--color-danger-hover); }
+.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-sm {
   padding: 4px 10px;
@@ -423,6 +424,28 @@ body {
   margin: 4px 0;
 }
 
+.user-dropdown-edit-profile {
+  background: none;
+  border: none;
+  padding: 8px 4px;
+  font-size: 14px;
+  color: var(--color-text);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  width: 100%;
+}
+
+.user-dropdown-edit-profile:hover {
+  background: var(--overlay-md);
+}
+
+.user-dropdown-edit-profile:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .user-dropdown-signout {
   background: none;
   border: none;
@@ -478,22 +501,90 @@ body {
   gap: 6px;
 }
 
-/* On desktop, filter toggle is visible as inline button */
-.control-bar .filter-toggle {
-  display: flex;
-}
+/* AC2 (#154): On desktop, filter toggle is hidden — chips are always inline */
 
-/* Desktop: filter content as dropdown below */
+/* Desktop: filter content always visible inline */
 .control-bar-filter-content {
   display: flex;
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
-  padding: 8px 0;
 }
 
+/* Mobile-only collapsed state (applied via JS when isMobile && !filtersExpanded) */
 .control-bar-filter-content-collapsed {
   display: none;
+}
+
+/* === 3-dot Overflow Menu (#154) === */
+.control-bar-overflow {
+  position: relative;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.overflow-menu-btn {
+  font-size: 18px;
+  letter-spacing: 2px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  line-height: 1;
+  color: var(--color-text-secondary);
+}
+
+.overflow-menu-btn:hover {
+  background: var(--overlay-md);
+  color: var(--color-text);
+}
+
+.overflow-menu-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.overflow-menu-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  min-width: 160px;
+  z-index: 200;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.overflow-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  text-align: left;
+  width: 100%;
+}
+
+.overflow-menu-item:hover {
+  background: var(--overlay-md);
+}
+
+.overflow-menu-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.overflow-menu-item-checked {
+  color: var(--color-primary);
+  font-weight: 600;
 }
 
 /* Active filter chips inline */
@@ -624,6 +715,12 @@ body {
   padding: 16px 20px;
 }
 
+/* In list mode, board-main scrolls vertically instead of horizontally */
+.board-main:has(.list-view) {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 /* === Columns === */
 .board-columns {
   display: flex;
@@ -681,6 +778,42 @@ body {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
   border-radius: 2px;
+}
+
+/* AC9: Screen-reader-only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* AC2/AC7: Column sort selector */
+.column-sort-select {
+  font-size: 11px;
+  padding: 2px 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  min-height: 24px;
+  font-family: inherit;
+}
+
+.column-sort-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.column-sort-select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .column-header h2 {
@@ -918,6 +1051,16 @@ body {
   font-size: 12px;
   color: var(--color-text-secondary);
   white-space: nowrap;
+}
+
+/* AC9: Lock indicator on cards in date-sorted columns */
+.card-sort-lock {
+  display: block;
+  font-size: 11px;
+  opacity: 0.45;
+  text-align: right;
+  line-height: 1;
+  margin-bottom: 4px;
 }
 
 /* === Board Switcher === */
@@ -1162,6 +1305,83 @@ body {
   gap: 4px;
   font-size: 13px;
   color: var(--color-text-secondary);
+}
+
+/* === Danger zone in ShareModal === */
+
+.share-danger-zone {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--color-danger) 30%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.share-danger-zone-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-danger);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.share-delete-board-btn {
+  align-self: flex-start;
+}
+
+@media (max-width: 600px) {
+  .share-delete-board-btn {
+    min-height: 44px;
+  }
+}
+
+/* === Delete Board Modal === */
+
+.delete-board-modal {
+  width: 440px;
+}
+
+.delete-board-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.delete-board-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.delete-board-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.delete-board-target {
+  margin-left: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.delete-board-target label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.delete-board-target select {
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 /* === Shortcuts Help Overlay === */
@@ -1786,8 +2006,34 @@ body {
   padding: 16px 20px;
   border-top: 1px solid var(--color-border);
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   flex-shrink: 0;
+}
+.detail-footer-left,
+.detail-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Move to board modal */
+.move-board-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.move-board-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.move-subtask-warning {
+  margin-top: 12px;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
 }
 
 /* === Modal === */
@@ -1795,7 +2041,7 @@ body {
   position: fixed;
   inset: 0;
   background: var(--overlay-4xl);
-  z-index: 100;
+  z-index: 200;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2602,6 +2848,14 @@ body {
     justify-content: center;
   }
 
+  /* #136 AC7: Touch target compliance for dropdown items on mobile */
+  .user-dropdown-edit-profile,
+  .user-dropdown-signout {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
   /* #132 AC5: Board selector max-width with ellipsis */
   .board-switcher-select {
     max-width: 160px;
@@ -2632,12 +2886,6 @@ body {
 
   .filter-group {
     flex-wrap: wrap;
-  }
-
-  /* In list mode, board-main scrolls vertically instead of horizontally */
-  .board-main:has(.list-view) {
-    overflow-x: hidden;
-    overflow-y: auto;
   }
 
   /* Board switcher: touch-friendly on mobile */

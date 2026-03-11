@@ -6,12 +6,19 @@ vi.mock('../board/theme-toggle', () => ({
   ThemeToggle: () => <div data-testid="theme-toggle" role="group" aria-label="Theme" />,
 }));
 
+// Default: demo mode OFF
+vi.mock('../../demo/is-demo-mode', () => ({
+  isDemoMode: () => false,
+}));
+
 const mockUser = { name: 'Luke', email: 'luke@example.com', picture: 'https://example.com/pic.jpg' };
 const mockSignOut = vi.fn();
+const mockOpenProfile = vi.fn();
 
 afterEach(() => {
   cleanup();
   mockSignOut.mockClear();
+  mockOpenProfile.mockClear();
 });
 
 function renderDropdown(props = {}) {
@@ -20,6 +27,7 @@ function renderDropdown(props = {}) {
       user={mockUser}
       displayName="Luke"
       onSignOut={mockSignOut}
+      onOpenProfile={mockOpenProfile}
       {...props}
     />
   );
@@ -27,11 +35,11 @@ function renderDropdown(props = {}) {
 
 describe('UserDropdown (Issue #132 AC1)', () => {
   describe('Trigger button', () => {
-    it('renders trigger with aria-haspopup="true"', () => {
+    it('renders trigger with aria-haspopup="menu"', () => {
       const { container } = renderDropdown();
       const trigger = container.querySelector('[data-testid="user-dropdown-trigger"]');
       expect(trigger).not.toBeNull();
-      expect(trigger!.getAttribute('aria-haspopup')).toBe('true');
+      expect(trigger!.getAttribute('aria-haspopup')).toBe('menu');
     });
 
     it('renders avatar image when user has picture', () => {
@@ -118,11 +126,11 @@ describe('UserDropdown (Issue #132 AC1)', () => {
       expect(themeToggle).not.toBeNull();
     });
 
-    it('has dividers separating sections', () => {
+    it('has dividers separating sections (3 with Edit profile)', () => {
       const { container } = renderDropdown();
       fireEvent.click(container.querySelector('[data-testid="user-dropdown-trigger"]') as HTMLElement);
       const dividers = container.querySelectorAll('.user-dropdown-divider');
-      expect(dividers.length).toBe(2);
+      expect(dividers.length).toBe(3);
     });
 
     it('has sign out button', () => {
@@ -155,5 +163,93 @@ describe('UserDropdown (Issue #132 AC1)', () => {
       const panel = container.querySelector('[data-testid="user-dropdown-panel"]');
       expect(panel).toBeNull();
     });
+  });
+});
+
+describe('UserDropdown — Edit profile (Issue #136)', () => {
+  // AC1: "Edit profile" entry visible in user dropdown
+  it('renders "Edit profile" button above a divider before Sign out', () => {
+    const { container } = renderDropdown();
+    fireEvent.click(container.querySelector('[data-testid="user-dropdown-trigger"]') as HTMLElement);
+    const editProfile = container.querySelector('[data-testid="user-dropdown-edit-profile"]');
+    expect(editProfile).not.toBeNull();
+    expect(editProfile!.textContent).toBe('Edit profile');
+    // Verify it comes before Sign out in DOM order
+    const panel = container.querySelector('[data-testid="user-dropdown-panel"]')!;
+    const buttons = Array.from(panel.querySelectorAll('button'));
+    const editIdx = buttons.findIndex(b => b.dataset.testid === 'user-dropdown-edit-profile');
+    const signoutIdx = buttons.findIndex(b => b.dataset.testid === 'user-dropdown-signout');
+    expect(editIdx).toBeLessThan(signoutIdx);
+  });
+
+  // AC2: Profile dialog opens from dropdown — clicking calls onOpenProfile and closes panel
+  it('calls onOpenProfile and closes dropdown on click', () => {
+    const { container } = renderDropdown();
+    fireEvent.click(container.querySelector('[data-testid="user-dropdown-trigger"]') as HTMLElement);
+    fireEvent.click(container.querySelector('[data-testid="user-dropdown-edit-profile"]') as HTMLElement);
+    expect(mockOpenProfile).toHaveBeenCalledOnce();
+    const panel = container.querySelector('[data-testid="user-dropdown-panel"]');
+    expect(panel).toBeNull();
+  });
+
+  // AC5: Profile entry not shown in demo mode
+  it('hides "Edit profile" when onOpenProfile is not provided', () => {
+    const { container } = render(
+      <UserDropdown user={mockUser} displayName="Luke" onSignOut={mockSignOut} />
+    );
+    fireEvent.click(container.querySelector('[data-testid="user-dropdown-trigger"]') as HTMLElement);
+    const editProfile = container.querySelector('[data-testid="user-dropdown-edit-profile"]');
+    expect(editProfile).toBeNull();
+    // Only 2 dividers when no profile button
+    const dividers = container.querySelectorAll('.user-dropdown-divider');
+    expect(dividers.length).toBe(2);
+  });
+
+  // AC8: ARIA menu semantics on the panel
+  describe('ARIA menu semantics (AC8)', () => {
+    it('panel has role="menu"', () => {
+      const { container } = renderDropdown();
+      fireEvent.click(container.querySelector('[data-testid="user-dropdown-trigger"]') as HTMLElement);
+      const panel = container.querySelector('[data-testid="user-dropdown-panel"]');
+      expect(panel!.getAttribute('role')).toBe('menu');
+    });
+
+    it('Edit profile button has role="menuitem"', () => {
+      const { container } = renderDropdown();
+      fireEvent.click(container.querySelector('[data-testid="user-dropdown-trigger"]') as HTMLElement);
+      const editProfile = container.querySelector('[data-testid="user-dropdown-edit-profile"]');
+      expect(editProfile!.getAttribute('role')).toBe('menuitem');
+    });
+
+    it('Sign out button has role="menuitem"', () => {
+      const { container } = renderDropdown();
+      fireEvent.click(container.querySelector('[data-testid="user-dropdown-trigger"]') as HTMLElement);
+      const signout = container.querySelector('[data-testid="user-dropdown-signout"]');
+      expect(signout!.getAttribute('role')).toBe('menuitem');
+    });
+
+    it('trigger has aria-haspopup="menu"', () => {
+      const { container } = renderDropdown();
+      const trigger = container.querySelector('[data-testid="user-dropdown-trigger"]');
+      expect(trigger!.getAttribute('aria-haspopup')).toBe('menu');
+    });
+  });
+});
+
+describe('UserDropdown — demo mode hides Edit profile (Issue #136 AC5)', () => {
+  it('hides Edit profile in demo mode', async () => {
+    // Override isDemoMode to return true for this test
+    const demoModule = await import('../../demo/is-demo-mode');
+    const spy = vi.spyOn(demoModule, 'isDemoMode').mockReturnValue(true);
+
+    const { container } = renderDropdown();
+    fireEvent.click(container.querySelector('[data-testid="user-dropdown-trigger"]') as HTMLElement);
+    const editProfile = container.querySelector('[data-testid="user-dropdown-edit-profile"]');
+    expect(editProfile).toBeNull();
+    // Only 2 dividers in demo mode
+    const dividers = container.querySelectorAll('.user-dropdown-divider');
+    expect(dividers.length).toBe(2);
+
+    spy.mockRestore();
   });
 });

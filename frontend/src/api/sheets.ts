@@ -409,6 +409,20 @@ export async function updateBoardRow(boardId: string, color: string, icon: strin
   });
 }
 
+/**
+ * Update the name for an existing board.
+ * Finds the board row by ID, then writes only column B.
+ */
+export async function renameBoardRow(boardId: string, name: string, token: string): Promise<void> {
+  return withReauth(token, async (t) => {
+    const rows = await sheetsGet('Boards!A2:A', t);
+    const rowIndex = rows.findIndex(row => (row[0] || '') === boardId);
+    if (rowIndex < 0) return; // Board not found — no-op
+    const sheetRow = rowIndex + 2; // 1-based + header
+    await sheetsUpdate(`Boards!B${sheetRow}`, [[name]], t);
+  });
+}
+
 // --- Permissions operations ---
 
 export async function fetchPermissions(token: string): Promise<BoardPermission[]> {
@@ -485,6 +499,61 @@ export async function deletePermissionRow(boardId: string, userEmail: string, to
     const sheetId = permSheet?.properties?.sheetId ?? 0;
     await sheetsDeleteRow(sheetId, rowIndex + 2, t); // +2: 1-based + header
   });
+}
+
+export async function deleteBoardRow(boardId: string, token: string): Promise<void> {
+  return withReauth(token, async (t) => {
+    // Find the board row by ID
+    const rows = await sheetsGet('Boards!A2:A', t);
+    const rowIndex = rows.findIndex(row => (row[0] || '') === boardId);
+    if (rowIndex < 0) return;
+
+    // Get Boards sheet ID
+    const url = `${BASE}/${SPREADSHEET_ID}?fields=sheets.properties`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${t}` },
+    });
+    const data = await res.json();
+    const boardsSheet = data.sheets?.find(
+      (s: any) => s.properties.title === 'Boards'
+    );
+    const sheetId = boardsSheet?.properties?.sheetId ?? 0;
+    await sheetsDeleteRow(sheetId, rowIndex + 2, t); // +2: 1-based + header
+  });
+}
+
+export async function deleteAllBoardPermissions(boardId: string, token: string): Promise<void> {
+  return withReauth(token, async (t) => {
+    // Find all permission rows for this board (delete from bottom to top)
+    const rows = await sheetsGet('Permissions!A2:C', t);
+    const indices = rows
+      .map((row, i) => (row[0] === boardId ? i : -1))
+      .filter(i => i >= 0)
+      .sort((a, b) => b - a); // bottom-to-top to avoid row shifting
+
+    if (indices.length === 0) return;
+
+    // Get Permissions sheet ID
+    const url = `${BASE}/${SPREADSHEET_ID}?fields=sheets.properties`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${t}` },
+    });
+    const data = await res.json();
+    const permSheet = data.sheets?.find(
+      (s: any) => s.properties.title === 'Permissions'
+    );
+    const sheetId = permSheet?.properties?.sheetId ?? 0;
+
+    for (const idx of indices) {
+      await sheetsDeleteRow(sheetId, idx + 2, t); // +2: 1-based + header
+    }
+  });
+}
+
+export async function updateItemBoardId(sheetRow: number, newBoardId: string, token: string): Promise<void> {
+  return withReauth(token, (t) =>
+    sheetsUpdate(`Items!N${sheetRow}`, [[newBoardId]], t)
+  );
 }
 
 export { SheetsApiError };

@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, cleanup, fireEvent } from '@testing-library/preact';
-import { AuthContext } from '../../auth/auth-context';
-import type { AuthState } from '../../auth/auth-context';
 
 // Use vi.hoisted so these are available in the vi.mock factory
 const { mockViewMode, mockSetViewMode, mockItemsRef } = vi.hoisted(() => ({
@@ -44,6 +42,7 @@ vi.mock('../../state/board-store', () => ({
   boardItems: { get value() { return mockItemsRef.current; } },
   showCreateBoardModal: { value: false },
   showShareModal: { value: false },
+  showDeleteBoardModal: { value: false },
   accessibleBoards: { value: [{ id: 'b1', name: 'Work', icon: '' }] },
   activeBoard: { value: { name: 'Work', color: '' } },
   activeBoardId: { value: 'b1' },
@@ -55,6 +54,8 @@ vi.mock('../../state/board-store', () => ({
   applyTheme: () => {},
   cycleTheme: () => {},
   setTheme: () => {},
+  columnSortModes: { value: {} },
+  setColumnSortMode: vi.fn(),
 }));
 
 vi.mock('../../state/actions', () => ({
@@ -68,6 +69,9 @@ vi.mock('./create-board-modal', () => ({
 
 vi.mock('./share-modal', () => ({
   ShareModal: () => null,
+}));
+vi.mock('./delete-board-modal', () => ({
+  DeleteBoardModal: () => null,
 }));
 
 vi.mock('./list-view', () => ({
@@ -94,19 +98,8 @@ vi.mock('../shared/hive-logo', () => ({
   HiveLogo: (props: any) => <svg data-testid="hive-logo" class={props.class} />,
 }));
 
-// ControlBar includes the view toggle now — render the real ControlBar
-// But we need to test the view toggle integration through KanbanBoard
-// Since ControlBar now owns the view toggle, test it via ControlBar
+// ControlBar now owns view toggle (via 3-dot overflow menu)
 import { ControlBar } from '../header/control-bar';
-
-const mockAuth: AuthState = {
-  token: 'test-token',
-  user: { name: 'Luke', email: 'luke@example.com', picture: '' },
-  isAuthenticated: true,
-  login: () => {},
-  logout: () => {},
-  updateUserName: () => {},
-};
 
 afterEach(() => {
   cleanup();
@@ -115,56 +108,64 @@ afterEach(() => {
   mockSetViewMode.mockClear();
 });
 
-describe('View Toggle in ControlBar (Issue #132 AC2)', () => {
-  it('renders Board and List toggle buttons', () => {
+beforeEach(() => {
+  mockViewMode.value = 'board';
+});
+
+describe('View Toggle in 3-dot overflow menu (#154)', () => {
+  it('⋯ button is rendered in ControlBar', () => {
     const { container } = render(<ControlBar />);
-    const board = container.querySelector('[data-testid="view-toggle-board"]');
-    const list = container.querySelector('[data-testid="view-toggle-list"]');
-    expect(board).not.toBeNull();
-    expect(list).not.toBeNull();
-    expect(board!.textContent).toBe('Board');
-    expect(list!.textContent).toBe('List');
+    const btn = container.querySelector('[data-testid="overflow-menu-btn"]');
+    expect(btn).not.toBeNull();
   });
 
-  it('marks Board button as active when viewMode is board', () => {
+  it('clicking ⋯ reveals Board view and List view menu items', () => {
+    const { container } = render(<ControlBar />);
+    fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+    const boardItem = container.querySelector('[data-testid="overflow-menu-view-board"]');
+    const listItem = container.querySelector('[data-testid="overflow-menu-view-list"]');
+    expect(boardItem).not.toBeNull();
+    expect(listItem).not.toBeNull();
+    expect(boardItem!.textContent).toBe('Board view');
+    expect(listItem!.textContent).toBe('List view');
+  });
+
+  it('Board view item has aria-checked="true" when viewMode is board', () => {
     mockViewMode.value = 'board';
     const { container } = render(<ControlBar />);
-    const boardBtn = container.querySelector('[data-testid="view-toggle-board"]');
-    expect(boardBtn!.classList.contains('view-toggle-active')).toBe(true);
-    expect(boardBtn!.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+    const boardItem = container.querySelector('[data-testid="overflow-menu-view-board"]');
+    expect(boardItem!.getAttribute('aria-checked')).toBe('true');
   });
 
-  it('marks List button as active when viewMode is list', () => {
+  it('List view item has aria-checked="true" when viewMode is list', () => {
     mockViewMode.value = 'list';
     const { container } = render(<ControlBar />);
-    const listBtn = container.querySelector('[data-testid="view-toggle-list"]');
-    expect(listBtn!.classList.contains('view-toggle-active')).toBe(true);
-    expect(listBtn!.getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+    const listItem = container.querySelector('[data-testid="overflow-menu-view-list"]');
+    expect(listItem!.getAttribute('aria-checked')).toBe('true');
   });
 
-  it('calls setViewMode("list") when List button is clicked', () => {
+  it('calls setViewMode("list") when List view item is clicked', () => {
     mockViewMode.value = 'board';
     const { container } = render(<ControlBar />);
-    const listBtn = container.querySelector('[data-testid="view-toggle-list"]') as HTMLElement;
-    fireEvent.click(listBtn);
+    fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+    fireEvent.click(container.querySelector('[data-testid="overflow-menu-view-list"]') as HTMLElement);
     expect(mockSetViewMode).toHaveBeenCalledWith('list');
   });
 
-  it('calls setViewMode("board") when Board button is clicked', () => {
+  it('calls setViewMode("board") when Board view item is clicked', () => {
     mockViewMode.value = 'list';
     const { container } = render(<ControlBar />);
-    const boardBtn = container.querySelector('[data-testid="view-toggle-board"]') as HTMLElement;
-    fireEvent.click(boardBtn);
+    fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+    fireEvent.click(container.querySelector('[data-testid="overflow-menu-view-board"]') as HTMLElement);
     expect(mockSetViewMode).toHaveBeenCalledWith('board');
   });
-});
 
-describe('View toggle always visible (Issue #132 AC2)', () => {
-  it('view toggle is rendered inside control-bar (not hidden behind mobile breakpoint)', () => {
+  it('menu closes after selecting a view', () => {
     const { container } = render(<ControlBar />);
-    const viewToggle = container.querySelector('[data-testid="control-bar-view-toggle"]');
-    expect(viewToggle).not.toBeNull();
-    expect(viewToggle!.querySelector('[data-testid="view-toggle-board"]')).not.toBeNull();
-    expect(viewToggle!.querySelector('[data-testid="view-toggle-list"]')).not.toBeNull();
+    fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+    fireEvent.click(container.querySelector('[data-testid="overflow-menu-view-list"]') as HTMLElement);
+    expect(container.querySelector('[data-testid="overflow-menu-dropdown"]')).toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme } from '../../state/board-store';
+import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode } from '../../state/board-store';
+import type { SortMode } from '../../state/board-store';
 import { moveItem, reorderItem } from '../../state/actions';
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts';
 import type { Shortcut } from '../../hooks/use-keyboard-shortcuts';
@@ -10,6 +11,8 @@ import { CardDetail } from './card-detail';
 import { CreateItemModal } from '../forms/create-item-modal';
 import { CreateBoardModal } from './create-board-modal';
 import { ShareModal } from './share-modal';
+import { DeleteBoardModal } from './delete-board-modal';
+import { MoveToBoardModal } from './move-to-board-modal';
 import { ShortcutsHelp } from './shortcuts-help';
 import { ProfileDialog } from '../profile/profile-dialog';
 import { ArchiveDialog } from '../archive/archive-dialog';
@@ -46,6 +49,8 @@ export function KanbanBoard() {
   /** True when no modal or overlay is open — shortcuts should be active. */
   const noModalOpen = () =>
     !showShareModal.value &&
+    !showDeleteBoardModal.value &&
+    !showMoveToBoardModal.value &&
     !showCreateModal.value &&
     !showCreateBoardModal.value &&
     !showArchiveDialog.value &&
@@ -94,7 +99,7 @@ export function KanbanBoard() {
         }
       },
     },
-    // #90 AC2/AC3: Ctrl+Shift+S opens share modal — only for board owners
+    // #138: Ctrl+Shift+S opens board settings modal — only for board owners
     {
       key: 's',
       ctrl: true,
@@ -164,6 +169,8 @@ export function KanbanBoard() {
               onDrop={handleDrop}
               onReorder={handleReorder}
               onMoveStatus={handleMoveStatus}
+              sortMode={columnSortModes.value[status]}
+              onSortChange={(mode: SortMode) => setColumnSortMode(status, mode)}
               {...(status === 'Done' ? {
                 allDoneCount: allDoneItems.value.length,
                 hasArchived: hasArchivedItems.value,
@@ -228,6 +235,7 @@ export function KanbanBoard() {
               user={user}
               displayName={displayName}
               onSignOut={logout}
+              onOpenProfile={() => setShowProfile(true)}
             />
           )}
         </div>
@@ -263,6 +271,8 @@ export function KanbanBoard() {
       {showCreateModal.value && <CreateItemModal />}
       {showCreateBoardModal.value && <CreateBoardModal />}
       {showShareModal.value && <ShareModal />}
+      {showDeleteBoardModal.value && <DeleteBoardModal />}
+      {showMoveToBoardModal.value && <MoveToBoardModal />}
       {showArchiveDialog.value && <ArchiveDialog onClose={handleCloseArchive} />}
       {showShortcutsHelp && <ShortcutsHelp onClose={() => setShowShortcutsHelp(false)} />}
       {showProfile && user && token && (
@@ -272,6 +282,11 @@ export function KanbanBoard() {
           token={token}
           onClose={() => {
             setShowProfile(false);
+            // AC6: Return focus to dropdown trigger after dialog closes
+            requestAnimationFrame(() => {
+              const trigger = document.querySelector<HTMLElement>('[data-testid="user-dropdown-trigger"]');
+              trigger?.focus();
+            });
           }}
           onNameUpdated={updateUserName}
         />

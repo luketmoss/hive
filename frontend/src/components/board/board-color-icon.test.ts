@@ -23,9 +23,13 @@ vi.mock('../../api/sheets', () => ({
   fetchBoards: vi.fn().mockResolvedValue([]),
   createBoardRow: vi.fn().mockResolvedValue(undefined),
   updateBoardRow: vi.fn().mockResolvedValue(undefined),
+  renameBoardRow: vi.fn().mockResolvedValue(undefined),
   fetchPermissions: vi.fn().mockResolvedValue([]),
   createPermissionRow: vi.fn().mockResolvedValue(undefined),
   deletePermissionRow: vi.fn().mockResolvedValue(undefined),
+  deleteBoardRow: vi.fn().mockResolvedValue(undefined),
+  deleteAllBoardPermissions: vi.fn().mockResolvedValue(undefined),
+  updateItemBoardId: vi.fn().mockResolvedValue(undefined),
   SheetsApiError: class extends Error {
     status: number;
     constructor(status: number, message: string) {
@@ -57,9 +61,13 @@ vi.mock('../../demo/mock-api', () => ({
   fetchBoards: vi.fn().mockResolvedValue([]),
   createBoardRow: vi.fn().mockResolvedValue(undefined),
   updateBoardRow: vi.fn().mockResolvedValue(undefined),
+  renameBoardRow: vi.fn().mockResolvedValue(undefined),
   fetchPermissions: vi.fn().mockResolvedValue([]),
   createPermissionRow: vi.fn().mockResolvedValue(undefined),
   deletePermissionRow: vi.fn().mockResolvedValue(undefined),
+  deleteBoardRow: vi.fn().mockResolvedValue(undefined),
+  deleteAllBoardPermissions: vi.fn().mockResolvedValue(undefined),
+  updateItemBoardId: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { createBoard, updateBoardAppearance } from '../../state/actions';

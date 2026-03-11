@@ -143,6 +143,12 @@ export async function updateBoardRow(boardId: string, color: string, icon: strin
   );
 }
 
+export async function renameBoardRow(boardId: string, name: string, _token: string): Promise<void> {
+  mockBoardsState.value = mockBoardsState.value.map(b =>
+    b.id === boardId ? { ...b, name } : b
+  );
+}
+
 // --- Permission operations (in-memory) ---
 
 export async function fetchPermissions(_token: string): Promise<BoardPermission[]> {
@@ -156,5 +162,19 @@ export async function createPermissionRow(perm: BoardPermission, _token: string)
 export async function deletePermissionRow(boardId: string, userEmail: string, _token: string): Promise<void> {
   mockPermissionsState.value = mockPermissionsState.value.filter(
     p => !(p.board_id === boardId && p.user_email.toLowerCase() === userEmail.toLowerCase())
+  );
+}
+
+export async function deleteBoardRow(boardId: string, _token: string): Promise<void> {
+  mockBoardsState.value = mockBoardsState.value.filter(b => b.id !== boardId);
+}
+
+export async function deleteAllBoardPermissions(boardId: string, _token: string): Promise<void> {
+  mockPermissionsState.value = mockPermissionsState.value.filter(p => p.board_id !== boardId);
+}
+
+export async function updateItemBoardId(sheetRow: number, newBoardId: string, _token: string): Promise<void> {
+  mockItemsState.value = mockItemsState.value.map(i =>
+    i.sheetRow === sheetRow ? { ...i, board_id: newBoardId } : i
   );
 }
