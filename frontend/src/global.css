@@ -423,6 +423,28 @@ body {
   margin: 4px 0;
 }
 
+.user-dropdown-edit-profile {
+  background: none;
+  border: none;
+  padding: 8px 4px;
+  font-size: 14px;
+  color: var(--color-text);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  width: 100%;
+}
+
+.user-dropdown-edit-profile:hover {
+  background: var(--overlay-md);
+}
+
+.user-dropdown-edit-profile:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .user-dropdown-signout {
   background: none;
   border: none;
@@ -2572,6 +2594,14 @@ body {
     min-width: 44px;
     min-height: 44px;
     justify-content: center;
+  }
+
+  /* #136 AC7: Touch target compliance for dropdown items on mobile */
+  .user-dropdown-edit-profile,
+  .user-dropdown-signout {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
   }
 
   /* #132 AC5: Board selector max-width with ellipsis */
