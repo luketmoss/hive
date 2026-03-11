@@ -223,6 +223,30 @@ server.tool(
 );
 
 server.tool(
+  "hive_get_item",
+  "Get full details of a single Hive item by ID. Use this to read the current description, status, etc. before updating.",
+  {
+    item_id: z.string().describe("ID of the item to fetch"),
+  },
+  async ({ item_id }) => {
+    const result = await apiGet("getItem", { id: item_id });
+    if (!result.success) return { content: [{ type: "text", text: `Error: ${result.error}` }] };
+    const i = result.data;
+    const parts = [
+      `**${i.title}** (id: ${i.id})`,
+      `- Status: ${i.status}`,
+      `- Owner: ${i.owner || "none"}`,
+      `- Due: ${i.due_date || "none"}`,
+      `- Labels: ${i.labels || "none"}`,
+      `- Board ID: ${i.board_id}`,
+      `- Description: ${i.description || "(empty)"}`,
+    ];
+    if (i.parent_id) parts.push(`- Parent ID: ${i.parent_id}`);
+    return { content: [{ type: "text", text: parts.join("\n") }] };
+  }
+);
+
+server.tool(
   "hive_update_item",
   "Update an existing item on a Hive kanban board. Only provide fields you want to change.",
   {
