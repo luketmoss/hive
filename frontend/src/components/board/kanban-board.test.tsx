@@ -89,6 +89,7 @@ vi.mock('../../state/board-store', () => ({
     get value() { return mockState.showDeleteBoardModal; },
     set value(v: boolean) { mockState.showDeleteBoardModal = v; },
   },
+  showMoveToBoardModal: { value: false },
   accessibleBoards: { get value() { return mockState.accessibleBoards; } },
   activeBoard: { value: null },
   userBoardRole: { get value() { return mockState.userBoardRole; } },

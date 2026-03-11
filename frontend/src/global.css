@@ -1591,22 +1591,6 @@ body {
   color: var(--label-text-color, white);
 }
 
-/* === Move to board === */
-.move-to-board-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.move-to-board-row select {
-  flex: 1;
-}
-.move-subtask-hint {
-  display: block;
-  margin-top: 4px;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-}
-
 /* === Sub-tasks in detail === */
 .detail-subtasks {
   margin-top: 8px;
@@ -1925,8 +1909,34 @@ body {
   padding: 16px 20px;
   border-top: 1px solid var(--color-border);
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   flex-shrink: 0;
+}
+.detail-footer-left,
+.detail-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Move to board modal */
+.move-board-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.move-board-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.move-subtask-warning {
+  margin-top: 12px;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
 }
 
 /* === Modal === */

@@ -83,6 +83,7 @@ vi.mock('../../state/board-store', () => ({
   labels: { value: [] },
   accessibleBoards: { value: [] },
   activeBoardId: { value: 'board-1' },
+  showMoveToBoardModal: { value: false },
 }));
 
 vi.mock('../../state/actions', () => ({
@@ -90,7 +91,6 @@ vi.mock('../../state/actions', () => ({
   deleteItem: vi.fn(),
   createItem: vi.fn(),
   moveItem: vi.fn(),
-  moveItemToBoard: vi.fn(),
 }));
 
 const mockAuth: AuthState = {

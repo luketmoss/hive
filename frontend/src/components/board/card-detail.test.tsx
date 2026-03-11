@@ -53,6 +53,7 @@ vi.mock('../../state/board-store', () => ({
   showToast: vi.fn(),
   accessibleBoards: { value: [] },
   activeBoardId: { value: 'board-1' },
+  showMoveToBoardModal: { value: false },
 }));
 
 const mockUpdateItem = vi.fn().mockResolvedValue(true);
@@ -65,7 +66,6 @@ vi.mock('../../state/actions', () => ({
   createItem: vi.fn(),
   moveItem: (...args: any[]) => mockMoveItem(...args),
   reorderSubtasks: vi.fn(),
-  moveItemToBoard: vi.fn().mockResolvedValue(true),
 }));
 
 const mockAuth: AuthState = {
