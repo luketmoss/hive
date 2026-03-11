@@ -63,6 +63,18 @@ async function resolveBoard(boardName) {
   throw new Error(`Board "${boardName}" not found. Available boards: ${names}`);
 }
 
+// --- Date helpers ---
+
+function normalizeDate(value) {
+  if (!value) return "";
+  // Already YYYY-MM-DD?
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  // Try parsing whatever Claude sent
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return ""; // unparseable — drop it
+  return d.toISOString().slice(0, 10);
+}
+
 // --- Position helpers ---
 
 async function resolvePosition(boardId, status, position) {
@@ -198,7 +210,7 @@ server.tool(
         title,
         description: description || "",
         owner: itemOwner,
-        due_date: due_date || "",
+        due_date: normalizeDate(due_date),
         labels: labels || "",
         board_id: resolved.id,
         status: itemStatus,
@@ -273,7 +285,7 @@ server.tool(
     if (description !== undefined) changes.description = description;
     if (status !== undefined) changes.status = status;
     if (owner !== undefined) changes.owner = owner;
-    if (due_date !== undefined) changes.due_date = due_date;
+    if (due_date !== undefined) changes.due_date = normalizeDate(due_date);
     if (labels !== undefined) changes.labels = labels;
     if (parent_id !== undefined) changes.parent_id = parent_id;
 
