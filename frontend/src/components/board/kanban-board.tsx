@@ -97,7 +97,7 @@ export function KanbanBoard() {
         }
       },
     },
-    // #90 AC2/AC3: Ctrl+Shift+S opens share modal — only for board owners
+    // #138: Ctrl+Shift+S opens board settings modal — only for board owners
     {
       key: 's',
       ctrl: true,

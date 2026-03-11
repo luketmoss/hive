@@ -18,6 +18,7 @@ import {
   fetchBoards as sheetsFetchBoards,
   createBoardRow as sheetsCreateBoardRow,
   updateBoardRow as sheetsUpdateBoardRow,
+  renameBoardRow as sheetsRenameBoardRow,
   fetchPermissions as sheetsFetchPermissions,
   createPermissionRow as sheetsCreatePermissionRow,
   deletePermissionRow as sheetsDeletePermissionRow,
@@ -43,6 +44,7 @@ import {
   fetchBoards as mockFetchBoards,
   createBoardRow as mockCreateBoardRow,
   updateBoardRow as mockUpdateBoardRow,
+  renameBoardRow as mockRenameBoardRow,
   fetchPermissions as mockFetchPermissions,
   createPermissionRow as mockCreatePermissionRow,
   deletePermissionRow as mockDeletePermissionRow,
@@ -87,6 +89,7 @@ function api() {
       fetchBoards: mockFetchBoards,
       createBoardRow: mockCreateBoardRow,
       updateBoardRow: mockUpdateBoardRow,
+      renameBoardRow: mockRenameBoardRow,
       fetchPermissions: mockFetchPermissions,
       createPermissionRow: mockCreatePermissionRow,
       deletePermissionRow: mockDeletePermissionRow,
@@ -113,6 +116,7 @@ function api() {
     fetchBoards: sheetsFetchBoards,
     createBoardRow: sheetsCreateBoardRow,
     updateBoardRow: sheetsUpdateBoardRow,
+    renameBoardRow: sheetsRenameBoardRow,
     fetchPermissions: sheetsFetchPermissions,
     createPermissionRow: sheetsCreatePermissionRow,
     deletePermissionRow: sheetsDeletePermissionRow,
@@ -139,6 +143,7 @@ const upsertOwner = (...args: Parameters<typeof sheetsUpsertOwner>) => api().ups
 const fetchBoardsApi = (...args: Parameters<typeof sheetsFetchBoards>) => api().fetchBoards(...args);
 const createBoardRowApi = (...args: Parameters<typeof sheetsCreateBoardRow>) => api().createBoardRow(...args);
 const updateBoardRowApi = (...args: Parameters<typeof sheetsUpdateBoardRow>) => api().updateBoardRow(...args);
+const renameBoardRowApi = (...args: Parameters<typeof sheetsRenameBoardRow>) => api().renameBoardRow(...args);
 const fetchPermissionsApi = (...args: Parameters<typeof sheetsFetchPermissions>) => api().fetchPermissions(...args);
 const createPermissionRowApi = (...args: Parameters<typeof sheetsCreatePermissionRow>) => api().createPermissionRow(...args);
 const deletePermissionRowApi = (...args: Parameters<typeof sheetsDeletePermissionRow>) => api().deletePermissionRow(...args);
@@ -953,6 +958,49 @@ export async function updateBoardAppearance(
     boards.value = oldBoards;
     if (!isReauthFailure(err)) {
       showToast('Failed to update board: ' + err.message, 'error');
+    }
+    return false;
+  }
+}
+
+export async function renameBoardName(
+  boardId: string,
+  newName: string,
+  token: string
+): Promise<boolean> {
+  const trimmed = newName.trim();
+  if (!trimmed || trimmed.length > 30) return false;
+
+  // Duplicate check (case-insensitive, excluding the board being renamed)
+  if (boards.value.some(b => b.id !== boardId && b.name.toLowerCase() === trimmed.toLowerCase())) {
+    return false;
+  }
+
+  const oldBoards = [...boards.value];
+
+  // Optimistic update
+  boards.value = boards.value.map(b =>
+    b.id === boardId ? { ...b, name: trimmed } : b
+  );
+
+  // Update document title if this is the active board
+  if (activeBoardId.value === boardId) {
+    document.title = `Hive \u2014 ${trimmed}`;
+  }
+
+  try {
+    await renameBoardRowApi(boardId, trimmed, token);
+    showToast('Board renamed');
+    return true;
+  } catch (err: any) {
+    // Rollback
+    boards.value = oldBoards;
+    if (activeBoardId.value === boardId) {
+      const original = oldBoards.find(b => b.id === boardId);
+      if (original) document.title = `Hive \u2014 ${original.name}`;
+    }
+    if (!isReauthFailure(err)) {
+      showToast('Failed to rename board: ' + err.message, 'error');
     }
     return false;
   }

@@ -15,7 +15,7 @@ vi.mock('../auth/reauth', () => ({
   },
 }));
 
-import { fetchBoards, createBoardRow, updateBoardRow } from './sheets';
+import { fetchBoards, createBoardRow, updateBoardRow, renameBoardRow } from './sheets';
 
 const mockFetch = vi.fn() as Mock;
 globalThis.fetch = mockFetch;
@@ -160,5 +160,54 @@ describe('updateBoardRow', () => {
     await updateBoardRow('board-999', '#fff', '❓', 'test-token');
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+// --- #138: renameBoardRow writes name to column B ---
+
+describe('renameBoardRow (issue #138)', () => {
+  it('finds board row by ID and updates column B with the new name', async () => {
+    // First call: sheetsGet('Boards!A2:A') to find the row
+    mockFetch.mockResolvedValueOnce(
+      mockSheetsGetResponse([
+        ['board-1'],
+        ['board-2'],
+      ])
+    );
+    // Second call: sheetsUpdate to write name
+    mockFetch.mockResolvedValueOnce(mockSheetsWriteResponse());
+
+    await renameBoardRow('board-2', 'Renamed Board', 'test-token');
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+
+    // Second call should be a PUT to Boards!B3 (board-2 is row index 1 → sheetRow 3)
+    const [updateUrl, updateOptions] = mockFetch.mock.calls[1];
+    expect(updateUrl).toContain('Boards!B3');
+    expect(updateOptions.method).toBe('PUT');
+    const body = JSON.parse(updateOptions.body);
+    expect(body.values[0]).toEqual(['Renamed Board']);
+  });
+
+  it('is a no-op if board ID is not found', async () => {
+    mockFetch.mockResolvedValueOnce(
+      mockSheetsGetResponse([['board-1'], ['board-2']])
+    );
+
+    await renameBoardRow('board-999', 'Ghost Board', 'test-token');
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('writes to the correct row for the first board (row 2)', async () => {
+    mockFetch.mockResolvedValueOnce(
+      mockSheetsGetResponse([['board-1']])
+    );
+    mockFetch.mockResolvedValueOnce(mockSheetsWriteResponse());
+
+    await renameBoardRow('board-1', 'My Board', 'test-token');
+
+    const [updateUrl] = mockFetch.mock.calls[1];
+    expect(updateUrl).toContain('Boards!B2');
   });
 });
