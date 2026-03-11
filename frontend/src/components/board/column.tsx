@@ -1,6 +1,8 @@
 import { useState } from 'preact/hooks';
 import { Card, currentDragStatus } from './card';
 import type { ItemStatus, ItemWithRow } from '../../api/types';
+import type { SortMode } from '../../state/board-store';
+import { showToast } from '../../state/board-store';
 
 interface Props {
   status: ItemStatus;
@@ -17,7 +19,17 @@ interface Props {
   archiveTriggerRef?: (el: HTMLButtonElement | null) => void;
   /** Called when the user clicks "View all N completed". */
   onOpenArchive?: () => void;
+  /** Current sort mode for this column (kanban view only). */
+  sortMode?: SortMode;
+  /** Called when the user selects a new sort mode. */
+  onSortChange?: (mode: SortMode) => void;
 }
+
+const SORT_LABELS: Record<SortMode, string> = {
+  custom: 'Custom',
+  due_date: 'Due date',
+  created: 'Created',
+};
 
 const STATUS_COLORS: Record<ItemStatus, string> = {
   'To Do': 'var(--color-todo)',
@@ -25,9 +37,11 @@ const STATUS_COLORS: Record<ItemStatus, string> = {
   'Done': 'var(--color-done)',
 };
 
-export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact, allDoneCount, hasArchived, archiveTriggerRef, onOpenArchive }: Props) {
+export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact, allDoneCount, hasArchived, archiveTriggerRef, onOpenArchive, sortMode, onSortChange }: Props) {
   // Track the insertion indicator position for within-column reorder
   const [dropIndicator, setDropIndicator] = useState<{ index: number; position: 'above' | 'below' } | null>(null);
+  // AC8: aria-live announcement text
+  const [sortAnnouncement, setSortAnnouncement] = useState('');
 
   const handleDragOver = (e: DragEvent) => {
     e.preventDefault();
@@ -77,26 +91,33 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
     if (!itemId) return;
 
     // Same-column reorder
-    if (sourceStatus === status && onReorder) {
-      const target = (e.target as HTMLElement).closest('.card') as HTMLElement;
-      if (target) {
-        const targetId = target.getAttribute('data-item-id');
-        const targetIndex = items.findIndex(i => i.id === targetId);
-        if (targetIndex !== -1) {
-          const rect = target.getBoundingClientRect();
-          const midY = rect.top + rect.height / 2;
-          let newIndex = e.clientY < midY ? targetIndex : targetIndex + 1;
-          // Adjust: if dragged item was before the target, account for removal
-          const sourceIndex = items.findIndex(i => i.id === itemId);
-          if (sourceIndex !== -1 && sourceIndex < newIndex) {
-            newIndex--;
+    if (sourceStatus === status) {
+      // AC5: If column is in date-sort mode, same-column drag is a no-op
+      if (sortMode && sortMode !== 'custom') {
+        showToast('Reorder by drag is disabled when sorted by date', 'error');
+        return;
+      }
+      if (onReorder) {
+        const target = (e.target as HTMLElement).closest('.card') as HTMLElement;
+        if (target) {
+          const targetId = target.getAttribute('data-item-id');
+          const targetIndex = items.findIndex(i => i.id === targetId);
+          if (targetIndex !== -1) {
+            const rect = target.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            let newIndex = e.clientY < midY ? targetIndex : targetIndex + 1;
+            // Adjust: if dragged item was before the target, account for removal
+            const sourceIndex = items.findIndex(i => i.id === itemId);
+            if (sourceIndex !== -1 && sourceIndex < newIndex) {
+              newIndex--;
+            }
+            if (sourceIndex !== newIndex) {
+              onReorder(itemId, newIndex, items);
+            }
+            // AC7: Focus restoration after within-column reorder
+            restoreFocus(itemId);
+            return;
           }
-          if (sourceIndex !== newIndex) {
-            onReorder(itemId, newIndex, items);
-          }
-          // AC7: Focus restoration after within-column reorder
-          restoreFocus(itemId);
-          return;
         }
       }
       // Dropped on empty area of same column — no-op
@@ -145,6 +166,12 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
     onReorder(itemId, newIndex, items);
   };
 
+  const handleSortChange = (e: Event) => {
+    const mode = (e.currentTarget as HTMLSelectElement).value as SortMode;
+    if (onSortChange) onSortChange(mode);
+    setSortAnnouncement(`${status} column: sorted by ${SORT_LABELS[mode].toLowerCase()}`);
+  };
+
   return (
     <div
       class={`column ${compact ? 'column-compact' : ''}`}
@@ -155,10 +182,35 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
       onDrop={handleDrop}
       style={{ '--column-color': STATUS_COLORS[status] } as any}
     >
+      {/* AC8: aria-live region for sort change announcements */}
+      <div class="sr-only" aria-live="polite" aria-atomic="true">{sortAnnouncement}</div>
       <div class="column-header">
         <div class="column-header-row">
           <h2>{status}</h2>
           <span class="column-count">{items.length}</span>
+          {/* AC6: Sort selector only in board view (not compact/swimlane) */}
+          {!compact && status === 'Done' && (
+            <select
+              class="column-sort-select"
+              disabled
+              title="Done items are always sorted by completion date"
+              aria-label="Sort Done column"
+            >
+              <option>Completion date</option>
+            </select>
+          )}
+          {!compact && status !== 'Done' && sortMode !== undefined && (
+            <select
+              class="column-sort-select"
+              value={sortMode}
+              onChange={handleSortChange}
+              aria-label={`Sort ${status} column`}
+            >
+              <option value="custom">Custom</option>
+              <option value="due_date">Due date</option>
+              <option value="created">Created</option>
+            </select>
+          )}
         </div>
         {status === 'Done' && hasArchived && onOpenArchive && (
           <button
@@ -181,6 +233,7 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
               onMoveStatus={onMoveStatus}
               onReorder={handleKeyboardReorder}
               columnItems={items}
+              sortMode={sortMode}
             />
             {dropIndicator && dropIndicator.index === index && dropIndicator.position === 'below' && (
               <div class="drop-indicator" />
