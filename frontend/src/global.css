@@ -624,6 +624,12 @@ body {
   padding: 16px 20px;
 }
 
+/* In list mode, board-main scrolls vertically instead of horizontally */
+.board-main:has(.list-view) {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 /* === Columns === */
 .board-columns {
   display: flex;
@@ -2598,12 +2604,6 @@ body {
 
   .filter-group {
     flex-wrap: wrap;
-  }
-
-  /* In list mode, board-main scrolls vertically instead of horizontally */
-  .board-main:has(.list-view) {
-    overflow-x: hidden;
-    overflow-y: auto;
   }
 
   /* Board switcher: touch-friendly on mobile */

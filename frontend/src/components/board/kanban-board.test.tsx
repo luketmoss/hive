@@ -14,6 +14,7 @@ const mockState = {
   showArchiveDialog: false,
   selectedItem: null as any,
   accessibleBoards: [] as any[],
+  viewMode: 'board' as string,
 };
 
 const mockSwitchBoard = vi.fn();
@@ -28,6 +29,7 @@ afterEach(() => {
   mockState.showArchiveDialog = false;
   mockState.selectedItem = null;
   mockState.accessibleBoards = [];
+  mockState.viewMode = 'board';
   mockSwitchBoard.mockClear();
   mockMoveItem.mockClear();
 });
@@ -63,8 +65,8 @@ vi.mock('../../state/board-store', () => ({
   filterLabel: { value: null },
   loading: { value: false },
   getChildCount: () => ({ done: 0, total: 0 }),
-  viewMode: { value: 'board' },
-  setViewMode: () => {},
+  viewMode: { get value() { return mockState.viewMode; } },
+  setViewMode: (v: string) => { mockState.viewMode = v; },
   allDoneItems: { value: [] },
   hasArchivedItems: { value: false },
   showArchiveDialog: {
@@ -115,7 +117,7 @@ vi.mock('../header/control-bar', () => ({
 
 // Mock other sub-components
 vi.mock('./list-view', () => ({
-  ListView: () => <div data-testid="list-view" />,
+  ListView: () => <div class="list-view" data-testid="list-view" />,
 }));
 vi.mock('./card-detail', () => ({
   CardDetail: () => <div data-testid="card-detail" />,
@@ -444,5 +446,37 @@ describe('KanbanBoard logo in header (Issue #30 AC3)', () => {
     const { container } = renderBoard();
     const logo = container.querySelector('[data-testid="hive-logo"]');
     expect(logo!.classList.contains('board-header-logo')).toBe(true);
+  });
+});
+
+describe('List mode scroll — DOM structure (Issue #137)', () => {
+  const sampleItem = {
+    id: '1', title: 'Task A', description: '', status: 'To Do',
+    owner: '', due_date: '', labels: '', parent_id: '',
+    created_at: '', updated_at: '', completed_at: '',
+    sort_order: 1, created_by: '', board_id: '', sheetRow: 2,
+  };
+
+  // AC1 / AC2: board-main must contain .list-view when in list mode so the
+  // CSS selector `.board-main:has(.list-view)` can set overflow-y: auto.
+  it('renders .list-view inside .board-main when viewMode is list', () => {
+    mockState.items = [sampleItem];
+    mockState.viewMode = 'list';
+    const { container } = renderBoard();
+    const boardMain = container.querySelector('.board-main');
+    expect(boardMain).not.toBeNull();
+    const listView = boardMain!.querySelector('.list-view');
+    expect(listView).not.toBeNull();
+  });
+
+  // AC3: kanban mode must NOT have .list-view inside .board-main
+  it('does not render .list-view inside .board-main when viewMode is board', () => {
+    mockState.items = [sampleItem];
+    mockState.viewMode = 'board';
+    const { container } = renderBoard();
+    const boardMain = container.querySelector('.board-main');
+    expect(boardMain).not.toBeNull();
+    const listView = boardMain!.querySelector('.list-view');
+    expect(listView).toBeNull();
   });
 });
