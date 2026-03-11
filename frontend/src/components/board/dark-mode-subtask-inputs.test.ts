@@ -69,6 +69,22 @@ describe('Dark mode subtask input backgrounds (Issue #111)', () => {
     });
   });
 
+  // AC-133-3: .subtask-title-input has explicit color: var(--color-text)
+  describe('AC3 (#133): .subtask-title-input has explicit color token', () => {
+    it('.subtask-title-input rule sets color: var(--color-text)', () => {
+      const block = extractRuleBlock(css, '.subtask-title-input');
+      expect(block).toContain('color: var(--color-text)');
+    });
+  });
+
+  // AC-133-5: .subtask-title-input:focus has box-shadow: var(--focus-ring)
+  describe('AC5 (#133): .subtask-title-input:focus has visible focus ring', () => {
+    it('.subtask-title-input:focus rule sets box-shadow: var(--focus-ring)', () => {
+      const block = extractRuleBlock(css, '.subtask-title-input:focus');
+      expect(block).toContain('box-shadow: var(--focus-ring)');
+    });
+  });
+
   // AC4: Dark mode contrast — --color-text on --color-surface meets WCAG AA
   describe('AC4: Dark mode tokens meet WCAG AA contrast', () => {
     it('dark theme defines --color-surface: #1e1e1e', () => {
