@@ -1,6 +1,9 @@
 import { useState } from 'preact/hooks';
 import { Card, currentDragStatus } from './card';
+import { showToast } from '../../state/board-store';
 import type { ItemStatus, ItemWithRow } from '../../api/types';
+
+export type SortMode = 'custom' | 'due_date' | 'created';
 
 interface Props {
   status: ItemStatus;
@@ -25,9 +28,30 @@ const STATUS_COLORS: Record<ItemStatus, string> = {
   'Done': 'var(--color-done)',
 };
 
+function sortItems(items: ItemWithRow[], mode: SortMode): ItemWithRow[] {
+  if (mode === 'custom') return items;
+  return items.slice().sort((a, b) => {
+    if (mode === 'due_date') {
+      if (!a.due_date && !b.due_date) return 0;
+      if (!a.due_date) return 1;
+      if (!b.due_date) return -1;
+      return a.due_date.localeCompare(b.due_date);
+    }
+    // mode === 'created'
+    if (!a.created_at && !b.created_at) return 0;
+    if (!a.created_at) return 1;
+    if (!b.created_at) return -1;
+    return a.created_at.localeCompare(b.created_at);
+  });
+}
+
 export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact, allDoneCount, hasArchived, archiveTriggerRef, onOpenArchive }: Props) {
   // Track the insertion indicator position for within-column reorder
   const [dropIndicator, setDropIndicator] = useState<{ index: number; position: 'above' | 'below' } | null>(null);
+  const [sortMode, setSortMode] = useState<SortMode>('custom');
+
+  const isDateSorted = sortMode === 'due_date' || sortMode === 'created';
+  const sortedItems = sortItems(items, sortMode);
 
   const handleDragOver = (e: DragEvent) => {
     e.preventDefault();
@@ -42,7 +66,7 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
     }
 
     const targetId = target.getAttribute('data-item-id');
-    const targetIndex = items.findIndex(i => i.id === targetId);
+    const targetIndex = sortedItems.findIndex(i => i.id === targetId);
     if (targetIndex === -1) {
       (e.currentTarget as HTMLElement).classList.add('column-drag-over');
       return;
@@ -76,8 +100,12 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
     const sourceStatus = e.dataTransfer?.getData('application/x-hive-status');
     if (!itemId) return;
 
-    // Same-column reorder
+    // Same-column reorder — block when date-sorted
     if (sourceStatus === status && onReorder) {
+      if (isDateSorted) {
+        showToast('Reorder by drag is disabled when sorted by date', 'error');
+        return;
+      }
       const target = (e.target as HTMLElement).closest('.card') as HTMLElement;
       if (target) {
         const targetId = target.getAttribute('data-item-id');
@@ -136,6 +164,10 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
 
   const handleKeyboardReorder = (itemId: string, direction: 'up' | 'down') => {
     if (!onReorder) return;
+    if (isDateSorted) {
+      showToast('Reorder by drag is disabled when sorted by date', 'error');
+      return;
+    }
     const currentIndex = items.findIndex(i => i.id === itemId);
     if (currentIndex === -1) return;
 
@@ -149,7 +181,7 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
     <div
       class={`column ${compact ? 'column-compact' : ''}`}
       role="region"
-      aria-label={`${status} column, ${items.length} ${items.length === 1 ? 'item' : 'items'}`}
+      aria-label={`${status} column, ${sortedItems.length} ${sortedItems.length === 1 ? 'item' : 'items'}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -158,7 +190,17 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
       <div class="column-header">
         <div class="column-header-row">
           <h2>{status}</h2>
-          <span class="column-count">{items.length}</span>
+          <select
+            class={`column-sort-select${isDateSorted ? ' column-sort-active' : ''}`}
+            value={sortMode}
+            onChange={(e) => setSortMode((e.target as HTMLSelectElement).value as SortMode)}
+            aria-label={`Sort ${status} column`}
+          >
+            <option value="custom">Custom</option>
+            <option value="due_date">Due date</option>
+            <option value="created">Created</option>
+          </select>
+          <span class="column-count">{sortedItems.length}</span>
         </div>
         {status === 'Done' && hasArchived && onOpenArchive && (
           <button
@@ -171,7 +213,7 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
         )}
       </div>
       <div class="column-cards">
-        {items.map((item, index) => (
+        {sortedItems.map((item, index) => (
           <div key={item.id} class="card-wrapper">
             {dropIndicator && dropIndicator.index === index && dropIndicator.position === 'above' && (
               <div class="drop-indicator" />
@@ -180,14 +222,14 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
               item={item}
               onMoveStatus={onMoveStatus}
               onReorder={handleKeyboardReorder}
-              columnItems={items}
+              columnItems={sortedItems}
             />
             {dropIndicator && dropIndicator.index === index && dropIndicator.position === 'below' && (
               <div class="drop-indicator" />
             )}
           </div>
         ))}
-        {items.length === 0 && (
+        {sortedItems.length === 0 && (
           <div class="column-empty">No items</div>
         )}
       </div>
