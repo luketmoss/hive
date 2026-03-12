@@ -70,7 +70,7 @@ vi.mock('../demo/mock-api', () => ({
 }));
 
 import { loadBoard, NotAllowedError, deleteSubtask, reorderSubtasks, createItemWithSubtasks, reorderItem, moveItem } from './actions';
-import { owners, loading, items, activeBoardId, permissions, currentUserEmail } from './board-store';
+import { owners, loading, items, activeBoardId, permissions, currentUserEmail, toastMessage } from './board-store';
 import * as sheetsApi from '../api/sheets';
 import type { ItemWithRow } from '../api/types';
 
@@ -519,5 +519,209 @@ describe('moveItem AC3: cross-column places at bottom', () => {
     const updatedItem = mockUpdateItemRow.mock.calls[0][1];
     expect(updatedItem.sort_order).toBe(1);
     expect(updatedItem.status).toBe('In Progress');
+  });
+});
+
+// --- #162: Status cascade tests ---
+
+describe('moveItem #162: parent status cascades to children', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    toastMessage.value = null;
+  });
+
+  // AC1: Parent moved to In Progress cascades to children
+  it('AC1: cascades In Progress status to all children', async () => {
+    const parent = makeItem({ id: 'parent', title: 'Grocery Shopping', status: 'To Do', owner: 'Luke', sheetRow: 2 });
+    const child1 = makeItem({ id: 'c1', title: 'Buy milk', status: 'To Do', parent_id: 'parent', sheetRow: 3 });
+    const child2 = makeItem({ id: 'c2', title: 'Buy eggs', status: 'To Do', parent_id: 'parent', sheetRow: 4 });
+    const child3 = makeItem({ id: 'c3', title: 'Buy bread', status: 'To Do', parent_id: 'parent', sheetRow: 5 });
+    items.value = [parent, child1, child2, child3];
+    mockFetchAllItems.mockResolvedValue([parent, child1, child2, child3]);
+
+    await moveItem('parent', 'In Progress', 'web', 'test-token');
+
+    // Parent + 3 children = 4 updateItemRow calls
+    expect(mockUpdateItemRow).toHaveBeenCalledTimes(4);
+
+    // Children should be updated to In Progress
+    const child1Update = mockUpdateItemRow.mock.calls[1][1];
+    const child2Update = mockUpdateItemRow.mock.calls[2][1];
+    const child3Update = mockUpdateItemRow.mock.calls[3][1];
+    expect(child1Update.status).toBe('In Progress');
+    expect(child2Update.status).toBe('In Progress');
+    expect(child3Update.status).toBe('In Progress');
+
+    // Audit entries: 1 for parent + 3 for children = 4
+    expect(mockAppendAuditEntry).toHaveBeenCalledTimes(4);
+    expect(mockAppendAuditEntry).toHaveBeenCalledWith('c1', 'status_changed', 'status', 'To Do', 'In Progress', 'web', 'test-token');
+
+    // updated_at should be set on children
+    expect(child1Update.updated_at).toBeTruthy();
+  });
+
+  it('AC1: toast includes cascade count', async () => {
+    const parent = makeItem({ id: 'parent', title: 'Grocery Shopping', status: 'To Do', owner: 'Luke', sheetRow: 2 });
+    const child1 = makeItem({ id: 'c1', title: 'Buy milk', status: 'To Do', parent_id: 'parent', sheetRow: 3 });
+    const child2 = makeItem({ id: 'c2', title: 'Buy eggs', status: 'To Do', parent_id: 'parent', sheetRow: 4 });
+    const child3 = makeItem({ id: 'c3', title: 'Buy bread', status: 'To Do', parent_id: 'parent', sheetRow: 5 });
+    items.value = [parent, child1, child2, child3];
+    mockFetchAllItems.mockResolvedValue([parent, child1, child2, child3]);
+
+    await moveItem('parent', 'In Progress', 'web', 'test-token');
+
+    expect(toastMessage.value?.text).toBe('Grocery Shopping moved to In Progress (3 sub-tasks updated)');
+  });
+
+  // AC2: Parent moved to Done cascades to children (mixed statuses)
+  it('AC2: cascades Done status to children in mixed statuses and sets completed_at', async () => {
+    const parent = makeItem({ id: 'parent', title: 'Project', status: 'In Progress', owner: 'Luke', sheetRow: 2 });
+    const child1 = makeItem({ id: 'c1', title: 'Task A', status: 'To Do', parent_id: 'parent', sheetRow: 3 });
+    const child2 = makeItem({ id: 'c2', title: 'Task B', status: 'In Progress', parent_id: 'parent', sheetRow: 4 });
+    const child3 = makeItem({ id: 'c3', title: 'Task C', status: 'Done', parent_id: 'parent', sheetRow: 5, completed_at: '2025-01-01T00:00:00Z' });
+    items.value = [parent, child1, child2, child3];
+    mockFetchAllItems.mockResolvedValue([parent, child1, child2, child3]);
+
+    await moveItem('parent', 'Done', 'web', 'test-token');
+
+    // Parent + 2 children that aren't already Done = 3 updateItemRow calls
+    expect(mockUpdateItemRow).toHaveBeenCalledTimes(3);
+
+    // Children should now be Done with completed_at set
+    const child1Update = mockUpdateItemRow.mock.calls[1][1];
+    const child2Update = mockUpdateItemRow.mock.calls[2][1];
+    expect(child1Update.status).toBe('Done');
+    expect(child1Update.completed_at).toBeTruthy();
+    expect(child2Update.status).toBe('Done');
+    expect(child2Update.completed_at).toBeTruthy();
+
+    // Toast should say 2 (not 3, since child3 was already Done)
+    expect(toastMessage.value?.text).toBe('Project moved to Done (2 sub-tasks updated)');
+  });
+
+  // AC3: Parent moved backward resets children
+  it('AC3: cascading back to To Do clears completed_at on children', async () => {
+    const parent = makeItem({ id: 'parent', title: 'Task', status: 'Done', owner: 'Luke', sheetRow: 2, completed_at: '2025-01-01T00:00:00Z' });
+    const child1 = makeItem({ id: 'c1', title: 'Sub A', status: 'Done', parent_id: 'parent', sheetRow: 3, completed_at: '2025-01-01T00:00:00Z' });
+    const child2 = makeItem({ id: 'c2', title: 'Sub B', status: 'Done', parent_id: 'parent', sheetRow: 4, completed_at: '2025-01-01T00:00:00Z' });
+    items.value = [parent, child1, child2];
+    mockFetchAllItems.mockResolvedValue([parent, child1, child2]);
+
+    await moveItem('parent', 'To Do', 'web', 'test-token');
+
+    // Parent + 2 children = 3 updateItemRow calls
+    expect(mockUpdateItemRow).toHaveBeenCalledTimes(3);
+
+    // Children should be To Do with cleared completed_at
+    const child1Update = mockUpdateItemRow.mock.calls[1][1];
+    const child2Update = mockUpdateItemRow.mock.calls[2][1];
+    expect(child1Update.status).toBe('To Do');
+    expect(child1Update.completed_at).toBe('');
+    expect(child2Update.status).toBe('To Do');
+    expect(child2Update.completed_at).toBe('');
+
+    expect(toastMessage.value?.text).toBe('Task moved to To Do (2 sub-tasks updated)');
+  });
+
+  // AC4: No cascade when moving a child item directly
+  it('AC4: moving a child item does not cascade to siblings', async () => {
+    const parent = makeItem({ id: 'parent', title: 'Parent', status: 'To Do', owner: 'Luke', sheetRow: 2 });
+    const child1 = makeItem({ id: 'c1', title: 'Sub A', status: 'To Do', parent_id: 'parent', sheetRow: 3 });
+    const child2 = makeItem({ id: 'c2', title: 'Sub B', status: 'To Do', parent_id: 'parent', sheetRow: 4 });
+    items.value = [parent, child1, child2];
+    mockFetchAllItems.mockResolvedValue([parent, child1, child2]);
+
+    await moveItem('c1', 'Done', 'web', 'test-token');
+
+    // Only the child itself should be updated, not the parent or sibling
+    expect(mockUpdateItemRow).toHaveBeenCalledTimes(1);
+    expect(mockUpdateItemRow.mock.calls[0][1].id).toBe('c1');
+    expect(mockUpdateItemRow.mock.calls[0][1].status).toBe('Done');
+
+    // Only 1 audit entry for the child
+    expect(mockAppendAuditEntry).toHaveBeenCalledTimes(1);
+    expect(mockAppendAuditEntry).toHaveBeenCalledWith('c1', 'status_changed', 'status', 'To Do', 'Done', 'web', 'test-token');
+  });
+
+  // AC5: Toast omits cascade count when parent has no children
+  it('AC5: toast has no cascade count for items without children', async () => {
+    const item = makeItem({ id: 'solo', title: 'Solo Task', status: 'To Do', owner: 'Luke', sheetRow: 2 });
+    items.value = [item];
+    mockFetchAllItems.mockResolvedValue([item]);
+
+    await moveItem('solo', 'In Progress', 'web', 'test-token');
+
+    expect(toastMessage.value?.text).toBe('Solo Task moved to In Progress');
+  });
+
+  // AC6: Audit log records child cascades
+  it('AC6: writes audit entries for each cascaded child', async () => {
+    const parent = makeItem({ id: 'parent', title: 'Parent', status: 'To Do', owner: 'Luke', sheetRow: 2 });
+    const child1 = makeItem({ id: 'c1', title: 'Sub A', status: 'To Do', parent_id: 'parent', sheetRow: 3 });
+    const child2 = makeItem({ id: 'c2', title: 'Sub B', status: 'To Do', parent_id: 'parent', sheetRow: 4 });
+    items.value = [parent, child1, child2];
+    mockFetchAllItems.mockResolvedValue([parent, child1, child2]);
+
+    await moveItem('parent', 'In Progress', 'web', 'test-token');
+
+    // Parent audit entry
+    expect(mockAppendAuditEntry).toHaveBeenCalledWith('parent', 'status_changed', 'status', 'To Do', 'In Progress', 'web', 'test-token');
+    // Child audit entries
+    expect(mockAppendAuditEntry).toHaveBeenCalledWith('c1', 'status_changed', 'status', 'To Do', 'In Progress', 'web', 'test-token');
+    expect(mockAppendAuditEntry).toHaveBeenCalledWith('c2', 'status_changed', 'status', 'To Do', 'In Progress', 'web', 'test-token');
+  });
+
+  it('optimistically updates children in items signal so progress bar recomputes', async () => {
+    const parent = makeItem({ id: 'parent', title: 'Parent', status: 'In Progress', owner: 'Luke', sheetRow: 2 });
+    const child1 = makeItem({ id: 'c1', title: 'Sub A', status: 'To Do', parent_id: 'parent', sheetRow: 3 });
+    const child2 = makeItem({ id: 'c2', title: 'Sub B', status: 'In Progress', parent_id: 'parent', sheetRow: 4 });
+    items.value = [parent, child1, child2];
+
+    // Don't resolve fetchAllItems immediately — check optimistic state first
+    let resolveFetch: (value: any) => void;
+    mockFetchAllItems.mockReturnValue(new Promise(r => { resolveFetch = r; }));
+
+    const promise = moveItem('parent', 'Done', 'web', 'test-token');
+
+    // Before API calls resolve, children should already be updated optimistically
+    expect(items.value.find(i => i.id === 'c1')!.status).toBe('Done');
+    expect(items.value.find(i => i.id === 'c2')!.status).toBe('Done');
+    expect(items.value.find(i => i.id === 'parent')!.status).toBe('Done');
+
+    resolveFetch!([parent, child1, child2]);
+    await promise;
+  });
+
+  it('rolls back children on API failure', async () => {
+    const parent = makeItem({ id: 'parent', title: 'Parent', status: 'To Do', owner: 'Luke', sheetRow: 2 });
+    const child1 = makeItem({ id: 'c1', title: 'Sub A', status: 'To Do', parent_id: 'parent', sheetRow: 3 });
+    items.value = [parent, child1];
+
+    mockUpdateItemRow.mockRejectedValue(new Error('Network error'));
+
+    await moveItem('parent', 'In Progress', 'web', 'test-token');
+
+    // Should roll back to original state
+    expect(items.value.find(i => i.id === 'parent')!.status).toBe('To Do');
+    expect(items.value.find(i => i.id === 'c1')!.status).toBe('To Do');
+  });
+
+  it('cascade works with targetIndex (drag-and-drop specific position)', async () => {
+    mockUpdateItemRow.mockResolvedValue(undefined); // reset after rollback test's mockRejectedValue
+    const parent = makeItem({ id: 'parent', title: 'Parent', status: 'To Do', owner: 'Luke', sheetRow: 2 });
+    const child1 = makeItem({ id: 'c1', title: 'Sub A', status: 'To Do', parent_id: 'parent', sheetRow: 3 });
+    const existing = makeItem({ id: 'existing', title: 'Existing', status: 'In Progress', owner: 'Luke', sheetRow: 6, sort_order: 1 });
+    items.value = [parent, child1, existing];
+    mockFetchAllItems.mockResolvedValue([parent, child1, existing]);
+
+    await moveItem('parent', 'In Progress', 'web', 'test-token', 0);
+
+    // updateItemRow: 2 for column renumber (parent + existing) + 1 for cascaded child = 3
+    expect(mockUpdateItemRow).toHaveBeenCalledTimes(3);
+
+    // Child should be cascaded
+    const childCall = mockUpdateItemRow.mock.calls[2][1];
+    expect(childCall.id).toBe('c1');
+    expect(childCall.status).toBe('In Progress');
   });
 });

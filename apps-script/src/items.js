@@ -96,6 +96,7 @@ function updateItem(id, changes, actor) {
   var row = sheet.getRange(rowNum, 1, 1, ITEM_COLUMN_COUNT).getValues()[0];
   var item = rowToItem(row);
   var allItems = getItems();
+  var originalStatus = item.status; // #162: capture before any changes
 
   // Handle status change with business rules
   if (changes.status && changes.status !== item.status) {
@@ -138,6 +139,26 @@ function updateItem(id, changes, actor) {
 
   var updatedRow = itemToRow(item);
   sheet.getRange(rowNum, 1, 1, ITEM_COLUMN_COUNT).setValues([updatedRow]);
+
+  // #162: Cascade status to children when a parent item's status changes.
+  // Only cascade for root items (no parent_id) that had a status change.
+  if (changes.status && changes.status !== originalStatus && !item.parent_id) {
+    var allItemsForCascade = getItems();
+    var childItems = allItemsForCascade.filter(function(i) { return i.parent_id === id; });
+    for (var c = 0; c < childItems.length; c++) {
+      var child = childItems[c];
+      if (child.status !== changes.status) {
+        var childOldStatus = child.status;
+        var updatedChild = applyStatusSideEffects(child, changes.status);
+        updatedChild.updated_at = isoNow();
+        var childRowNum = findRowByItemId(sheet, child.id);
+        if (childRowNum !== -1) {
+          sheet.getRange(childRowNum, 1, 1, ITEM_COLUMN_COUNT).setValues([itemToRow(updatedChild)]);
+          writeAuditEntry(child.id, 'status_changed', 'status', childOldStatus, changes.status, actor);
+        }
+      }
+    }
+  }
 
   // Check if parent is now ready to complete
   var refreshedItems = getItems();

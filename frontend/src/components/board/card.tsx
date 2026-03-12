@@ -150,7 +150,14 @@ export function Card({ item, onMoveStatus, onReorder, columnItems, sortMode }: P
         )}
 
         {childCount.total > 0 && (
-          <div class="card-subtasks">
+          <div
+            class="card-subtasks"
+            role="progressbar"
+            aria-valuenow={childCount.done}
+            aria-valuemin={0}
+            aria-valuemax={childCount.total}
+            aria-label="Sub-task progress"
+          >
             <div
               class="subtask-bar"
               style={{ '--progress': `${(childCount.done / childCount.total) * 100}%` } as any}

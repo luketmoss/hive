@@ -414,6 +414,12 @@ export async function moveItem(
     .filter(i => i.status === newStatus && !i.parent_id && i.id !== itemId)
     .sort((a, b) => a.sort_order - b.sort_order);
 
+  // #162: Cascade — find children to update (only for root items, not sub-tasks)
+  const children = !item.parent_id
+    ? items.value.filter(i => i.parent_id === itemId)
+    : [];
+  const childrenToUpdate = children.filter(c => c.status !== newStatus);
+
   if (targetIndex !== undefined) {
     // AC2: Insert at specific position and renumber the destination column
     const movedItem: ItemWithRow = {
@@ -433,21 +439,41 @@ export async function moveItem(
       updated_at: new Date().toISOString(),
     }));
 
-    // Optimistic update
+    // #162: Apply cascade to children optimistically
+    const cascadedChildren: ItemWithRow[] = childrenToUpdate.map(c => ({
+      ...applyStatusSideEffects(c, newStatus),
+      sheetRow: c.sheetRow,
+    }));
+
+    // Optimistic update (parent column + cascaded children)
     items.value = items.value.map(i => {
-      const updated = updates.find(u => u.id === i.id);
-      return updated ?? i;
+      const colUpdate = updates.find(u => u.id === i.id);
+      if (colUpdate) return colUpdate;
+      const childUpdate = cascadedChildren.find(c => c.id === i.id);
+      if (childUpdate) return childUpdate;
+      return i;
     });
 
-    // AC6: Screen reader announcement with position
+    // AC6: Screen reader announcement with position + cascade count
     const totalInColumn = reordered.length;
-    showToast(`${item.title} moved to ${newStatus}, position ${clampedIndex + 1} of ${totalInColumn}`);
+    const cascadeMsg = childrenToUpdate.length > 0
+      ? ` (${childrenToUpdate.length} sub-task${childrenToUpdate.length !== 1 ? 's' : ''} updated)`
+      : '';
+    showToast(`${item.title} moved to ${newStatus}, position ${clampedIndex + 1} of ${totalInColumn}${cascadeMsg}`);
 
     try {
-      for (const updated of updates) {
-        await updateItemRow(updated.sheetRow, updated, token);
+      for (const u of updates) {
+        await updateItemRow(u.sheetRow, u, token);
       }
       await appendAuditEntry(itemId, 'status_changed', 'status', oldItem.status, newStatus, actor, token);
+
+      // #162: Persist cascade
+      for (const child of cascadedChildren) {
+        await updateItemRow(child.sheetRow, child, token);
+        await appendAuditEntry(child.id, 'status_changed', 'status',
+          childrenToUpdate.find(c => c.id === child.id)!.status, newStatus, actor, token);
+      }
+
       await refreshItems(token);
       return true;
     } catch (err: any) {
@@ -459,7 +485,7 @@ export async function moveItem(
     }
   }
 
-  // AC3: No targetIndex — place item at bottom of target column (sort_order = max + 1)
+  // No targetIndex — place item at bottom of target column (sort_order = max + 1)
   const maxSortOrder = destColumnItems.reduce((max, i) => Math.max(max, i.sort_order), 0);
 
   const updated = {
@@ -468,16 +494,41 @@ export async function moveItem(
     sheetRow: item.sheetRow,
   };
 
-  // Optimistic update
-  items.value = items.value.map(i => i.id === itemId ? updated : i);
+  // #162: Apply cascade to children optimistically
+  const cascadedChildren: ItemWithRow[] = childrenToUpdate.map(c => ({
+    ...applyStatusSideEffects(c, newStatus),
+    sheetRow: c.sheetRow,
+  }));
+
+  // Optimistic update (parent + cascaded children)
+  items.value = items.value.map(i => {
+    if (i.id === itemId) return updated;
+    const childUpdate = cascadedChildren.find(c => c.id === i.id);
+    if (childUpdate) return childUpdate;
+    return i;
+  });
+
+  // #162: Toast with cascade count
+  const cascadeMsg = childrenToUpdate.length > 0
+    ? ` (${childrenToUpdate.length} sub-task${childrenToUpdate.length !== 1 ? 's' : ''} updated)`
+    : '';
+  showToast(`${item.title} moved to ${newStatus}${cascadeMsg}`);
 
   try {
     await updateItemRow(item.sheetRow, updated, token);
     await appendAuditEntry(itemId, 'status_changed', 'status', oldItem.status, newStatus, actor, token);
+
+    // #162: Persist cascade
+    for (const child of cascadedChildren) {
+      await updateItemRow(child.sheetRow, child, token);
+      await appendAuditEntry(child.id, 'status_changed', 'status',
+        childrenToUpdate.find(c => c.id === child.id)!.status, newStatus, actor, token);
+    }
+
     await refreshItems(token);
     return true;
   } catch (err: any) {
-    items.value = items.value.map(i => i.id === itemId ? oldItem : i);
+    items.value = oldItems;
     if (!isReauthFailure(err)) {
       showToast('Failed to move item: ' + err.message, 'error');
     }
