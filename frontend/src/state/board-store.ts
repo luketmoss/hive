@@ -71,7 +71,7 @@ export const selectedItemId = signal<string | null>(null);
 /** When true, CardDetail opens with the title EditableField in edit mode. */
 export const openDetailWithTitleEdit = signal(false);
 export const showCreateModal = signal(false);
-export const toastMessage = signal<{ text: string; type: 'success' | 'error' } | null>(null);
+export const toastMessage = signal<{ text: string; type: 'success' | 'error'; action?: { label: string; fn: () => void }; duration?: number } | null>(null);
 
 // --- View mode (mobile list vs board) ---
 export type ViewMode = 'board' | 'list';
@@ -245,6 +245,9 @@ export function initActiveBoardFromUrl() {
   }
 }
 
+// --- Column announcements (for aria-live cross-column keyboard move) ---
+export const columnAnnouncement = signal<{ status: ItemStatus; text: string } | null>(null);
+
 // --- Column sort ---
 export type SortMode = 'custom' | 'due_date' | 'created';
 
@@ -307,11 +310,49 @@ export const childrenOfSelected = computed(() =>
 
 // --- Helpers ---
 
-export function showToast(text: string, type: 'success' | 'error' = 'success') {
-  toastMessage.value = { text, type };
-  setTimeout(() => {
+/** Timer ID for the current toast auto-dismiss. Exported for pause/resume in Toast component. */
+export let toastTimerId: ReturnType<typeof setTimeout> | null = null;
+
+export function showToast(text: string, type: 'success' | 'error' = 'success', action?: { label: string; fn: () => void }, duration?: number) {
+  // Clear any existing timer
+  if (toastTimerId !== null) {
+    clearTimeout(toastTimerId);
+    toastTimerId = null;
+  }
+  const ms = duration ?? 4000;
+  toastMessage.value = { text, type, action, duration: ms };
+  toastTimerId = setTimeout(() => {
     toastMessage.value = null;
-  }, 4000);
+    toastTimerId = null;
+  }, ms);
+}
+
+/** Pause the toast auto-dismiss timer. Returns remaining ms, or null if no timer. */
+export function pauseToastTimer(): void {
+  if (toastTimerId !== null) {
+    clearTimeout(toastTimerId);
+    toastTimerId = null;
+  }
+}
+
+/** Resume the toast auto-dismiss timer with the given remaining ms. */
+export function resumeToastTimer(remainingMs: number): void {
+  if (toastTimerId !== null) {
+    clearTimeout(toastTimerId);
+  }
+  toastTimerId = setTimeout(() => {
+    toastMessage.value = null;
+    toastTimerId = null;
+  }, remainingMs);
+}
+
+/** Dismiss the current toast immediately and clear any pending timer. */
+export function dismissToast(): void {
+  if (toastTimerId !== null) {
+    clearTimeout(toastTimerId);
+    toastTimerId = null;
+  }
+  toastMessage.value = null;
 }
 
 export function getChildCount(itemId: string): { done: number; total: number } {

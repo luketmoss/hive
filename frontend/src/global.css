@@ -869,6 +869,21 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  position: relative;
+}
+
+.column-date-sort-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--overlay-4xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 13px;
+  pointer-events: none;
+  border-radius: var(--radius);
+  z-index: 10;
 }
 
 .column-empty {
@@ -2391,6 +2406,9 @@ body {
   z-index: 200;
   animation: toast-in 0.3s ease-out;
   box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .toast-empty {
@@ -2400,6 +2418,27 @@ body {
 
 .toast-success { background: var(--color-success); }
 .toast-error { background: var(--color-danger); }
+
+.toast-action {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius);
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.toast-action:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.toast-action:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
 
 @keyframes toast-in {
   from { opacity: 0; transform: translateX(-50%) translateY(16px); }

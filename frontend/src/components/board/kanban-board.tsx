@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode } from '../../state/board-store';
+import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement } from '../../state/board-store';
 import type { SortMode } from '../../state/board-store';
 import { moveItem, reorderItem } from '../../state/actions';
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts';
@@ -142,6 +142,20 @@ export function KanbanBoard() {
 
   const handleMoveStatus = (itemId: string, newStatus: ItemStatus) => {
     if (token) {
+      // AC6: Announce placement when keyboard-moving into a date-sorted destination
+      const destSortMode = columnSortModes.value[newStatus];
+      const isDestDateSorted = (destSortMode && destSortMode !== 'custom') || newStatus === 'Done';
+      if (isDestDateSorted) {
+        const sortLabel = newStatus === 'Done' ? 'completion date'
+          : destSortMode === 'due_date' ? 'due date'
+          : 'creation date';
+        columnAnnouncement.value = {
+          status: newStatus,
+          text: `Moving to ${newStatus} — will be added in ${sortLabel} order`,
+        };
+        // Clear after screen reader has time to read
+        setTimeout(() => { columnAnnouncement.value = null; }, 3000);
+      }
       moveItem(itemId, newStatus, user?.name || 'web', token);
     }
   };

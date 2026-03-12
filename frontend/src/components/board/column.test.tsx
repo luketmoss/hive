@@ -33,6 +33,7 @@ vi.mock('../../state/board-store', () => ({
   labels: { value: [] },
   getChildCount: () => ({ done: 0, total: 0 }),
   showToast: (...args: unknown[]) => mockShowToast(...args),
+  columnAnnouncement: { value: null },
 }));
 
 // Controllable mock for the card module so tests can set currentDragStatus
@@ -94,14 +95,14 @@ describe('Column drop indicator (Issue #115 AC2)', () => {
   });
 
   it('shows drop indicator when dragging from a different column (cross-column drag) — AC1', async () => {
-    // Simulate a card from "In Progress" being dragged over the "To Do" column
+    // Simulate a card from "In Progress" being dragged over the "To Do" column (custom sort)
     cardMock.currentDragStatus = 'In Progress';
 
     const items = [
       makeItem({ id: '1', title: 'Task 1', status: 'To Do' }),
     ];
     const { container } = render(
-      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={vi.fn()} />
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={vi.fn()} sortMode="custom" />
     );
     const card = container.querySelector('.card') as HTMLElement;
 
@@ -156,7 +157,7 @@ describe('Cross-column drop with position (Issue #128 AC2)', () => {
     cardMock.currentDragStatus = null;
   });
 
-  it('calls onDrop with targetIndex when cross-column dropping above a card', async () => {
+  it('calls onDrop with targetIndex when cross-column dropping above a card (custom sort)', async () => {
     cardMock.currentDragStatus = 'In Progress';
     const onDrop = vi.fn();
     const items = [
@@ -164,7 +165,7 @@ describe('Cross-column drop with position (Issue #128 AC2)', () => {
       makeItem({ id: '2', title: 'Task 2', status: 'To Do', sort_order: 2 }),
     ];
     const { container } = render(
-      <Column status="To Do" items={items} onDrop={onDrop} onReorder={vi.fn()} />
+      <Column status="To Do" items={items} onDrop={onDrop} onReorder={vi.fn()} sortMode="custom" />
     );
     const firstCard = container.querySelectorAll('[data-item-id]')[0] as HTMLElement;
 
@@ -194,14 +195,14 @@ describe('Cross-column drop with position (Issue #128 AC2)', () => {
     rectSpy.mockRestore();
   });
 
-  it('calls onDrop with targetIndex below card when cursor is in lower half', async () => {
+  it('calls onDrop with targetIndex below card when cursor is in lower half (custom sort)', async () => {
     cardMock.currentDragStatus = 'In Progress';
     const onDrop = vi.fn();
     const items = [
       makeItem({ id: '1', title: 'Task 1', status: 'To Do', sort_order: 1 }),
     ];
     const { container } = render(
-      <Column status="To Do" items={items} onDrop={onDrop} onReorder={vi.fn()} />
+      <Column status="To Do" items={items} onDrop={onDrop} onReorder={vi.fn()} sortMode="custom" />
     );
     const card = container.querySelector('[data-item-id]') as HTMLElement;
 
@@ -437,23 +438,111 @@ describe('Column sort mode (Issue #157)', () => {
   });
 });
 
-describe('Reorder blocked in date-sort mode (Issue #157)', () => {
+describe('Intra-column drag in date-sorted column switches to custom (Issue #161 AC1)', () => {
   afterEach(() => {
     cardMock.currentDragStatus = null;
   });
 
-  it('AC4: drag reorder within column is blocked when sorted by date, shows toast', async () => {
+  it('AC1: drag reorder within date-sorted column calls onSortChange to custom + onReorder + shows undo toast', async () => {
     cardMock.currentDragStatus = 'To Do';
     const onReorder = vi.fn();
+    const onSortChange = vi.fn();
     const items = [
-      makeItem({ id: '1', title: 'Task 1', status: 'To Do', due_date: '2026-03-01' }),
-      makeItem({ id: '2', title: 'Task 2', status: 'To Do', due_date: '2026-06-01' }),
+      makeItem({ id: '1', title: 'Task 1', status: 'To Do', due_date: '2026-03-01', sort_order: 1 }),
+      makeItem({ id: '2', title: 'Task 2', status: 'To Do', due_date: '2026-06-01', sort_order: 2 }),
     ];
     const { container } = render(
-      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} sortMode="due_date" />
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} sortMode="due_date" onSortChange={onSortChange} />
     );
 
-    const card = container.querySelector('.card') as HTMLElement;
+    // Drop item '2' (index 1) onto firstCard (index 0) above midpoint → newIndex 0
+    const firstCard = container.querySelectorAll('[data-item-id]')[0] as HTMLElement;
+    const rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 100, bottom: 300, height: 200, left: 0, right: 100, width: 100,
+      x: 0, y: 100, toJSON: () => ({}),
+    });
+
+    const event = new Event('drop', { bubbles: true }) as any;
+    event.clientY = 100; // above midpoint → index 0
+    event.dataTransfer = {
+      getData: (type: string) => {
+        if (type === 'text/plain') return '2';
+        if (type === 'application/x-hive-status') return 'To Do';
+        return '';
+      },
+    };
+
+    await act(() => {
+      firstCard.dispatchEvent(event);
+    });
+
+    // Should switch to custom sort
+    expect(onSortChange).toHaveBeenCalledWith('custom');
+    // Should perform the reorder (item 2 was at index 1, dropped at index 0)
+    expect(onReorder).toHaveBeenCalledWith('2', 0, items);
+    // Should show undo toast with 10s duration
+    expect(mockShowToast).toHaveBeenCalledWith(
+      'Switched to custom order',
+      'success',
+      expect.objectContaining({ label: 'Undo' }),
+      10000
+    );
+    rectSpy.mockRestore();
+  });
+
+  it('AC2: no-op drag (same position) does not switch sort mode', async () => {
+    cardMock.currentDragStatus = 'To Do';
+    const onReorder = vi.fn();
+    const onSortChange = vi.fn();
+    const items = [
+      makeItem({ id: '1', title: 'Task 1', status: 'To Do', sort_order: 1 }),
+      makeItem({ id: '2', title: 'Task 2', status: 'To Do', sort_order: 2 }),
+    ];
+    const { container } = render(
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} sortMode="due_date" onSortChange={onSortChange} />
+    );
+
+    const firstCard = container.querySelectorAll('[data-item-id]')[0] as HTMLElement;
+    const rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 100, bottom: 300, height: 200, left: 0, right: 100, width: 100,
+      x: 0, y: 100, toJSON: () => ({}),
+    });
+
+    const event = new Event('drop', { bubbles: true }) as any;
+    event.clientY = 100; // above midpoint → index 0, same as source index
+    event.dataTransfer = {
+      getData: (type: string) => {
+        if (type === 'text/plain') return '1'; // item at index 0
+        if (type === 'application/x-hive-status') return 'To Do';
+        return '';
+      },
+    };
+
+    await act(() => {
+      firstCard.dispatchEvent(event);
+    });
+
+    // No sort change, no reorder, no toast
+    expect(onSortChange).not.toHaveBeenCalled();
+    expect(onReorder).not.toHaveBeenCalled();
+    expect(mockShowToast).not.toHaveBeenCalled();
+    rectSpy.mockRestore();
+  });
+
+  it('AC3: undo action in toast reverts to previous sort mode', async () => {
+    cardMock.currentDragStatus = 'To Do';
+    const onReorder = vi.fn();
+    const onSortChange = vi.fn();
+    const items = [
+      makeItem({ id: '1', title: 'Task 1', status: 'To Do', sort_order: 1 }),
+      makeItem({ id: '2', title: 'Task 2', status: 'To Do', sort_order: 2 }),
+    ];
+    const { container } = render(
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} sortMode="created" onSortChange={onSortChange} />
+    );
+
+    // Drop item '2' (index 1) onto firstCard (index 0) to trigger sort switch
+    const firstCard = container.querySelectorAll('[data-item-id]')[0] as HTMLElement;
     const rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
       top: 100, bottom: 300, height: 200, left: 0, right: 100, width: 100,
       x: 0, y: 100, toJSON: () => ({}),
@@ -470,22 +559,33 @@ describe('Reorder blocked in date-sort mode (Issue #157)', () => {
     };
 
     await act(() => {
-      card.dispatchEvent(event);
+      firstCard.dispatchEvent(event);
     });
 
-    expect(onReorder).not.toHaveBeenCalled();
-    expect(mockShowToast).toHaveBeenCalledWith('Reorder by drag is disabled when sorted by date', 'error');
+    // Extract the undo function from the toast call
+    const toastCall = mockShowToast.mock.calls[0];
+    const action = toastCall[2] as { label: string; fn: () => void };
+    expect(action.label).toBe('Undo');
+
+    // Call undo — should revert to 'created'
+    onSortChange.mockReset();
+    action.fn();
+    expect(onSortChange).toHaveBeenCalledWith('created');
+
     rectSpy.mockRestore();
   });
+});
 
-  it('AC5: keyboard reorder (Alt+ArrowDown) is blocked when sorted by date, shows toast', async () => {
+describe('Keyboard reorder in date-sorted column switches to custom (Issue #161 AC5)', () => {
+  it('AC5: Alt+ArrowDown in date-sorted column switches to custom, reorders, shows undo toast', async () => {
     const onReorder = vi.fn();
+    const onSortChange = vi.fn();
     const items = [
       makeItem({ id: '1', title: 'Task 1', status: 'To Do', sort_order: 1 }),
       makeItem({ id: '2', title: 'Task 2', status: 'To Do', sort_order: 2 }),
     ];
     const { container } = render(
-      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} sortMode="due_date" />
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} sortMode="due_date" onSortChange={onSortChange} />
     );
 
     const titleBtn = container.querySelector('[data-item-id="1"] .card-title') as HTMLElement;
@@ -493,18 +593,25 @@ describe('Reorder blocked in date-sort mode (Issue #157)', () => {
       fireEvent.keyDown(titleBtn, { key: 'ArrowDown', altKey: true });
     });
 
-    expect(onReorder).not.toHaveBeenCalled();
-    expect(mockShowToast).toHaveBeenCalledWith('Reorder by drag is disabled when sorted by date', 'error');
+    expect(onSortChange).toHaveBeenCalledWith('custom');
+    expect(onReorder).toHaveBeenCalledWith('1', 1, items);
+    expect(mockShowToast).toHaveBeenCalledWith(
+      'Switched to custom order',
+      'success',
+      expect.objectContaining({ label: 'Undo' }),
+      10000
+    );
   });
 
-  it('AC5: keyboard reorder (Alt+ArrowUp) is blocked when sorted by date, shows toast', async () => {
+  it('AC5: Alt+ArrowUp in date-sorted column switches to custom', async () => {
     const onReorder = vi.fn();
+    const onSortChange = vi.fn();
     const items = [
       makeItem({ id: '1', title: 'Task 1', status: 'To Do', sort_order: 1 }),
       makeItem({ id: '2', title: 'Task 2', status: 'To Do', sort_order: 2 }),
     ];
     const { container } = render(
-      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} sortMode="created" />
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} sortMode="created" onSortChange={onSortChange} />
     );
 
     const titleBtn = container.querySelector('[data-item-id="2"] .card-title') as HTMLElement;
@@ -512,18 +619,19 @@ describe('Reorder blocked in date-sort mode (Issue #157)', () => {
       fireEvent.keyDown(titleBtn, { key: 'ArrowUp', altKey: true });
     });
 
-    expect(onReorder).not.toHaveBeenCalled();
-    expect(mockShowToast).toHaveBeenCalledWith('Reorder by drag is disabled when sorted by date', 'error');
+    expect(onSortChange).toHaveBeenCalledWith('custom');
+    expect(onReorder).toHaveBeenCalledWith('2', 0, items);
   });
 
   it('keyboard reorder works normally in custom sort mode', async () => {
     const onReorder = vi.fn();
+    const onSortChange = vi.fn();
     const items = [
       makeItem({ id: '1', title: 'Task 1', status: 'To Do', sort_order: 1 }),
       makeItem({ id: '2', title: 'Task 2', status: 'To Do', sort_order: 2 }),
     ];
     const { container } = render(
-      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} sortMode="custom" />
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={onReorder} sortMode="custom" onSortChange={onSortChange} />
     );
 
     const titleBtn = container.querySelector('[data-item-id="1"] .card-title') as HTMLElement;
@@ -532,6 +640,236 @@ describe('Reorder blocked in date-sort mode (Issue #157)', () => {
     });
 
     expect(onReorder).toHaveBeenCalledWith('1', 1, items);
+    expect(onSortChange).not.toHaveBeenCalled();
+    expect(mockShowToast).not.toHaveBeenCalled();
+  });
+});
+
+describe('Cross-column drag overlay for date-sorted columns (Issue #161 AC7/AC8)', () => {
+  afterEach(() => {
+    cardMock.currentDragStatus = null;
+  });
+
+  it('AC7: shows overlay with due date message when cross-column dragging into due_date-sorted column', async () => {
+    cardMock.currentDragStatus = 'In Progress';
+    const items = [
+      makeItem({ id: '1', title: 'Task 1', status: 'To Do' }),
+    ];
+    const { container } = render(
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={vi.fn()} sortMode="due_date" />
+    );
+    const card = container.querySelector('.card') as HTMLElement;
+
+    await act(() => {
+      fireEvent.dragOver(card, { bubbles: true, clientY: 110 });
+    });
+
+    const overlay = container.querySelector('.column-date-sort-overlay') as HTMLElement;
+    expect(overlay).not.toBeNull();
+    expect(overlay.textContent).toBe('Will be sorted by due date');
+  });
+
+  it('AC7: shows overlay with creation date message for created-sorted column', async () => {
+    cardMock.currentDragStatus = 'In Progress';
+    const items = [
+      makeItem({ id: '1', title: 'Task 1', status: 'To Do' }),
+    ];
+    const { container } = render(
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={vi.fn()} sortMode="created" />
+    );
+    const card = container.querySelector('.card') as HTMLElement;
+
+    await act(() => {
+      fireEvent.dragOver(card, { bubbles: true, clientY: 110 });
+    });
+
+    const overlay = container.querySelector('.column-date-sort-overlay') as HTMLElement;
+    expect(overlay).not.toBeNull();
+    expect(overlay.textContent).toBe('Will be sorted by creation date');
+  });
+
+  it('AC8: shows overlay with completion date message for Done column', async () => {
+    cardMock.currentDragStatus = 'To Do';
+    const items = [
+      makeItem({ id: '1', title: 'Task 1', status: 'Done' }),
+    ];
+    const { container } = render(
+      <Column status="Done" items={items} onDrop={vi.fn()} onReorder={vi.fn()} />
+    );
+    const card = container.querySelector('.card') as HTMLElement;
+
+    await act(() => {
+      fireEvent.dragOver(card, { bubbles: true, clientY: 110 });
+    });
+
+    const overlay = container.querySelector('.column-date-sort-overlay') as HTMLElement;
+    expect(overlay).not.toBeNull();
+    expect(overlay.textContent).toBe('Will be sorted by completion date');
+  });
+
+  it('AC7: suppresses drop indicators when showing overlay', async () => {
+    cardMock.currentDragStatus = 'In Progress';
+    const items = [
+      makeItem({ id: '1', title: 'Task 1', status: 'To Do' }),
+    ];
+    const { container } = render(
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={vi.fn()} sortMode="due_date" />
+    );
+    const card = container.querySelector('.card') as HTMLElement;
+
+    await act(() => {
+      fireEvent.dragOver(card, { bubbles: true, clientY: 110 });
+    });
+
+    // Overlay present, no drop indicators
+    expect(container.querySelector('.column-date-sort-overlay')).not.toBeNull();
+    expect(container.querySelector('.drop-indicator')).toBeNull();
+  });
+
+  it('AC7: overlay disappears when pointer leaves the column', async () => {
+    cardMock.currentDragStatus = 'In Progress';
+    const items = [
+      makeItem({ id: '1', title: 'Task 1', status: 'To Do' }),
+    ];
+    const { container } = render(
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={vi.fn()} sortMode="due_date" />
+    );
+    const column = container.querySelector('.column') as HTMLElement;
+    const card = container.querySelector('.card') as HTMLElement;
+
+    // Show overlay
+    await act(() => {
+      fireEvent.dragOver(card, { bubbles: true, clientY: 110 });
+    });
+    expect(container.querySelector('.column-date-sort-overlay')).not.toBeNull();
+
+    // Leave column
+    await act(() => {
+      fireEvent.dragLeave(column, { relatedTarget: null });
+    });
+    expect(container.querySelector('.column-date-sort-overlay')).toBeNull();
+  });
+
+  it('no overlay for same-column drag in date-sorted column', async () => {
+    cardMock.currentDragStatus = 'To Do';
+    const items = [
+      makeItem({ id: '1', title: 'Task 1', status: 'To Do' }),
+    ];
+    const { container } = render(
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={vi.fn()} sortMode="due_date" />
+    );
+    const card = container.querySelector('.card') as HTMLElement;
+
+    await act(() => {
+      fireEvent.dragOver(card, { bubbles: true, clientY: 110 });
+    });
+
+    // No overlay for same-column drag (AC1 handles this differently)
+    expect(container.querySelector('.column-date-sort-overlay')).toBeNull();
+  });
+
+  it('no overlay for cross-column drag into custom-sorted column', async () => {
+    cardMock.currentDragStatus = 'In Progress';
+    const items = [
+      makeItem({ id: '1', title: 'Task 1', status: 'To Do' }),
+    ];
+    const { container } = render(
+      <Column status="To Do" items={items} onDrop={vi.fn()} onReorder={vi.fn()} sortMode="custom" />
+    );
+    const card = container.querySelector('.card') as HTMLElement;
+    card.getBoundingClientRect = () => ({
+      top: 100, bottom: 150, height: 50, left: 0, right: 100, width: 100,
+      x: 0, y: 100, toJSON: () => ({}),
+    });
+
+    await act(() => {
+      fireEvent.dragOver(card, { bubbles: true, clientY: 110 });
+    });
+
+    expect(container.querySelector('.column-date-sort-overlay')).toBeNull();
+  });
+});
+
+describe('Cross-column drop into date-sorted column (Issue #161 AC9)', () => {
+  afterEach(() => {
+    cardMock.currentDragStatus = null;
+  });
+
+  it('AC9: cross-column drop into date-sorted column calls onDrop without targetIndex', async () => {
+    cardMock.currentDragStatus = 'In Progress';
+    const onDrop = vi.fn();
+    const items = [
+      makeItem({ id: '1', title: 'Task 1', status: 'To Do' }),
+    ];
+    const { container } = render(
+      <Column status="To Do" items={items} onDrop={onDrop} onReorder={vi.fn()} sortMode="due_date" />
+    );
+    const column = container.querySelector('.column') as HTMLElement;
+
+    await act(() => {
+      fireEvent.drop(column, {
+        bubbles: true,
+        clientY: 500,
+        dataTransfer: {
+          getData: (type: string) => {
+            if (type === 'text/plain') return 'drag-item';
+            if (type === 'application/x-hive-status') return 'In Progress';
+            return '';
+          },
+        },
+      });
+    });
+
+    // Called without targetIndex — date-sorted column places at end
+    expect(onDrop).toHaveBeenCalledWith('drag-item', 'To Do');
+  });
+
+  it('AC9: cross-column drop into Done column calls onDrop without targetIndex', async () => {
+    cardMock.currentDragStatus = 'To Do';
+    const onDrop = vi.fn();
+    const { container } = render(
+      <Column status="Done" items={[]} onDrop={onDrop} onReorder={vi.fn()} />
+    );
+    const column = container.querySelector('.column') as HTMLElement;
+
+    await act(() => {
+      fireEvent.drop(column, {
+        bubbles: true,
+        clientY: 500,
+        dataTransfer: {
+          getData: (type: string) => {
+            if (type === 'text/plain') return 'drag-item';
+            if (type === 'application/x-hive-status') return 'To Do';
+            return '';
+          },
+        },
+      });
+    });
+
+    expect(onDrop).toHaveBeenCalledWith('drag-item', 'Done');
+  });
+
+  it('AC9: no undo toast on cross-column drop into date-sorted column', async () => {
+    cardMock.currentDragStatus = 'In Progress';
+    const { container } = render(
+      <Column status="To Do" items={[]} onDrop={vi.fn()} onReorder={vi.fn()} sortMode="due_date" />
+    );
+    const column = container.querySelector('.column') as HTMLElement;
+
+    await act(() => {
+      fireEvent.drop(column, {
+        bubbles: true,
+        clientY: 500,
+        dataTransfer: {
+          getData: (type: string) => {
+            if (type === 'text/plain') return 'drag-item';
+            if (type === 'application/x-hive-status') return 'In Progress';
+            return '';
+          },
+        },
+      });
+    });
+
     expect(mockShowToast).not.toHaveBeenCalled();
   });
 });
