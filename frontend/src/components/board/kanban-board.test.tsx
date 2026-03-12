@@ -106,6 +106,7 @@ vi.mock('../../state/board-store', () => ({
     },
   },
   setColumnSortMode: () => {},
+  columnAnnouncement: { value: null },
 }));
 
 const mockMoveItem = vi.fn();
