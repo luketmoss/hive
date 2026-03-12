@@ -44,17 +44,8 @@ function validateStatusTransition(
     }
   }
 
-  if (newStatus === 'Done') {
-    const children = allItems.filter(i => i.parent_id === item.id);
-    const incompleteChildren = children.filter(i => i.status !== 'Done');
-    if (incompleteChildren.length > 0) {
-      const names = incompleteChildren.map(c => c.title).join(', ');
-      return {
-        valid: false,
-        error: `Cannot mark as Done: ${incompleteChildren.length} sub-task(s) not complete (${names})`,
-      };
-    }
-  }
+  // Note: the "all children must be Done" check was removed in #162.
+  // Moving a parent to Done now cascades the status to all children automatically.
 
   return { valid: true };
 }
@@ -109,16 +100,14 @@ describe('validateStatusTransition', () => {
     expect(result.valid).toBe(true);
   });
 
-  it('blocks move to Done when children are incomplete', () => {
+  it('#162: allows move to Done when children are incomplete (cascade handles them)', () => {
     const parent = makeItem({ id: 'parent', status: 'In Progress', owner: 'Luke' });
     const child1 = makeItem({ id: 'child-1', title: 'Child 1', parent_id: 'parent', status: 'Done' });
     const child2 = makeItem({ id: 'child-2', title: 'Child 2', parent_id: 'parent', status: 'In Progress' });
     const allItems = [parent, child1, child2];
 
     const result = validateStatusTransition(parent, 'Done', allItems);
-    expect(result.valid).toBe(false);
-    expect(result.error).toContain('1 sub-task(s) not complete');
-    expect(result.error).toContain('Child 2');
+    expect(result.valid).toBe(true);
   });
 
   it('allows move to Done when all children are Done', () => {

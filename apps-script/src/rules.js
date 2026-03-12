@@ -13,18 +13,8 @@ function validateStatusTransition(item, newStatus, allItems) {
     }
   }
 
-  // Any → Done: all children must be Done
-  if (newStatus === 'Done') {
-    var children = allItems.filter(function(i) { return i.parent_id === item.id; });
-    var incompleteChildren = children.filter(function(i) { return i.status !== 'Done'; });
-    if (incompleteChildren.length > 0) {
-      var names = incompleteChildren.map(function(c) { return c.title; }).join(', ');
-      return {
-        valid: false,
-        error: 'Cannot mark as Done: ' + incompleteChildren.length + ' sub-task(s) not complete (' + names + ')',
-      };
-    }
-  }
+  // Note: the "all children must be Done" check was removed in #162.
+  // Moving a parent to Done now cascades the status to all children automatically.
 
   // Done → To Do or In Progress: always allowed (reopening)
   return { valid: true };
