@@ -1,10 +1,12 @@
 import { boards, activeBoardId, switchBoard, showCreateBoardModal, showShareModal, accessibleBoards, activeBoard, userBoardRole } from '../../state/board-store';
 
 /** Format the option label for a board: icon (if set) + name. */
-function boardOptionLabel(name: string, icon?: string, shortcut?: string): string {
+function boardOptionLabel(name: string, icon?: string): string {
   const prefix = icon ? `${icon} ` : '';
-  return shortcut ? `${prefix}${name} (${shortcut})` : `${prefix}${name}`;
+  return `${prefix}${name}`;
 }
+
+const BOARD_SWITCHER_HINT = 'Ctrl+1–9 to switch boards · Press ? for all shortcuts';
 
 export function BoardSwitcher() {
   const handleChange = (e: Event) => {
@@ -45,15 +47,18 @@ export function BoardSwitcher() {
           data-testid="board-color-dot"
         />
       )}
+      <span id="board-switcher-hint" class="sr-only">{BOARD_SWITCHER_HINT}</span>
       <select
         class="board-switcher-select"
         value={activeBoardId.value}
         onChange={handleChange}
         aria-label="Select board"
+        aria-describedby="board-switcher-hint"
+        title={BOARD_SWITCHER_HINT}
       >
-        {accessibleBoards.value.map((b, i) => (
+        {accessibleBoards.value.map((b) => (
           <option key={b.id} value={b.id}>
-            {boardOptionLabel(b.name, b.icon, i < 9 ? `Ctrl+${i + 1}` : undefined)}
+            {boardOptionLabel(b.name, b.icon)}
           </option>
         ))}
         <option value="__new__">+ New Board...</option>
