@@ -1749,15 +1749,6 @@ body {
   background: var(--overlay-sm);
 }
 
-/* #162 AC9: Sub-task checkbox meets minimum 44×44px touch target */
-.subtask-item input[type="checkbox"] {
-  min-width: 44px;
-  min-height: 44px;
-  margin: -12px -8px;
-  padding: 0;
-  cursor: pointer;
-}
-
 .subtask-title {
   flex: 1;
   min-width: 0;
