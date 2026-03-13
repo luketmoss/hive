@@ -115,6 +115,70 @@ describe('ControlBar', () => {
     });
   });
 
+  describe('#163 — AC1: Board option labels no longer include shortcut text', () => {
+    const HINT = 'Ctrl+1–9 to switch boards · Press ? for all shortcuts';
+
+    it('option labels show name only — no (Ctrl+N) suffix on desktop', () => {
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
+      const { container } = render(<ControlBar />);
+      const options = Array.from(container.querySelectorAll('[data-testid="control-bar-board-select"] option'));
+      const boardOptions = options.filter(o => (o as HTMLOptionElement).value !== '__new__');
+      boardOptions.forEach(opt => {
+        expect(opt.textContent).not.toMatch(/\(Ctrl\+\d\)/);
+      });
+    });
+
+    it('option with icon shows icon + name only', () => {
+      mockState.accessibleBoards = [
+        { id: 'b1', name: 'Work', icon: '💼' },
+        { id: 'b2', name: 'Family', icon: '' },
+      ];
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
+      const { container } = render(<ControlBar />);
+      const b1Option = container.querySelector('[data-testid="control-bar-board-select"] option[value="b1"]');
+      expect(b1Option!.textContent).toBe('💼 Work');
+      expect(b1Option!.textContent).not.toContain('Ctrl');
+    });
+
+    it('option without icon shows name only', () => {
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
+      const { container } = render(<ControlBar />);
+      const b2Option = container.querySelector('[data-testid="control-bar-board-select"] option[value="b2"]');
+      expect(b2Option!.textContent).toBe('Family');
+    });
+
+    describe('#163 — AC2: Select shows shortcut hint via title', () => {
+      it('select element has correct title attribute', () => {
+        const { container } = render(<ControlBar />);
+        const select = container.querySelector('[data-testid="control-bar-board-select"]');
+        expect(select!.getAttribute('title')).toBe(HINT);
+      });
+    });
+
+    describe('#163 — AC4: Screen readers via aria-describedby', () => {
+      it('select has aria-describedby pointing to board-switcher-hint', () => {
+        const { container } = render(<ControlBar />);
+        const select = container.querySelector('[data-testid="control-bar-board-select"]');
+        expect(select!.getAttribute('aria-describedby')).toBe('board-switcher-hint');
+      });
+
+      it('sr-only span #board-switcher-hint exists with hint text', () => {
+        const { container } = render(<ControlBar />);
+        const hint = container.querySelector('#board-switcher-hint');
+        expect(hint).not.toBeNull();
+        expect(hint!.classList.contains('sr-only')).toBe(true);
+        expect(hint!.textContent).toBe(HINT);
+      });
+
+      it('hint text references Ctrl+1 and ? shortcuts', () => {
+        const { container } = render(<ControlBar />);
+        const hint = container.querySelector('#board-switcher-hint');
+        expect(hint!.textContent).toContain('Ctrl+1');
+        expect(hint!.textContent).toContain('?');
+      });
+    });
+  });
+
   describe('CSS separators', () => {
     it('renders one separator span with aria-hidden', () => {
       const { container } = render(<ControlBar />);

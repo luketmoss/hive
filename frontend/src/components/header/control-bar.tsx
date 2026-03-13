@@ -160,16 +160,19 @@ export function ControlBar() {
             data-testid="board-color-dot"
           />
         )}
+        <span id="board-switcher-hint" class="sr-only">{BOARD_SWITCHER_HINT}</span>
         <select
           class="board-switcher-select"
           value={activeBoardId.value}
           onChange={handleBoardChange}
           aria-label="Select board"
+          aria-describedby="board-switcher-hint"
+          title={BOARD_SWITCHER_HINT}
           data-testid="control-bar-board-select"
         >
-          {accessibleBoards.value.map((b, i) => (
+          {accessibleBoards.value.map((b) => (
             <option key={b.id} value={b.id}>
-              {boardOptionLabel(b.name, b.icon, !isMobile && i < 9 ? `Ctrl+${i + 1}` : undefined)}
+              {boardOptionLabel(b.name, b.icon)}
             </option>
           ))}
           <option value="__new__">+ New Board...</option>
@@ -370,9 +373,11 @@ export function ControlBar() {
   );
 }
 
-function boardOptionLabel(name: string, icon?: string, shortcut?: string): string {
+const BOARD_SWITCHER_HINT = 'Ctrl+1–9 to switch boards · Press ? for all shortcuts';
+
+function boardOptionLabel(name: string, icon?: string): string {
   const prefix = icon ? `${icon} ` : '';
-  return shortcut ? `${prefix}${name} (${shortcut})` : `${prefix}${name}`;
+  return `${prefix}${name}`;
 }
 
 interface ActiveChip {
