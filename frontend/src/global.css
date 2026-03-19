@@ -948,6 +948,7 @@ body {
   font-weight: 600;
   padding: 4px 8px;
   border-radius: 10px;
+  margin-left: 6px;
 }
 
 /* Header "+" button — always visible in board view */
