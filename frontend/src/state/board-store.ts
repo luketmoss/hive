@@ -64,6 +64,9 @@ export const boardItems = computed(() => {
 // --- Filters ---
 export const filterOwner = signal<string | null>(null);
 export const filterLabel = signal<string | null>(null);
+export const filterSearch = signal('');
+export type DueFilter = 'today' | 'this-week' | null;
+export const filterDue = signal<DueFilter>(null);
 export const groupBy = signal<'none' | 'owner' | 'label'>('none');
 
 // --- UI state ---
@@ -135,17 +138,82 @@ export function cycleTheme() {
 }
 
 // --- Derived ---
+
+/** Get today's date as YYYY-MM-DD. */
+function todayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Get end-of-week (Sunday) date as YYYY-MM-DD from today. */
+function endOfWeekStr(): string {
+  const d = new Date();
+  const day = d.getDay(); // 0=Sun
+  const diff = day === 0 ? 0 : 7 - day;
+  d.setDate(d.getDate() + diff);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Check if an item's fields match the search term (case-insensitive). */
+function itemMatchesSearch(item: ItemWithRow, term: string): boolean {
+  const t = term.toLowerCase();
+  return (
+    item.title.toLowerCase().includes(t) ||
+    item.description.toLowerCase().includes(t) ||
+    item.labels.toLowerCase().includes(t)
+  );
+}
+
+/** Check if an item's due_date falls within the due filter range. */
+function itemMatchesDue(item: ItemWithRow, due: 'today' | 'this-week'): boolean {
+  if (!item.due_date) return false;
+  const today = todayStr();
+  if (due === 'today') return item.due_date === today;
+  // this-week: today through Sunday inclusive
+  return item.due_date >= today && item.due_date <= endOfWeekStr();
+}
+
 export const filteredItems = computed(() => {
   let result = boardItems.value;
 
-  if (filterOwner.value) {
-    result = result.filter(i => i.owner === filterOwner.value);
-  }
   if (filterLabel.value) {
     const label = filterLabel.value;
     result = result.filter(i =>
       i.labels.split(',').map(l => l.trim()).includes(label)
     );
+  }
+
+  const search = filterSearch.value.trim();
+  const due = filterDue.value;
+
+  if (search || due) {
+    // Build set of root IDs whose children match (for sub-item search)
+    const allItems = boardItems.value;
+    const matchingParentIds = new Set<string>();
+
+    if (search) {
+      for (const item of allItems) {
+        if (item.parent_id && itemMatchesSearch(item, search)) {
+          matchingParentIds.add(item.parent_id);
+        }
+      }
+    }
+    if (due) {
+      for (const item of allItems) {
+        if (item.parent_id && itemMatchesDue(item, due)) {
+          matchingParentIds.add(item.parent_id);
+        }
+      }
+    }
+
+    result = result.filter(i => {
+      // Children pass through — they're filtered out by rootItems
+      if (i.parent_id) return true;
+
+      const searchOk = !search || itemMatchesSearch(i, search) || matchingParentIds.has(i.id);
+      const dueOk = !due || itemMatchesDue(i, due) || matchingParentIds.has(i.id);
+      return searchOk && dueOk;
+    });
   }
 
   return result;
@@ -207,6 +275,8 @@ export function switchBoard(boardId: string) {
   activeBoardId.value = boardId;
   filterOwner.value = null;
   filterLabel.value = null;
+  filterSearch.value = '';
+  filterDue.value = null;
   groupBy.value = 'none';
   selectedItemId.value = null;
 

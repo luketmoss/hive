@@ -31,6 +31,8 @@ vi.mock('../../state/board-store', () => ({
   labels: { value: [] },
   filterOwner: { value: null },
   filterLabel: { value: null },
+  filterSearch: { value: '' },
+  filterDue: { value: null },
   loading: { value: false },
   getChildCount: () => ({ done: 0, total: 0 }),
   viewMode: mockViewMode,
