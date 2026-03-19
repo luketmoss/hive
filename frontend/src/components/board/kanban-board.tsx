@@ -1,8 +1,8 @@
 import { useState, useCallback, useMemo, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, createModalInitialStatus, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement } from '../../state/board-store';
+import { columns, showCreateModal, createModalInitialStatus, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement, showToast } from '../../state/board-store';
 import type { SortMode } from '../../state/board-store';
-import { moveItem, reorderItem } from '../../state/actions';
+import { moveItem, reorderItem, createItem, deleteItem } from '../../state/actions';
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts';
 import type { Shortcut } from '../../hooks/use-keyboard-shortcuts';
 import { Column } from './column';
@@ -166,6 +166,36 @@ export function KanbanBoard() {
     }
   };
 
+  /** Kebab menu: delete with undo toast (AC7) */
+  const handleDeleteItem = useCallback((itemId: string) => {
+    if (!token) return;
+    const item = items.value.find(i => i.id === itemId);
+    if (!item) return;
+
+    const oldItems = [...items.value];
+
+    // Optimistic removal (item + children)
+    items.value = items.value.filter(i => i.id !== itemId && i.parent_id !== itemId);
+
+    let undone = false;
+    showToast('Item deleted', 'success', {
+      label: 'Undo',
+      fn: () => {
+        undone = true;
+        items.value = oldItems;
+      },
+    }, 10000);
+
+    // Commit deletion after toast expires (if not undone)
+    setTimeout(() => {
+      if (!undone) {
+        // Restore item temporarily so deleteItem can find it and handle sheet deletion
+        items.value = oldItems;
+        deleteItem(itemId, user?.name || 'web', token);
+      }
+    }, 10100);
+  }, [token, user]);
+
   const handleAddItemToColumn = useCallback((status: ItemStatus) => {
     createModalInitialStatus.value = status;
     showCreateModal.value = true;
@@ -191,6 +221,7 @@ export function KanbanBoard() {
               sortMode={columnSortModes.value[status]}
               onSortChange={(mode: SortMode) => setColumnSortMode(status, mode)}
               onAddItem={() => handleAddItemToColumn(status)}
+              onDeleteItem={handleDeleteItem}
               {...(status === 'Done' ? {
                 allDoneCount: allDoneItems.value.length,
                 hasArchived: hasArchivedItems.value,

@@ -3,6 +3,8 @@ import { labels as labelsStore } from '../../state/board-store';
 import type { ItemWithRow, ItemStatus } from '../../api/types';
 import type { SortMode } from '../../state/board-store';
 import { LabelBadge } from '../shared/label-badge';
+import { KebabMenu } from './kebab-menu';
+import type { KebabAction } from './kebab-menu';
 
 /** Tracks the status of the card currently being dragged (same module, readable during dragover). */
 export let currentDragStatus: string | null = null;
@@ -17,9 +19,15 @@ interface Props {
   columnItems?: ItemWithRow[];
   /** AC9: Current sort mode — shows lock indicator when non-custom */
   sortMode?: SortMode;
+  /** Kebab menu: move to top of column */
+  onMoveToTop?: (itemId: string) => void;
+  /** Kebab menu: move to bottom of column */
+  onMoveToBottom?: (itemId: string) => void;
+  /** Kebab menu: delete item */
+  onDelete?: (itemId: string) => void;
 }
 
-export function Card({ item, onMoveStatus, onReorder, columnItems, sortMode }: Props) {
+export function Card({ item, onMoveStatus, onReorder, columnItems, sortMode, onMoveToTop, onMoveToBottom, onDelete }: Props) {
   const childCount = getChildCount(item.id);
   const itemLabels = item.labels
     ? item.labels.split(',').map(l => l.trim()).filter(Boolean)
@@ -90,6 +98,33 @@ export function Card({ item, onMoveStatus, onReorder, columnItems, sortMode }: P
 
   const isDateSorted = sortMode && sortMode !== 'custom';
 
+  // Build kebab menu actions
+  const isFirstInColumn = columnItems ? columnItems[0]?.id === item.id : false;
+  const isLastInColumn = columnItems ? columnItems[columnItems.length - 1]?.id === item.id : false;
+
+  const kebabActions: KebabAction[] = [];
+  if (onMoveToTop) {
+    kebabActions.push({
+      label: 'Move to top',
+      disabled: isFirstInColumn,
+      onAction: () => onMoveToTop(item.id),
+    });
+  }
+  if (onMoveToBottom) {
+    kebabActions.push({
+      label: 'Move to bottom',
+      disabled: isLastInColumn,
+      onAction: () => onMoveToBottom(item.id),
+    });
+  }
+  if (onDelete) {
+    kebabActions.push({
+      label: 'Delete',
+      danger: true,
+      onAction: () => onDelete(item.id),
+    });
+  }
+
   return (
     <div
       class="card"
@@ -109,6 +144,9 @@ export function Card({ item, onMoveStatus, onReorder, columnItems, sortMode }: P
           >
             &#128274;
           </span>
+        )}
+        {kebabActions.length > 0 && (
+          <KebabMenu actions={kebabActions} itemTitle={item.title} />
         )}
         <button
           class="card-title"
