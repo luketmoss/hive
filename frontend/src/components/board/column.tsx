@@ -378,7 +378,6 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
               onMoveStatus={handleMoveStatus}
               onReorder={handleKeyboardReorder}
               columnItems={items}
-              sortMode={sortMode}
               onMoveToTop={onReorder ? handleMoveToTop : undefined}
               onMoveToBottom={onReorder ? handleMoveToBottom : undefined}
               onDelete={onDeleteItem}

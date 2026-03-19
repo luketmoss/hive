@@ -1213,16 +1213,6 @@ body {
   white-space: nowrap;
 }
 
-/* AC9: Lock indicator on cards in date-sorted columns */
-.card-sort-lock {
-  display: block;
-  font-size: 11px;
-  opacity: 0.45;
-  text-align: right;
-  line-height: 1;
-  margin-bottom: 4px;
-}
-
 /* === Kebab Menu === */
 .kebab-menu-container {
   position: absolute;
