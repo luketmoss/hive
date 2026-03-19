@@ -189,8 +189,11 @@ export function KanbanBoard() {
     // Commit deletion after toast expires (if not undone)
     setTimeout(() => {
       if (!undone) {
-        // Restore item temporarily so deleteItem can find it and handle sheet deletion
-        items.value = oldItems;
+        // Re-insert only the deleted item(s) into current state so deleteItem can find them
+        const deletedItems = oldItems.filter(
+          i => i.id === itemId || i.parent_id === itemId
+        );
+        items.value = [...items.value, ...deletedItems];
         deleteItem(itemId, user?.name || 'web', token);
       }
     }, 10100);
