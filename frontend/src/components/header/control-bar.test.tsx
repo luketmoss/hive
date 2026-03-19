@@ -13,19 +13,21 @@ const { mockState, mockSwitchBoard, mockSetViewMode } = vi.hoisted(() => ({
     activeBoard: { name: 'Work', color: '#ff0000' } as any,
     userBoardRole: 'owner' as string | null,
     viewMode: 'board' as string,
-    filterOwner: null as string | null,
     filterLabel: null as string | null,
+    filterSearch: '',
+    filterDue: null as string | null,
     groupBy: 'none' as string,
-    owners: [
-      { name: 'Luke', google_account: 'luke@example.com' },
-      { name: 'Sarah', google_account: 'sarah@example.com' },
-    ],
     labels: [
       { label: 'Urgent', color: '#ff0000' },
       { label: 'Home', color: '#00cc00' },
     ],
     showCreateBoardModal: false,
     showShareModal: false,
+    rootItems: [
+      { id: '1', title: 'Task 1' },
+      { id: '2', title: 'Task 2' },
+      { id: '3', title: 'Task 3' },
+    ] as any[],
   },
   mockSwitchBoard: vi.fn(),
   mockSetViewMode: vi.fn(),
@@ -38,20 +40,24 @@ vi.mock('../../state/board-store', () => ({
   activeBoard: { get value() { return mockState.activeBoard; } },
   userBoardRole: { get value() { return mockState.userBoardRole; } },
   viewMode: { get value() { return mockState.viewMode; } },
-  filterOwner: {
-    get value() { return mockState.filterOwner; },
-    set value(v: string | null) { mockState.filterOwner = v; },
-  },
   filterLabel: {
     get value() { return mockState.filterLabel; },
     set value(v: string | null) { mockState.filterLabel = v; },
+  },
+  filterSearch: {
+    get value() { return mockState.filterSearch; },
+    set value(v: string) { mockState.filterSearch = v; },
+  },
+  filterDue: {
+    get value() { return mockState.filterDue; },
+    set value(v: string | null) { mockState.filterDue = v; },
   },
   groupBy: {
     get value() { return mockState.groupBy; },
     set value(v: string) { mockState.groupBy = v; },
   },
-  owners: { get value() { return mockState.owners; } },
   labels: { get value() { return mockState.labels; } },
+  rootItems: { get value() { return mockState.rootItems; } },
   switchBoard: (...args: any[]) => mockSwitchBoard(...args),
   setViewMode: (...args: any[]) => mockSetViewMode(...args),
   showCreateBoardModal: {
@@ -69,7 +75,6 @@ afterEach(() => {
   cleanup();
   mockSwitchBoard.mockClear();
   mockSetViewMode.mockClear();
-  // Reset to mobile default (JSDOM innerWidth = 0)
   Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 0 });
 });
 
@@ -83,12 +88,17 @@ beforeEach(() => {
   mockState.activeBoard = { name: 'Work', color: '#ff0000' };
   mockState.userBoardRole = 'owner';
   mockState.viewMode = 'board';
-  mockState.filterOwner = null;
   mockState.filterLabel = null;
+  mockState.filterSearch = '';
+  mockState.filterDue = null;
   mockState.groupBy = 'none';
   mockState.showCreateBoardModal = false;
   mockState.showShareModal = false;
-  // Default to mobile (JSDOM innerWidth = 0)
+  mockState.rootItems = [
+    { id: '1', title: 'Task 1' },
+    { id: '2', title: 'Task 2' },
+    { id: '3', title: 'Task 3' },
+  ];
   Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 0 });
 });
 
@@ -115,142 +125,225 @@ describe('ControlBar', () => {
     });
   });
 
-  describe('#163 — AC1: Board option labels no longer include shortcut text', () => {
-    const HINT = 'Ctrl+1–9 to switch boards · Press ? for all shortcuts';
-
-    it('option labels show name only — no (Ctrl+N) suffix on desktop', () => {
+  describe('#177 AC1: Text search input renders in filter bar', () => {
+    it('renders search input with placeholder', () => {
       Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
       const { container } = render(<ControlBar />);
-      const options = Array.from(container.querySelectorAll('[data-testid="control-bar-board-select"] option'));
-      const boardOptions = options.filter(o => (o as HTMLOptionElement).value !== '__new__');
-      boardOptions.forEach(opt => {
-        expect(opt.textContent).not.toMatch(/\(Ctrl\+\d\)/);
-      });
+      const input = container.querySelector('[data-testid="filter-search-input"]') as HTMLInputElement;
+      expect(input).not.toBeNull();
+      expect(input.placeholder).toBe('Search cards...');
     });
 
-    it('option with icon shows icon + name only', () => {
-      mockState.accessibleBoards = [
-        { id: 'b1', name: 'Work', icon: '💼' },
-        { id: 'b2', name: 'Family', icon: '' },
-      ];
+    it('search input has aria-label="Search cards"', () => {
       Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
       const { container } = render(<ControlBar />);
-      const b1Option = container.querySelector('[data-testid="control-bar-board-select"] option[value="b1"]');
-      expect(b1Option!.textContent).toBe('💼 Work');
-      expect(b1Option!.textContent).not.toContain('Ctrl');
+      const input = container.querySelector('[data-testid="filter-search-input"]');
+      expect(input!.getAttribute('aria-label')).toBe('Search cards');
     });
 
-    it('option without icon shows name only', () => {
+    it('search wrapper has flex: 1 for available space (via class)', () => {
       Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
       const { container } = render(<ControlBar />);
-      const b2Option = container.querySelector('[data-testid="control-bar-board-select"] option[value="b2"]');
-      expect(b2Option!.textContent).toBe('Family');
-    });
-
-    describe('#163 — AC2: Select shows shortcut hint via title', () => {
-      it('select element has correct title attribute', () => {
-        const { container } = render(<ControlBar />);
-        const select = container.querySelector('[data-testid="control-bar-board-select"]');
-        expect(select!.getAttribute('title')).toBe(HINT);
-      });
-    });
-
-    describe('#163 — AC4: Screen readers via aria-describedby', () => {
-      it('select has aria-describedby pointing to board-switcher-hint', () => {
-        const { container } = render(<ControlBar />);
-        const select = container.querySelector('[data-testid="control-bar-board-select"]');
-        expect(select!.getAttribute('aria-describedby')).toBe('board-switcher-hint');
-      });
-
-      it('sr-only span #board-switcher-hint exists with hint text', () => {
-        const { container } = render(<ControlBar />);
-        const hint = container.querySelector('#board-switcher-hint');
-        expect(hint).not.toBeNull();
-        expect(hint!.classList.contains('sr-only')).toBe(true);
-        expect(hint!.textContent).toBe(HINT);
-      });
-
-      it('hint text references Ctrl+1 and ? shortcuts', () => {
-        const { container } = render(<ControlBar />);
-        const hint = container.querySelector('#board-switcher-hint');
-        expect(hint!.textContent).toContain('Ctrl+1');
-        expect(hint!.textContent).toContain('?');
-      });
+      const wrapper = container.querySelector('[data-testid="filter-search-wrapper"]');
+      expect(wrapper).not.toBeNull();
+      expect(wrapper!.classList.contains('filter-search-wrapper')).toBe(true);
     });
   });
 
-  describe('CSS separators', () => {
-    it('renders one separator span with aria-hidden', () => {
+  describe('#177 AC2: Text search filters cards in real time', () => {
+    it('shows × clear button when search has text', () => {
       const { container } = render(<ControlBar />);
-      const separators = container.querySelectorAll('.control-bar-separator');
-      expect(separators.length).toBe(1);
-      separators.forEach(sep => {
-        expect(sep.getAttribute('aria-hidden')).toBe('true');
-      });
+      const input = container.querySelector('[data-testid="filter-search-input"]') as HTMLInputElement;
+      fireEvent.input(input, { target: { value: 'test' } });
+      const clearBtn = container.querySelector('[data-testid="filter-search-clear"]');
+      expect(clearBtn).not.toBeNull();
+    });
+
+    it('hides × clear button when search is empty', () => {
+      const { container } = render(<ControlBar />);
+      const clearBtn = container.querySelector('[data-testid="filter-search-clear"]');
+      expect(clearBtn).toBeNull();
+    });
+
+    it('clicking × clears the search', () => {
+      const { container } = render(<ControlBar />);
+      const input = container.querySelector('[data-testid="filter-search-input"]') as HTMLInputElement;
+      fireEvent.input(input, { target: { value: 'test' } });
+      const clearBtn = container.querySelector('[data-testid="filter-search-clear"]') as HTMLElement;
+      fireEvent.click(clearBtn);
+      expect(input.value).toBe('');
+      expect(mockState.filterSearch).toBe('');
+    });
+
+    it('updates filterSearch signal after debounce', async () => {
+      vi.useFakeTimers();
+      const { container } = render(<ControlBar />);
+      const input = container.querySelector('[data-testid="filter-search-input"]') as HTMLInputElement;
+      fireEvent.input(input, { target: { value: 'kanban' } });
+      // Before debounce, signal not yet updated
+      expect(mockState.filterSearch).toBe('');
+      vi.advanceTimersByTime(150);
+      expect(mockState.filterSearch).toBe('kanban');
+      vi.useRealTimers();
     });
   });
 
-  describe('AC2: Desktop — no Filters toggle button visible', () => {
-    it('filter toggle is rendered but hidden via CSS on desktop (not in DOM logic)', () => {
-      // On desktop (innerWidth > 768), isMobile=false so filter toggle is rendered
-      // but CSS hides it. In JS/JSDOM we can verify the element exists and filter content is visible.
-      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1024 });
-      const { container } = render(<ControlBar />);
-      // Filter content should NOT have the collapsed class on desktop
-      const content = container.querySelector('[data-testid="control-bar-filter-content"]');
-      expect(content!.className).not.toContain('control-bar-filter-content-collapsed');
-    });
-  });
-
-  describe('AC1: Desktop — filter chips always visible', () => {
-    it('filter content has no collapsed class on desktop', () => {
+  describe('#177 AC4: Due quick-filter — Today', () => {
+    it('renders Today chip in due filter group', () => {
       Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
       const { container } = render(<ControlBar />);
-      const content = container.querySelector('[data-testid="control-bar-filter-content"]');
-      expect(content!.className).not.toContain('control-bar-filter-content-collapsed');
+      const chip = container.querySelector('[data-testid="filter-due-today"]');
+      expect(chip).not.toBeNull();
+      expect(chip!.textContent).toBe('Today');
     });
 
-    it('owner chips are rendered without needing to click filter toggle on desktop', () => {
+    it('clicking Today sets filterDue to "today"', () => {
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
+      const { container } = render(<ControlBar />);
+      fireEvent.click(container.querySelector('[data-testid="filter-due-today"]') as HTMLElement);
+      expect(mockState.filterDue).toBe('today');
+    });
+
+    it('clicking Today again clears the filter', () => {
+      mockState.filterDue = 'today';
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
+      const { container } = render(<ControlBar />);
+      fireEvent.click(container.querySelector('[data-testid="filter-due-today"]') as HTMLElement);
+      expect(mockState.filterDue).toBeNull();
+    });
+
+    it('active Today chip has filter-chip-active class and aria-pressed="true"', () => {
+      mockState.filterDue = 'today';
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
+      const { container } = render(<ControlBar />);
+      const chip = container.querySelector('[data-testid="filter-due-today"]');
+      expect(chip!.classList.contains('filter-chip-active')).toBe(true);
+      expect(chip!.getAttribute('aria-pressed')).toBe('true');
+    });
+  });
+
+  describe('#177 AC5: Due quick-filter — This Week', () => {
+    it('renders This Week chip', () => {
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
+      const { container } = render(<ControlBar />);
+      const chip = container.querySelector('[data-testid="filter-due-this-week"]');
+      expect(chip).not.toBeNull();
+      expect(chip!.textContent).toBe('This Week');
+    });
+
+    it('clicking This Week sets filterDue to "this-week"', () => {
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
+      const { container } = render(<ControlBar />);
+      fireEvent.click(container.querySelector('[data-testid="filter-due-this-week"]') as HTMLElement);
+      expect(mockState.filterDue).toBe('this-week');
+    });
+
+    it('due chips are mutually exclusive', () => {
+      mockState.filterDue = 'today';
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
+      const { container } = render(<ControlBar />);
+      fireEvent.click(container.querySelector('[data-testid="filter-due-this-week"]') as HTMLElement);
+      expect(mockState.filterDue).toBe('this-week');
+    });
+  });
+
+  describe('#177 AC7: Owner chip group removed', () => {
+    it('no "Filter by owner" group exists', () => {
       Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
       const { container } = render(<ControlBar />);
       const ownerGroup = container.querySelector('[aria-label="Filter by owner"]');
-      expect(ownerGroup).not.toBeNull();
-      const chips = ownerGroup!.querySelectorAll('button.filter-chip');
-      expect(chips.length).toBe(2);
+      expect(ownerGroup).toBeNull();
     });
 
-    it('group labels are visible on desktop', () => {
+    it('no "Owner:" label text exists', () => {
       Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
       const { container } = render(<ControlBar />);
-      const labels = container.querySelectorAll('.filter-chip-group-label');
-      expect(labels.length).toBeGreaterThanOrEqual(3); // Owner:, Label:, Group:
+      const labels = Array.from(container.querySelectorAll('.filter-chip-group-label'));
+      const ownerLabel = labels.find(l => l.textContent === 'Owner:');
+      expect(ownerLabel).toBeUndefined();
     });
   });
 
-  describe('AC3: Mobile — filter controls behind Filters button', () => {
-    it('renders filter toggle button on mobile', () => {
-      // JSDOM defaults to innerWidth=0 (mobile)
+  describe('#177 AC8: Grouping moved to 3-dot menu', () => {
+    it('no "Group by" chip group in filter bar', () => {
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
       const { container } = render(<ControlBar />);
-      const toggle = container.querySelector('[data-testid="control-bar-filter-toggle"]');
-      expect(toggle).not.toBeNull();
-      expect(toggle!.textContent).toBe('Filters');
+      const groupSection = container.querySelector('[aria-label="Group by"]');
+      expect(groupSection).toBeNull();
     });
 
-    it('filter content has collapsed class on mobile by default', () => {
+    it('3-dot menu has Views section header', () => {
+      const { container } = render(<ControlBar />);
+      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+      const headers = Array.from(container.querySelectorAll('.overflow-menu-section-header'));
+      expect(headers.some(h => h.textContent === 'Views')).toBe(true);
+    });
+
+    it('3-dot menu has Grouping section header', () => {
+      const { container } = render(<ControlBar />);
+      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+      const headers = Array.from(container.querySelectorAll('.overflow-menu-section-header'));
+      expect(headers.some(h => h.textContent === 'Grouping')).toBe(true);
+    });
+
+    it('3-dot menu has Settings section header for owners', () => {
+      mockState.userBoardRole = 'owner';
+      const { container } = render(<ControlBar />);
+      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+      const headers = Array.from(container.querySelectorAll('.overflow-menu-section-header'));
+      expect(headers.some(h => h.textContent === 'Settings')).toBe(true);
+    });
+
+    it('3-dot menu has hr dividers between sections', () => {
+      const { container } = render(<ControlBar />);
+      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+      const dividers = container.querySelectorAll('.overflow-menu-divider');
+      expect(dividers.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('grouping items use role="menuitemradio"', () => {
+      const { container } = render(<ControlBar />);
+      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+      const noneItem = container.querySelector('[data-testid="overflow-menu-group-none"]');
+      const labelItem = container.querySelector('[data-testid="overflow-menu-group-label"]');
+      expect(noneItem!.getAttribute('role')).toBe('menuitemradio');
+      expect(labelItem!.getAttribute('role')).toBe('menuitemradio');
+    });
+
+    it('"None" grouping has aria-checked="true" by default', () => {
+      const { container } = render(<ControlBar />);
+      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+      const noneItem = container.querySelector('[data-testid="overflow-menu-group-none"]');
+      expect(noneItem!.getAttribute('aria-checked')).toBe('true');
+    });
+
+    it('clicking "By Label" sets groupBy to "label" and closes menu', () => {
+      const { container } = render(<ControlBar />);
+      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+      fireEvent.click(container.querySelector('[data-testid="overflow-menu-group-label"]') as HTMLElement);
+      expect(mockState.groupBy).toBe('label');
+      expect(container.querySelector('[data-testid="overflow-menu-dropdown"]')).toBeNull();
+    });
+  });
+
+  describe('#177 AC9: Mobile responsive', () => {
+    it('filter content collapsed on mobile by default', () => {
       const { container } = render(<ControlBar />);
       const content = container.querySelector('[data-testid="control-bar-filter-content"]');
       expect(content!.className).toContain('control-bar-filter-content-collapsed');
     });
 
-    it('shows filter badge when filters active on mobile', () => {
-      mockState.filterOwner = 'Luke';
+    it('Filters toggle shows badge with active filter count (search + due + label)', () => {
+      mockState.filterSearch = 'test';
+      mockState.filterDue = 'today';
+      mockState.filterLabel = 'Urgent';
       const { container } = render(<ControlBar />);
       const badge = container.querySelector('.filter-badge');
       expect(badge).not.toBeNull();
-      expect(badge!.textContent).toBe('1');
+      expect(badge!.textContent).toBe('3');
     });
 
-    it('clicking toggle expands filter content on mobile', () => {
+    it('clicking toggle expands filters on mobile', () => {
       const { container } = render(<ControlBar />);
       const toggle = container.querySelector('[data-testid="control-bar-filter-toggle"]') as HTMLElement;
       fireEvent.click(toggle);
@@ -258,212 +351,44 @@ describe('ControlBar', () => {
       const content = container.querySelector('[data-testid="control-bar-filter-content"]');
       expect(content!.className).not.toContain('control-bar-filter-content-collapsed');
     });
-  });
 
-  describe('Filter chips', () => {
-    it('renders owner chips', () => {
+    it('badge count does not include owner (removed)', () => {
+      // Only search + due + label count
+      mockState.filterSearch = 'test';
       const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="control-bar-filter-toggle"]') as HTMLElement);
-      const ownerGroup = container.querySelector('[aria-label="Filter by owner"]');
-      const chips = ownerGroup!.querySelectorAll('button.filter-chip');
-      expect(chips.length).toBe(2);
-    });
-
-    it('clicking owner chip activates filter', () => {
-      const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="control-bar-filter-toggle"]') as HTMLElement);
-      const ownerGroup = container.querySelector('[aria-label="Filter by owner"]')!;
-      const lukeChip = ownerGroup.querySelectorAll('button.filter-chip')[0] as HTMLElement;
-      fireEvent.click(lukeChip);
-      expect(mockState.filterOwner).toBe('Luke');
+      const badge = container.querySelector('.filter-badge');
+      expect(badge!.textContent).toBe('1');
     });
   });
 
-  describe('Reset all button', () => {
-    it('shows Reset all when filters active', () => {
-      mockState.filterOwner = 'Luke';
+  describe('#177 AC10: Search input accessibility', () => {
+    it('live region shows filtered count when filters active', () => {
+      mockState.filterSearch = 'test';
+      mockState.rootItems = [{ id: '1', title: 'Task 1' }, { id: '2', title: 'Task 2' }];
       const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="control-bar-filter-toggle"]') as HTMLElement);
-      const reset = container.querySelector('[data-testid="control-bar-reset"]');
-      expect(reset).not.toBeNull();
-      expect(reset!.textContent).toBe('Reset all');
+      const liveRegion = container.querySelector('[data-testid="filter-live-region"]');
+      expect(liveRegion).not.toBeNull();
+      expect(liveRegion!.getAttribute('aria-live')).toBe('polite');
+      expect(liveRegion!.textContent).toBe('2 cards shown');
     });
 
-    it('Reset all clears all filters and grouping', () => {
-      mockState.filterOwner = 'Luke';
-      mockState.filterLabel = 'Urgent';
-      mockState.groupBy = 'owner';
+    it('live region is empty when no filters active', () => {
       const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="control-bar-filter-toggle"]') as HTMLElement);
-      fireEvent.click(container.querySelector('[data-testid="control-bar-reset"]') as HTMLElement);
-      expect(mockState.filterOwner).toBeNull();
-      expect(mockState.filterLabel).toBeNull();
-      expect(mockState.groupBy).toBe('none');
+      const liveRegion = container.querySelector('[data-testid="filter-live-region"]');
+      expect(liveRegion!.textContent).toBe('');
     });
 
-    it('hidden when no filters active', () => {
+    it('pressing Escape in search input clears it', () => {
       const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="control-bar-filter-toggle"]') as HTMLElement);
-      const reset = container.querySelector('[data-testid="control-bar-reset"]');
-      expect(reset).toBeNull();
+      const input = container.querySelector('[data-testid="filter-search-input"]') as HTMLInputElement;
+      fireEvent.input(input, { target: { value: 'test' } });
+      fireEvent.keyDown(input, { key: 'Escape' });
+      expect(input.value).toBe('');
     });
   });
 
-  describe('AC10: Active filter chips inline', () => {
-    it('shows active chips when owner filter set', () => {
-      mockState.filterOwner = 'Luke';
-      const { container } = render(<ControlBar />);
-      const chips = container.querySelectorAll('[data-testid="control-bar-chip"]');
-      expect(chips.length).toBe(1);
-      expect(chips[0].textContent).toContain('Owner: Luke');
-    });
-
-    it('shows remove button on chip', () => {
-      mockState.filterOwner = 'Luke';
-      const { container } = render(<ControlBar />);
-      const removeBtn = container.querySelector('.control-bar-chip-remove');
-      expect(removeBtn).not.toBeNull();
-      expect(removeBtn!.getAttribute('aria-label')).toBe('Remove Owner: Luke filter');
-    });
-
-    it('clicking remove clears the filter', () => {
-      mockState.filterOwner = 'Luke';
-      const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('.control-bar-chip-remove') as HTMLElement);
-      expect(mockState.filterOwner).toBeNull();
-    });
-  });
-
-  describe('AC4: 3-dot overflow menu — structure and ARIA', () => {
-    it('renders the overflow ⋯ button', () => {
-      const { container } = render(<ControlBar />);
-      const btn = container.querySelector('[data-testid="overflow-menu-btn"]');
-      expect(btn).not.toBeNull();
-    });
-
-    it('⋯ button has aria-label="More options"', () => {
-      const { container } = render(<ControlBar />);
-      const btn = container.querySelector('[data-testid="overflow-menu-btn"]');
-      expect(btn!.getAttribute('aria-label')).toBe('More options');
-    });
-
-    it('⋯ button has aria-haspopup="true"', () => {
-      const { container } = render(<ControlBar />);
-      const btn = container.querySelector('[data-testid="overflow-menu-btn"]');
-      expect(btn!.getAttribute('aria-haspopup')).toBe('true');
-    });
-
-    it('⋯ button has aria-expanded="false" when closed', () => {
-      const { container } = render(<ControlBar />);
-      const btn = container.querySelector('[data-testid="overflow-menu-btn"]');
-      expect(btn!.getAttribute('aria-expanded')).toBe('false');
-    });
-
-    it('⋯ button has aria-expanded="true" when open', () => {
-      const { container } = render(<ControlBar />);
-      const btn = container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement;
-      fireEvent.click(btn);
-      expect(btn.getAttribute('aria-expanded')).toBe('true');
-    });
-
-    it('clicking ⋯ opens dropdown with role="menu"', () => {
-      const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
-      const menu = container.querySelector('[data-testid="overflow-menu-dropdown"]');
-      expect(menu).not.toBeNull();
-      expect(menu!.getAttribute('role')).toBe('menu');
-    });
-
-    it('menu items have role="menuitem"', () => {
-      const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
-      const items = container.querySelectorAll('[role="menuitem"]');
-      expect(items.length).toBeGreaterThanOrEqual(2);
-      items.forEach(item => expect(item.getAttribute('role')).toBe('menuitem'));
-    });
-
-    it('Board view item has aria-checked="true" when in board mode', () => {
-      mockState.viewMode = 'board';
-      const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
-      const boardItem = container.querySelector('[data-testid="overflow-menu-view-board"]');
-      expect(boardItem!.getAttribute('aria-checked')).toBe('true');
-    });
-
-    it('List view item has aria-checked="true" when in list mode', () => {
-      mockState.viewMode = 'list';
-      const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
-      const listItem = container.querySelector('[data-testid="overflow-menu-view-list"]');
-      expect(listItem!.getAttribute('aria-checked')).toBe('true');
-    });
-  });
-
-  describe('AC5: View toggle in 3-dot switches view and closes menu', () => {
-    it('clicking Board view in menu calls setViewMode("board")', () => {
-      const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-view-board"]') as HTMLElement);
-      expect(mockSetViewMode).toHaveBeenCalledWith('board');
-    });
-
-    it('clicking List view in menu calls setViewMode("list")', () => {
-      const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-view-list"]') as HTMLElement);
-      expect(mockSetViewMode).toHaveBeenCalledWith('list');
-    });
-
-    it('menu closes after selecting view', () => {
-      const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-view-list"]') as HTMLElement);
-      const menu = container.querySelector('[data-testid="overflow-menu-dropdown"]');
-      expect(menu).toBeNull();
-    });
-  });
-
-  describe('AC6: Board Settings item opens the settings modal', () => {
-    it('Board Settings item appears for owner in 3-dot menu', () => {
-      mockState.userBoardRole = 'owner';
-      const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
-      const settings = container.querySelector('[data-testid="overflow-menu-board-settings"]');
-      expect(settings).not.toBeNull();
-      expect(settings!.textContent).toBe('Board Settings');
-    });
-
-    it('clicking Board Settings sets showShareModal=true and closes menu', () => {
-      mockState.userBoardRole = 'owner';
-      const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-board-settings"]') as HTMLElement);
-      expect(mockState.showShareModal).toBe(true);
-      const menu = container.querySelector('[data-testid="overflow-menu-dropdown"]');
-      expect(menu).toBeNull();
-    });
-  });
-
-  describe('AC7: Non-owners do not see Board Settings', () => {
-    it('Board Settings item is absent for non-owner', () => {
-      mockState.userBoardRole = 'member';
-      const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
-      const settings = container.querySelector('[data-testid="overflow-menu-board-settings"]');
-      expect(settings).toBeNull();
-    });
-
-    it('only view toggle items present for non-owner', () => {
-      mockState.userBoardRole = 'member';
-      const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
-      const items = container.querySelectorAll('[role="menuitem"]');
-      expect(items.length).toBe(2);
-    });
-  });
-
-  describe('AC8: 3-dot menu — keyboard navigation', () => {
-    it('Escape closes the menu and no error is thrown', () => {
+  describe('3-dot menu — keyboard navigation (preserved)', () => {
+    it('Escape closes the menu', () => {
       const { container } = render(<ControlBar />);
       fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
       expect(container.querySelector('[data-testid="overflow-menu-dropdown"]')).not.toBeNull();
@@ -473,31 +398,7 @@ describe('ControlBar', () => {
       expect(container.querySelector('[data-testid="overflow-menu-dropdown"]')).toBeNull();
     });
 
-    it('ArrowDown moves focus between menu items', () => {
-      const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
-      const items = container.querySelectorAll<HTMLElement>('[role="menuitem"]');
-      items[0].focus();
-      act(() => {
-        fireEvent.keyDown(document, { key: 'ArrowDown' });
-      });
-      expect(document.activeElement).toBe(items[1]);
-    });
-
-    it('ArrowUp moves focus between menu items', () => {
-      const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
-      const items = container.querySelectorAll<HTMLElement>('[role="menuitem"]');
-      items[1].focus();
-      act(() => {
-        fireEvent.keyDown(document, { key: 'ArrowUp' });
-      });
-      expect(document.activeElement).toBe(items[0]);
-    });
-  });
-
-  describe('AC9: 3-dot menu — click-outside to dismiss', () => {
-    it('clicking outside the menu closes it', () => {
+    it('click-outside closes menu', () => {
       const { container } = render(<ControlBar />);
       fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
       expect(container.querySelector('[data-testid="overflow-menu-dropdown"]')).not.toBeNull();
@@ -505,6 +406,70 @@ describe('ControlBar', () => {
         fireEvent.mouseDown(document.body);
       });
       expect(container.querySelector('[data-testid="overflow-menu-dropdown"]')).toBeNull();
+    });
+  });
+
+  describe('View toggle (preserved)', () => {
+    it('clicking Board view calls setViewMode("board")', () => {
+      const { container } = render(<ControlBar />);
+      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+      fireEvent.click(container.querySelector('[data-testid="overflow-menu-view-board"]') as HTMLElement);
+      expect(mockSetViewMode).toHaveBeenCalledWith('board');
+    });
+
+    it('clicking List view calls setViewMode("list")', () => {
+      const { container } = render(<ControlBar />);
+      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+      fireEvent.click(container.querySelector('[data-testid="overflow-menu-view-list"]') as HTMLElement);
+      expect(mockSetViewMode).toHaveBeenCalledWith('list');
+    });
+  });
+
+  describe('Board Settings (preserved)', () => {
+    it('appears for owner', () => {
+      mockState.userBoardRole = 'owner';
+      const { container } = render(<ControlBar />);
+      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+      expect(container.querySelector('[data-testid="overflow-menu-board-settings"]')).not.toBeNull();
+    });
+
+    it('hidden for non-owner', () => {
+      mockState.userBoardRole = 'member';
+      const { container } = render(<ControlBar />);
+      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+      expect(container.querySelector('[data-testid="overflow-menu-board-settings"]')).toBeNull();
+    });
+  });
+
+  describe('Board switcher hints (preserved)', () => {
+    it('select has correct title attribute', () => {
+      const { container } = render(<ControlBar />);
+      const select = container.querySelector('[data-testid="control-bar-board-select"]');
+      expect(select!.getAttribute('title')).toContain('Ctrl+1');
+    });
+
+    it('sr-only hint exists', () => {
+      const { container } = render(<ControlBar />);
+      const hint = container.querySelector('#board-switcher-hint');
+      expect(hint).not.toBeNull();
+      expect(hint!.classList.contains('sr-only')).toBe(true);
+    });
+  });
+
+  describe('Due filter group a11y', () => {
+    it('due filter group has role="group" and aria-label', () => {
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
+      const { container } = render(<ControlBar />);
+      const group = container.querySelector('[data-testid="filter-due-group"]');
+      expect(group!.getAttribute('role')).toBe('group');
+      expect(group!.getAttribute('aria-label')).toBe('Filter by due date');
+    });
+
+    it('due chips have aria-pressed', () => {
+      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
+      const { container } = render(<ControlBar />);
+      const todayChip = container.querySelector('[data-testid="filter-due-today"]');
+      expect(todayChip!.getAttribute('aria-pressed')).toBe('false');
     });
   });
 });

@@ -117,6 +117,126 @@ describe('Archive dialog sorting (AC3)', () => {
   });
 });
 
+// --- #177: Text search and due date filter ---
+
+describe('#177 AC2/AC3: Text search filter', () => {
+  it('filterSearch filters by title (case-insensitive)', async () => {
+    const store = await import('./board-store');
+    store.items.value = [
+      makeItem({ id: 'a', title: 'Grocery shopping', status: 'To Do', parent_id: '' }),
+      makeItem({ id: 'b', title: 'Fix bike', status: 'To Do', parent_id: '' }),
+    ];
+    store.filterSearch.value = 'grocery';
+    const roots = store.rootItems.value;
+    expect(roots.map(i => i.id)).toEqual(['a']);
+    store.filterSearch.value = '';
+  });
+
+  it('filterSearch filters by description', async () => {
+    const store = await import('./board-store');
+    store.items.value = [
+      makeItem({ id: 'a', title: 'Task A', description: 'Buy organic milk', status: 'To Do', parent_id: '' }),
+      makeItem({ id: 'b', title: 'Task B', description: 'Clean house', status: 'To Do', parent_id: '' }),
+    ];
+    store.filterSearch.value = 'milk';
+    expect(store.rootItems.value.map(i => i.id)).toEqual(['a']);
+    store.filterSearch.value = '';
+  });
+
+  it('filterSearch filters by labels', async () => {
+    const store = await import('./board-store');
+    store.items.value = [
+      makeItem({ id: 'a', title: 'Task A', labels: 'Urgent, Home', status: 'To Do', parent_id: '' }),
+      makeItem({ id: 'b', title: 'Task B', labels: 'Work', status: 'To Do', parent_id: '' }),
+    ];
+    store.filterSearch.value = 'urgent';
+    expect(store.rootItems.value.map(i => i.id)).toEqual(['a']);
+    store.filterSearch.value = '';
+  });
+
+  it('AC3: search matches sub-item title, shows parent', async () => {
+    const store = await import('./board-store');
+    store.items.value = [
+      makeItem({ id: 'parent', title: 'Groceries', status: 'To Do', parent_id: '' }),
+      makeItem({ id: 'child', title: 'Buy milk', status: 'To Do', parent_id: 'parent' }),
+      makeItem({ id: 'other', title: 'Fix bike', status: 'To Do', parent_id: '' }),
+    ];
+    store.filterSearch.value = 'milk';
+    const roots = store.rootItems.value;
+    expect(roots.map(i => i.id)).toEqual(['parent']);
+    store.filterSearch.value = '';
+  });
+});
+
+describe('#177 AC4/AC5: Due date filter', () => {
+  function todayStr(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function tomorrowStr(): string {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function nextWeekStr(): string {
+    const d = new Date();
+    d.setDate(d.getDate() + 10);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  it('AC4: filterDue="today" shows only items due today', async () => {
+    const store = await import('./board-store');
+    store.items.value = [
+      makeItem({ id: 'today', title: 'Due today', due_date: todayStr(), status: 'To Do', parent_id: '' }),
+      makeItem({ id: 'tomorrow', title: 'Due tomorrow', due_date: tomorrowStr(), status: 'To Do', parent_id: '' }),
+      makeItem({ id: 'nodate', title: 'No due', due_date: '', status: 'To Do', parent_id: '' }),
+    ];
+    store.filterDue.value = 'today';
+    expect(store.rootItems.value.map(i => i.id)).toEqual(['today']);
+    store.filterDue.value = null;
+  });
+
+  it('AC5: filterDue="this-week" shows items due today through Sunday', async () => {
+    const store = await import('./board-store');
+    store.items.value = [
+      makeItem({ id: 'today', title: 'Due today', due_date: todayStr(), status: 'To Do', parent_id: '' }),
+      makeItem({ id: 'tomorrow', title: 'Due tomorrow', due_date: tomorrowStr(), status: 'To Do', parent_id: '' }),
+      makeItem({ id: 'far', title: 'Due next week', due_date: nextWeekStr(), status: 'To Do', parent_id: '' }),
+    ];
+    store.filterDue.value = 'this-week';
+    const roots = store.rootItems.value;
+    // Today and tomorrow should be within this week (10 days out should not)
+    expect(roots.some(i => i.id === 'today')).toBe(true);
+    expect(roots.some(i => i.id === 'far')).toBe(false);
+    store.filterDue.value = null;
+  });
+});
+
+describe('#177 AC6: Filters combine (AND)', () => {
+  it('search + label + due all combine', async () => {
+    const store = await import('./board-store');
+    const today = (() => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    })();
+    store.items.value = [
+      makeItem({ id: 'match', title: 'Grocery run', labels: 'Urgent', due_date: today, status: 'To Do', parent_id: '' }),
+      makeItem({ id: 'no-label', title: 'Grocery run', labels: 'Home', due_date: today, status: 'To Do', parent_id: '' }),
+      makeItem({ id: 'no-search', title: 'Fix bike', labels: 'Urgent', due_date: today, status: 'To Do', parent_id: '' }),
+      makeItem({ id: 'no-due', title: 'Grocery run', labels: 'Urgent', due_date: '', status: 'To Do', parent_id: '' }),
+    ];
+    store.filterSearch.value = 'grocery';
+    store.filterLabel.value = 'Urgent';
+    store.filterDue.value = 'today';
+    expect(store.rootItems.value.map(i => i.id)).toEqual(['match']);
+    store.filterSearch.value = '';
+    store.filterLabel.value = null;
+    store.filterDue.value = null;
+  });
+});
+
 // We need to test the actual store, not a mock.
 // To do this, we need to re-import the module for each test group
 // since the signal is created at module load time.

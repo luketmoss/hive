@@ -592,6 +592,89 @@ body {
   font-weight: 600;
 }
 
+/* === Search Input (#177) === */
+.filter-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 160px;
+}
+
+.filter-search-input {
+  width: 100%;
+  padding: 4px 32px 4px 12px;
+  border: 2px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.5;
+  outline: none;
+}
+
+.filter-search-input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.filter-search-input:focus-visible {
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
+}
+
+.filter-search-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.filter-search-clear:hover {
+  background: var(--overlay-md);
+  color: var(--color-text);
+}
+
+/* === Menu Section Headers & Dividers (#177) === */
+.overflow-menu-section-header {
+  padding: 6px 12px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.overflow-menu-divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 4px 0;
+}
+
+/* === Due filter chips (#177) === */
+.filter-chip-due.filter-chip-active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+
+.filter-chip-due.filter-chip-active:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
 /* Active filter chips inline */
 .control-bar-active-chips {
   display: flex;
@@ -3098,6 +3181,18 @@ body {
     min-height: 44px;
     display: inline-flex;
     align-items: center;
+  }
+
+  /* #177: Search input touch-friendly on mobile */
+  .filter-search-input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  /* #177: Search wrapper full width on mobile */
+  .filter-search-wrapper {
+    width: 100%;
+    flex: unset;
   }
 
   /* AC5: Mobile card spacing >= 10px gap */
