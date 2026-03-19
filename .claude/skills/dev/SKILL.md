@@ -8,185 +8,50 @@ allowed-tools: Bash, Read, Write, Edit, Grep, Glob, Task, TodoWrite
 
 # Developer Agent
 
-You are the **Developer Agent**, a senior developer and expert in the Hive tech stack. You follow behavior-driven development (BDD) — writing tests derived from acceptance criteria alongside implementation code. You produce clean, tested, working code.
+Senior developer. BDD — write tests from acceptance criteria, then implement. See CLAUDE.md for tech stack, data model, and architecture.
 
-## Portability
-<!-- To adapt for another repo, update OWNER, REPO, and PROJECT_NUMBER below -->
+**Non-negotiable conventions:** Preact (NOT React), @preact/signals for shared state, CSS custom properties in `global.css`, direct `fetch()` to Sheets REST API, HTML5 native drag-and-drop, business rules synced between `frontend/src/state/rules.ts` and `apps-script/src/rules.js`, Apps Script uses `.js` (not TypeScript).
 
-## Configuration
+## Config
 
-- **Owner:** `luketmoss`
 - **Repo:** `luketmoss/hive`
-- **Project number:** `2`
+- **Issue:** $ARGUMENTS (strip `#`)
 
-## Input
+## Board Movement
 
-Issue number to implement: $ARGUMENTS
+Never call `gh project list` or `gh project field-list` — IDs are hardcoded.
 
-Parse the issue number from the input (strip `#` if present).
-
-## Board Movement Helper
-
-All project IDs are hardcoded constants — never call `gh project list`, `gh project field-list`, or nested subshells to discover them.
-
-**Step 1:** Look up the board item ID for the issue (use `--limit 100` to avoid pagination misses):
 ```bash
+# Get item ID
 gh project item-list 2 --owner luketmoss --limit 100 --format json --jq '.items[] | select(.content.number == <ISSUE_NUMBER>) | .id'
-```
-
-**Step 2:** Move it using the direct GraphQL mutation (replace `ITEM_ID` and `OPTION_ID`):
-```bash
+# Move column
 gh api graphql -f query='mutation { updateProjectV2ItemFieldValue(input: { projectId: "PVT_kwHOAJR9ys4BQe_8" itemId: "ITEM_ID" fieldId: "PVTSSF_lAHOAJR9ys4BQe_8zg-lvnE" value: { singleSelectOptionId: "OPTION_ID" } }) { projectV2Item { id } } }'
 ```
 
-Column option IDs (from CLAUDE.md):
 | Column | Option ID |
 |--------|-----------|
-| To Do | `2ed3c08e` |
 | In Development | `cedf160f` |
 | Testing | `1bd1ca27` |
-| Code Review | `2e7d4fd2` |
-| Done | `2aaa3a20` |
-| Refined | `9e0d0478` |
-| Pick Up | `b9d77a66` |
-
-## Tech Stack Reference
-
-You MUST follow these conventions — they are non-negotiable:
-
-- **Framework:** Preact 10.25 (NOT React). Use `h` or JSX with Preact pragma. Import hooks from `preact/hooks`, signals from `@preact/signals`.
-- **State management:** `@preact/signals` — use `signal()` and `computed()`. Do NOT use React-style `useState` for shared state.
-- **Styling:** CSS custom properties in `frontend/src/global.css`. No CSS framework, no CSS modules, no Tailwind. Add new custom properties to `global.css` and use them in component styles.
-- **Testing:** Vitest 3.0 for both frontend and apps-script. Test files go next to source files or in `tests/` directories.
-- **Apps Script:** Plain `.js` files (NOT TypeScript). Deployed via `clasp push --force`. All API operations go through `doGet()` with `payload` query param (POST is broken for anonymous callers).
-- **Business rules:** Duplicated in `frontend/src/state/rules.ts` AND `apps-script/src/rules.js`. If you change one, you MUST update the other to match.
-- **Data types:** Defined in `frontend/src/api/types.ts` and mirrored in `apps-script/src/types.js`.
-- **API layer:** Frontend uses direct `fetch()` to Google Sheets REST API in `frontend/src/api/sheets.ts`.
-- **Drag/drop:** HTML5 native drag-and-drop. No library.
-- **Build:** `tsc --noEmit` for type checking, `vite build` for production build.
 
 ## Process
 
-### Step 1: Read and understand
+1. **Read issue:** `gh issue view <N> --repo luketmoss/hive` → extract ACs and technical notes
+2. **Move to In Development** using board movement helper
+3. **Branch:** `git checkout -b feature/<N>-<short-desc>` (or `fix/`, `chore/`, `enhancement/`)
+4. **Read existing code** identified in technical notes — learn patterns from actual source files before writing
+5. **Implement with tests (BDD):** For each AC → write test → implement → verify. Tests: `frontend/src/**/*.test.ts` and `apps-script/tests/*.test.ts` (Vitest). If adding new Sheets columns/tabs, handle backward compatibility
+6. **Rules sync:** If you modified business rules, verify `frontend/src/state/rules.ts` and `apps-script/src/rules.js` match
+7. **Verify:** `cd frontend && npm test && cd ../apps-script && npm test && cd ../frontend && npx tsc --noEmit && npm run build` — ALL must pass
+8. **Commit:** `git add <files> && git commit -m "feat: <desc>\n\nRefs #<N>" && git push -u origin <branch>`
+9. **PR:** `gh pr create --repo luketmoss/hive --title "..." --body "Closes #<N>\n\n## Changes\n..."`
+10. **Move to Testing** using board movement helper
 
-1. Fetch the issue: `gh issue view <number> --repo luketmoss/hive`
-2. Read the acceptance criteria carefully — these are your test specifications
-3. Read the technical notes to understand which files are affected
-4. Move the issue to **"In Development"** using the board movement helper.
+## Done When
 
-### Step 2: Create a feature branch
-
-```bash
-git checkout -b <type>/<number>-<short-description>
-```
-
-Branch type prefixes:
-- `feature/` — new functionality
-- `fix/` — bug fix
-- `chore/` — maintenance, refactoring
-- `enhancement/` — improvement to existing feature
-
-Example: `feature/4-add-due-date-filter`
-
-### Step 3: Read existing code
-
-Before writing anything, read the files identified in the technical notes. Understand:
-- The current patterns and conventions in those files
-- How similar features are already implemented
-- What you can reuse vs. what you need to create
-
-### Step 4: Implement with tests (BDD)
-
-For each acceptance criterion:
-1. Write a test case that captures the Given/When/Then scenario
-2. Implement the code to make the test pass
-3. Verify the test passes
-
-**Backward compatibility check:** If this feature adds new columns, tabs, or fields:
-- What happens to existing rows/items that don't have this field?
-- Does the UI handle the zero-instances case?
-- Is there migration or bootstrapping logic needed?
-
-Key testing patterns:
-- Frontend tests: `frontend/src/**/*.test.ts` — use Vitest with Preact testing utilities
-- Apps Script tests: `apps-script/tests/*.test.ts` — use Vitest
-- Test file naming: `<source-file>.test.ts` next to the source, or in a `tests/` directory
-
-### Step 5: Ensure rules sync
-
-If you modified business rules in either location:
-1. Read both `frontend/src/state/rules.ts` and `apps-script/src/rules.js`
-2. Verify the logic is equivalent in both files
-3. Update the other file if needed
-
-### Step 6: Verify everything passes
-
-Run these commands and fix any failures:
-
-```bash
-cd frontend && npm test          # Frontend tests
-cd apps-script && npm test       # Apps Script tests
-cd frontend && npx tsc --noEmit  # TypeScript type checking
-cd frontend && npm run build     # Production build
-```
-
-ALL of these must pass before proceeding.
-
-### Step 7: Commit and push
-
-Write clear, descriptive commit messages referencing the issue:
-
-```bash
-git add <specific-files>
-git commit -m "feat: <description>
-
-Refs #<number>"
-git push -u origin <branch-name>
-```
-
-### Step 8: Open a pull request
-
-```bash
-gh pr create --repo luketmoss/hive --title "<concise title>" --body "$(cat <<'EOF'
-## Summary
-Brief description of what was implemented.
-
-Closes #<number>
-
-## Changes
-- File-by-file summary of what changed and why
-
-## Testing
-- How acceptance criteria map to test cases
-- List of tests added
-
-## Rules Sync
-- [ ] Business rules in `frontend/src/state/rules.ts` updated (if applicable)
-- [ ] Business rules in `apps-script/src/rules.js` updated (if applicable)
-- [ ] Both files remain in sync
-EOF
-)"
-```
-
-### Step 9: Move to Testing
-
-Move the issue to **"Testing"** using the board movement helper.
-
-## Definition of Done
-
-- [ ] Feature branch exists with implementation
-- [ ] Every acceptance criterion has a corresponding test case
-- [ ] All frontend tests pass (`cd frontend && npm test`)
-- [ ] All apps-script tests pass (`cd apps-script && npm test`)
-- [ ] TypeScript compiles cleanly (`cd frontend && npx tsc --noEmit`)
-- [ ] Frontend builds without errors (`cd frontend && npm run build`)
-- [ ] Business rules are in sync (if modified)
-- [ ] PR is open with `Closes #<number>` in the body
-- [ ] Issue is in the "Testing" column on the project board
+✓ Tests for all ACs pass · ✓ tsc + build clean · ✓ Rules in sync · ✓ PR open with `Closes #<N>` · ✓ Issue in Testing
 
 ## Handoff
 
-When complete, output a brief status line:
 > Dev complete — PR #X opened for issue #N, moved to Testing.
 
-Do NOT suggest next steps or address the user. The orchestrator will decide what happens next.
+Do NOT suggest next steps. The orchestrator decides.

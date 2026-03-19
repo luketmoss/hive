@@ -8,35 +8,24 @@ allowed-tools: Bash, Read, Grep, Glob, Task, TodoWrite, AskUserQuestion
 
 # Batch Orchestrator
 
-You are a **batch coordinator** that processes all sub-issues of a parent issue through the development pipeline. For single-issue orchestration, the main Claude instance handles that via CLAUDE.md pipeline rules — this skill is only for batch operations.
+Batch coordinator that processes all sub-issues of a parent through the pipeline. For single-issue orchestration, the main Claude instance handles that via CLAUDE.md — this skill is only for batch operations.
 
-## Configuration
+## Config
 
-- **Owner:** `luketmoss`
 - **Repo:** `luketmoss/hive`
-- **Project number:** `2`
+- **Input:** $ARGUMENTS — parse parent issue number
 
-## Input
+## Board Movement
 
-$ARGUMENTS — must match a pattern like `#3 children`, `children of #3`, or `#3 all`.
+Never call `gh project list` or `gh project field-list` — IDs are hardcoded.
 
-Parse the parent issue number from the input.
-
-## Board Movement Helper
-
-All project IDs are hardcoded constants — never call `gh project list`, `gh project field-list`, or nested subshells to discover them.
-
-**Step 1:** Look up the board item ID for the issue (use `--limit 100` to avoid pagination misses):
 ```bash
+# Get item ID
 gh project item-list 2 --owner luketmoss --limit 100 --format json --jq '.items[] | select(.content.number == <ISSUE_NUMBER>) | .id'
-```
-
-**Step 2:** Move it using the direct GraphQL mutation (replace `ITEM_ID` and `OPTION_ID`):
-```bash
+# Move column
 gh api graphql -f query='mutation { updateProjectV2ItemFieldValue(input: { projectId: "PVT_kwHOAJR9ys4BQe_8" itemId: "ITEM_ID" fieldId: "PVTSSF_lAHOAJR9ys4BQe_8zg-lvnE" value: { singleSelectOptionId: "OPTION_ID" } }) { projectV2Item { id } } }'
 ```
 
-Column option IDs (from CLAUDE.md):
 | Column | Option ID |
 |--------|-----------|
 | To Do | `2ed3c08e` |
@@ -49,135 +38,32 @@ Column option IDs (from CLAUDE.md):
 
 ## How to Spawn Agents
 
-For each stage, use the **Task tool** with `subagent_type: "general-purpose"`. Read the corresponding skill file and pass its full content as part of the prompt, along with the specific context.
+Use **Task tool** with `subagent_type: "general-purpose"`. Read the corresponding skill file and pass its full content as the prompt, plus specific context (issue number, instructions).
 
-```
-Task:
-  subagent_type: general-purpose
-  prompt: |
-    <contents of .claude/skills/<agent>/SKILL.md>
+## Process
 
-    Context from the orchestrator:
-    - Issue number: #N
-    - Specific instructions: <what to do>
-
-    When done, respond with a structured summary of what you did and the results.
-```
-
----
-
-## Step 1: Fetch sub-issues
-
+1. **Fetch sub-issues:**
 ```bash
-gh api graphql -f query='query {
-  repository(owner: "luketmoss", name: "hive") {
-    issue(number: <PARENT_NUMBER>) {
-      title
-      subIssues(first: 50) {
-        nodes {
-          number
-          title
-          state
-        }
-      }
-    }
-  }
-}'
+gh api graphql -f query='query { repository(owner: "luketmoss", name: "hive") { issue(number: <N>) { title subIssues(first: 50) { nodes { number title state } } } } }'
 ```
 
-## Step 2: Get board state for each child
+2. **Get board state** for each child: `gh project item-list 2 --owner luketmoss --limit 100 --format json --jq '.items[] | select(.content.number == <N>) | .status'`
 
-For each sub-issue, look up its board column:
+3. **Sort:** Skip Done/CLOSED. Sort by pipeline proximity: In Review > Testing > In Development > Ready > Refining > To Do. Create TodoWrite checklist.
 
+4. **Process each child sequentially** from its current board state:
+   - **To Do / Refining**: PM → UX → PM (negotiate) → mark refined
+   - **Ready / In Development**: Dev agent
+   - **Testing**: QA. If FAIL → Dev + QA retry. 2nd fail → mark stuck, move on
+   - **In Review**: Review (no merge). If CHANGES REQUESTED → Dev + Review retry. 2nd fail → mark stuck, move on
+
+5. **Batch approval gate** — present summary table of completed/stuck/skipped. Ask user: approve all, approve specific, or request changes.
+
+6. **Batch merge** (for each approved):
 ```bash
-gh project item-list 2 --owner luketmoss --format json --jq '.items[] | select(.content.number == <CHILD_NUMBER>) | .status'
-```
-
-## Step 3: Sort and filter
-
-1. **Skip** children in **Done** or with state `CLOSED`.
-2. **Sort** remaining children by pipeline order so the closest-to-done items finish first:
-   - In Review > Testing > In Development > Ready > Refining > To Do
-3. Use **TodoWrite** to create a checklist of all children with their current board state so progress is visible.
-
-## Step 4: Process each child sequentially
-
-For each child (in sorted order):
-1. Update the TodoWrite to mark the current child as `in_progress`.
-2. Run the child through the pipeline from its current board state:
-   - **To Do / Refining**: Spawn PM agent, then UX agent for review, then PM again if UX had feedback.
-   - **Ready / In Development**: Spawn Dev agent.
-   - **Testing**: Spawn QA agent. If FAIL, spawn Dev with the report, then QA again. If it fails a second time, mark as stuck and move on.
-   - **In Review**: Spawn Review agent (tell it NOT to merge). If CHANGES REQUESTED, spawn Dev with the feedback, then Review again. If it fails a second time, mark as stuck and move on.
-3. **If the child gets stuck** (conflict after 2 attempts), note it and move on to the next child.
-4. **If the child completes review**, collect its summary and continue to the next child.
-
-## Step 5: Batch Approval Gate
-
-After all children have been processed (or stuck), present a **batch summary**:
-
-```
-## Batch Summary — Children of #<PARENT>
-
-### Parent: <parent title>
-
-### Completed (ready to merge)
-| Issue | Title | PR | QA | Review |
-|---|---|---|---|---|
-| #5 | <title> | #20 | PASS | APPROVE |
-| #6 | <title> | #21 | PASS | APPROVE |
-
-### Stuck (needs attention)
-| Issue | Title | Column | Reason |
-|---|---|---|---|
-| #7 | <title> | Testing | QA failed after 2 attempts |
-
-### Skipped (already done)
-| Issue | Title |
-|---|---|
-| #8 | <title> |
-
-### Links
-- **Parent issue:** #<PARENT>
-- **PRs to review:** #20, #21
-```
-
-Then ask:
-
-> **Ready to merge?** Review the PR diffs above. Reply:
-> - **approve all** — merge all completed PRs
-> - **approve #5, #6** — merge specific PRs
-> - **changes #5: <feedback>** — request changes on a specific issue
-
-## Step 6: Batch Merge
-
-For each approved PR, merge one at a time:
-
-```bash
-gh pr review <pr-number> --repo luketmoss/hive --approve --body "Batch orchestrator: all agents passed, user approved."
-gh pr merge <pr-number> --repo luketmoss/hive --squash --delete-branch
+gh pr review <pr> --repo luketmoss/hive --approve --body "Batch: all agents passed, user approved."
+gh pr merge <pr> --repo luketmoss/hive --squash --delete-branch
 git checkout main && git pull origin main
 ```
 
-Pull main between each merge to avoid conflicts.
-
-## Step 7: Close the Parent
-
-After all children are merged (no stuck items remaining), move the **parent issue** to **Done** and close it:
-
-```bash
-gh issue close <PARENT_NUMBER> --repo luketmoss/hive --comment "All child issues completed and merged."
-```
-
-Then move the parent to **Done** using the Board Movement Helper.
-
-If some children are still stuck, do NOT close the parent. Instead note which children remain and leave the parent in its current column.
-
----
-
-## Definition of Done
-
-- [ ] All non-stuck children have passed QA and code review
-- [ ] User approved the batch
-- [ ] Approved PRs merged, branches deleted, issues in "Done"
-- [ ] Parent closed (if all children complete) or status reported (if some stuck)
+7. **Close parent** if all children merged. If some stuck, leave parent open and report.
