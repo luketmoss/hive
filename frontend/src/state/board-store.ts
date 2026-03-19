@@ -71,6 +71,8 @@ export const selectedItemId = signal<string | null>(null);
 /** When true, CardDetail opens with the title EditableField in edit mode. */
 export const openDetailWithTitleEdit = signal(false);
 export const showCreateModal = signal(false);
+/** When set, the Create Item modal will pre-fill this status instead of defaulting to 'To Do'. */
+export const createModalInitialStatus = signal<ItemStatus | null>(null);
 export const toastMessage = signal<{ text: string; type: 'success' | 'error'; action?: { label: string; fn: () => void }; duration?: number } | null>(null);
 
 // --- View mode (mobile list vs board) ---

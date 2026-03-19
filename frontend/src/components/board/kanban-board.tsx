@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement } from '../../state/board-store';
+import { columns, showCreateModal, createModalInitialStatus, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement } from '../../state/board-store';
 import type { SortMode } from '../../state/board-store';
 import { moveItem, reorderItem } from '../../state/actions';
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts';
@@ -166,6 +166,11 @@ export function KanbanBoard() {
     }
   };
 
+  const handleAddItemToColumn = useCallback((status: ItemStatus) => {
+    createModalInitialStatus.value = status;
+    showCreateModal.value = true;
+  }, []);
+
   // Check if the current board is empty (zero items for this board, ignoring filters)
   const isBoardEmpty = boardItems.value.length === 0;
 
@@ -185,6 +190,7 @@ export function KanbanBoard() {
               onMoveStatus={handleMoveStatus}
               sortMode={columnSortModes.value[status]}
               onSortChange={(mode: SortMode) => setColumnSortMode(status, mode)}
+              onAddItem={() => handleAddItemToColumn(status)}
               {...(status === 'Done' ? {
                 allDoneCount: allDoneItems.value.length,
                 hasArchived: hasArchivedItems.value,

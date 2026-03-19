@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useMemo } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { showCreateModal, owners, labels as labelsStore } from '../../state/board-store';
+import { showCreateModal, createModalInitialStatus, owners, labels as labelsStore } from '../../state/board-store';
 import { createItem, createItemWithSubtasks } from '../../state/actions';
 import type { StagedSubtask } from '../../state/actions';
 import { LabelPickerManager } from '../labels/label-picker-manager';
@@ -23,7 +23,10 @@ export function CreateItemModal() {
   const [subtaskInput, setSubtaskInput] = useState('');
   const subtaskInputRef = useRef<HTMLInputElement>(null);
 
-  const close = useCallback(() => { showCreateModal.value = false; }, []);
+  const close = useCallback(() => {
+    showCreateModal.value = false;
+    createModalInitialStatus.value = null;
+  }, []);
   const trapRef = useFocusTrap(close);
 
   const handleSubmit = (e: Event) => {
@@ -37,6 +40,7 @@ export function CreateItemModal() {
       due_date: dueDate,
       labels: selectedLabels.join(', '),
       created_by: user?.email || '',
+      ...(createModalInitialStatus.value ? { status: createModalInitialStatus.value } : {}),
     };
     const actor = user?.name || 'web';
 
