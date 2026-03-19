@@ -961,6 +961,7 @@ body {
 
 /* === Cards === */
 .card {
+  position: relative;
   background: var(--color-surface);
   border-radius: var(--radius);
   padding: 12px;
@@ -1137,6 +1138,102 @@ body {
   text-align: right;
   line-height: 1;
   margin-bottom: 4px;
+}
+
+/* === Kebab Menu === */
+.kebab-menu-container {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+
+.kebab-trigger {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+/* Always visible on touch devices */
+@media (pointer: coarse) {
+  .kebab-trigger {
+    opacity: 1;
+  }
+}
+
+/* Show on card hover (pointer devices) */
+@media (pointer: fine) {
+  .card:hover .kebab-trigger {
+    opacity: 1;
+  }
+}
+
+/* Show when focused or menu is open */
+.kebab-trigger:focus-visible,
+.kebab-trigger[aria-expanded="true"] {
+  opacity: 1;
+}
+
+.kebab-trigger:hover {
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+
+.kebab-trigger:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.kebab-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 140px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 4px 0;
+  z-index: 100;
+}
+
+.kebab-item {
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--color-text);
+  cursor: pointer;
+  outline: none;
+}
+
+.kebab-item:hover,
+.kebab-item:focus-visible {
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+
+.kebab-item:focus-visible {
+  box-shadow: inset var(--focus-ring);
+}
+
+.kebab-item-disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.kebab-item-disabled:hover,
+.kebab-item-disabled:focus-visible {
+  background: transparent;
+}
+
+.kebab-item-danger {
+  color: var(--color-danger, #d32f2f);
 }
 
 /* === Board Switcher === */

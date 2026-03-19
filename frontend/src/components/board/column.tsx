@@ -25,6 +25,8 @@ interface Props {
   onSortChange?: (mode: SortMode) => void;
   /** Called when the user clicks the "+" header button or the "Add item" hover row. */
   onAddItem?: () => void;
+  /** Kebab menu: delete an item with undo */
+  onDeleteItem?: (itemId: string) => void;
 }
 
 const SORT_LABELS: Record<SortMode, string> = {
@@ -45,7 +47,7 @@ const STATUS_COLORS: Record<ItemStatus, string> = {
   'Done': 'var(--color-done)',
 };
 
-export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact, allDoneCount, hasArchived, archiveTriggerRef, onOpenArchive, sortMode, onSortChange, onAddItem }: Props) {
+export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact, allDoneCount, hasArchived, archiveTriggerRef, onOpenArchive, sortMode, onSortChange, onAddItem, onDeleteItem }: Props) {
   // Track the insertion indicator position for within-column reorder
   const [dropIndicator, setDropIndicator] = useState<{ index: number; position: 'above' | 'below' } | null>(null);
   // aria-live announcement text
@@ -258,6 +260,40 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
     onMoveStatus(itemId, newStatus);
   };
 
+  /** Kebab menu: move item to top of column (index 0) */
+  const handleMoveToTop = (itemId: string) => {
+    if (!onReorder) return;
+    // AC6: If date-sorted, switch to custom first
+    if (isDateSorted) {
+      const previousMode = sortMode!;
+      if (onSortChange) onSortChange('custom');
+      onReorder(itemId, 0, items);
+      showToast('Switched to custom order', 'success', {
+        label: 'Undo',
+        fn: () => { if (onSortChange) onSortChange(previousMode); },
+      }, 10000);
+      return;
+    }
+    onReorder(itemId, 0, items);
+  };
+
+  /** Kebab menu: move item to bottom of column */
+  const handleMoveToBottom = (itemId: string) => {
+    if (!onReorder) return;
+    // AC6: If date-sorted, switch to custom first
+    if (isDateSorted) {
+      const previousMode = sortMode!;
+      if (onSortChange) onSortChange('custom');
+      onReorder(itemId, items.length - 1, items);
+      showToast('Switched to custom order', 'success', {
+        label: 'Undo',
+        fn: () => { if (onSortChange) onSortChange(previousMode); },
+      }, 10000);
+      return;
+    }
+    onReorder(itemId, items.length - 1, items);
+  };
+
   const handleSortChange = (e: Event) => {
     const mode = (e.currentTarget as HTMLSelectElement).value as SortMode;
     if (onSortChange) onSortChange(mode);
@@ -342,6 +378,10 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
               onMoveStatus={handleMoveStatus}
               onReorder={handleKeyboardReorder}
               columnItems={items}
+              sortMode={sortMode}
+              onMoveToTop={onReorder ? handleMoveToTop : undefined}
+              onMoveToBottom={onReorder ? handleMoveToBottom : undefined}
+              onDelete={onDeleteItem}
             />
             {dropIndicator && dropIndicator.index === index && dropIndicator.position === 'below' && (
               <div class="drop-indicator" />
