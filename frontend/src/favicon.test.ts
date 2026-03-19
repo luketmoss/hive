@@ -11,10 +11,10 @@ const indexPath = resolve(__dirname, '../index.html');
 const logoPath = resolve(__dirname, '../public/logo.svg');
 
 describe('Favicon (Issue #30 AC2)', () => {
-  it('index.html references /hive/logo.svg as the favicon', () => {
+  it('index.html references hive-favicon.svg as the favicon', () => {
     const html = readFileSync(indexPath, 'utf-8');
     expect(html).toContain('rel="icon"');
-    expect(html).toContain('href="/hive/logo.svg"');
+    expect(html).toContain('href="hive-favicon.svg"');
   });
 
   it('does not contain the old bee emoji favicon', () => {
