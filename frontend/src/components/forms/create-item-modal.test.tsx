@@ -17,6 +17,7 @@ vi.mock('../../auth/auth-context', () => ({
 const { mockBoardStore } = vi.hoisted(() => {
   const mockBoardStore = {
     showCreateModal: { value: true },
+    createModalInitialStatus: { value: null as string | null },
     owners: { value: [{ name: 'Test User', google_account: 'test@example.com' }, { name: 'Mom', google_account: 'mom@test.com' }, { name: 'Dad', google_account: 'dad@test.com' }] },
     labels: { value: [{ label: 'Urgent', color: '#ff0000' }] },
     openDetailWithTitleEdit: { value: false },
@@ -44,6 +45,7 @@ beforeEach(() => {
   mockCreateItem.mockClear();
   mockCreateItemWithSubtasks.mockClear();
   mockBoardStore.showCreateModal.value = true;
+  mockBoardStore.createModalInitialStatus.value = null;
 });
 
 // --- Inline Sub-tasks (Issue #55) ---
@@ -455,5 +457,93 @@ describe('CreateItemModal — Auto-assign default owner (Issue #112)', () => {
 
       mockBoardStore.owners.value = original;
     });
+  });
+});
+
+// --- Inline Add Item to Column (Issue #170) ---
+describe('CreateItemModal — Inline Add Item (Issue #170)', () => {
+  beforeEach(() => {
+    mockCreateItem.mockClear();
+    mockCreateItemWithSubtasks.mockClear();
+    mockBoardStore.showCreateModal.value = true;
+    mockBoardStore.createModalInitialStatus.value = null;
+  });
+
+  // AC1: Pre-filled status is passed to createItem
+  it('passes pre-filled status to createItem when createModalInitialStatus is set', () => {
+    mockBoardStore.createModalInitialStatus.value = 'In Progress';
+
+    const { container } = render(<CreateItemModal />);
+    const titleInput = container.querySelector('#title') as HTMLInputElement;
+    fireEvent.input(titleInput, { target: { value: 'New task' } });
+
+    // Set an owner (required for In Progress)
+    const ownerSelect = container.querySelector('#owner') as HTMLSelectElement;
+    fireEvent.change(ownerSelect, { target: { value: 'Mom' } });
+
+    const form = container.querySelector('form') as HTMLFormElement;
+    fireEvent.submit(form);
+
+    expect(mockCreateItem).toHaveBeenCalledTimes(1);
+    expect(mockCreateItem.mock.calls[0][0].status).toBe('In Progress');
+  });
+
+  // AC1: No status property when createModalInitialStatus is null (defaults to To Do)
+  it('does not set status when createModalInitialStatus is null', () => {
+    mockBoardStore.createModalInitialStatus.value = null;
+
+    const { container } = render(<CreateItemModal />);
+    const titleInput = container.querySelector('#title') as HTMLInputElement;
+    fireEvent.input(titleInput, { target: { value: 'New task' } });
+    const form = container.querySelector('form') as HTMLFormElement;
+    fireEvent.submit(form);
+
+    expect(mockCreateItem).toHaveBeenCalledTimes(1);
+    expect(mockCreateItem.mock.calls[0][0]).not.toHaveProperty('status');
+  });
+
+  // AC3: Pre-filled status works for Done column
+  it('passes Done status when createModalInitialStatus is Done', () => {
+    mockBoardStore.createModalInitialStatus.value = 'Done';
+
+    const { container } = render(<CreateItemModal />);
+    const titleInput = container.querySelector('#title') as HTMLInputElement;
+    fireEvent.input(titleInput, { target: { value: 'Completed task' } });
+    const form = container.querySelector('form') as HTMLFormElement;
+    fireEvent.submit(form);
+
+    expect(mockCreateItem).toHaveBeenCalledTimes(1);
+    expect(mockCreateItem.mock.calls[0][0].status).toBe('Done');
+  });
+
+  // Closing modal clears createModalInitialStatus
+  it('clears createModalInitialStatus when modal is closed', () => {
+    mockBoardStore.createModalInitialStatus.value = 'In Progress';
+
+    const { container } = render(<CreateItemModal />);
+    const closeBtn = container.querySelector('.modal-header .btn.btn-ghost') as HTMLButtonElement;
+    fireEvent.click(closeBtn);
+
+    expect(mockBoardStore.createModalInitialStatus.value).toBeNull();
+  });
+
+  // Pre-filled status works with subtasks
+  it('passes pre-filled status to createItemWithSubtasks', () => {
+    mockBoardStore.createModalInitialStatus.value = 'To Do';
+
+    const { container } = render(<CreateItemModal />);
+    const titleInput = container.querySelector('#title') as HTMLInputElement;
+    fireEvent.input(titleInput, { target: { value: 'Parent task' } });
+
+    // Add subtask
+    const subtaskInput = container.querySelector('#subtask-title') as HTMLInputElement;
+    fireEvent.input(subtaskInput, { target: { value: 'Child task' } });
+    fireEvent.keyDown(subtaskInput, { key: 'Enter' });
+
+    const form = container.querySelector('form') as HTMLFormElement;
+    fireEvent.submit(form);
+
+    expect(mockCreateItemWithSubtasks).toHaveBeenCalledTimes(1);
+    expect(mockCreateItemWithSubtasks.mock.calls[0][0].status).toBe('To Do');
   });
 });

@@ -873,3 +873,103 @@ describe('Cross-column drop into date-sorted column (Issue #161 AC9)', () => {
     expect(mockShowToast).not.toHaveBeenCalled();
   });
 });
+
+// --- Inline Add Item to Column (Issue #170) ---
+describe('Column — Inline Add Item (Issue #170)', () => {
+  afterEach(() => {
+    cardMock.currentDragStatus = null;
+  });
+
+  // AC1: Header "+" button renders and calls onAddItem
+  it('renders header "+" button with correct aria-label in board view', () => {
+    const onAddItem = vi.fn();
+    const { container } = render(
+      <Column status="To Do" items={[]} onDrop={vi.fn()} onAddItem={onAddItem} />
+    );
+    const addBtn = container.querySelector('.column-add-btn') as HTMLButtonElement;
+    expect(addBtn).not.toBeNull();
+    expect(addBtn.getAttribute('aria-label')).toBe('Add item to To Do');
+  });
+
+  it('header "+" button calls onAddItem when clicked', () => {
+    const onAddItem = vi.fn();
+    const { container } = render(
+      <Column status="In Progress" items={[]} onDrop={vi.fn()} onAddItem={onAddItem} />
+    );
+    const addBtn = container.querySelector('.column-add-btn') as HTMLButtonElement;
+    fireEvent.click(addBtn);
+    expect(onAddItem).toHaveBeenCalledTimes(1);
+  });
+
+  // AC5: No "+" button in compact (swimlane) mode
+  it('does not render header "+" button in compact mode', () => {
+    const onAddItem = vi.fn();
+    const { container } = render(
+      <Column status="To Do" items={[]} onDrop={vi.fn()} onAddItem={onAddItem} compact />
+    );
+    const addBtn = container.querySelector('.column-add-btn');
+    expect(addBtn).toBeNull();
+  });
+
+  // AC2: Hover "Add item" row renders in board view (not compact)
+  it('renders hover "Add item" row in board view', () => {
+    const onAddItem = vi.fn();
+    const { container } = render(
+      <Column status="To Do" items={[]} onDrop={vi.fn()} onAddItem={onAddItem} />
+    );
+    const addRow = container.querySelector('.column-add-row');
+    expect(addRow).not.toBeNull();
+    expect(addRow!.textContent).toContain('Add item');
+  });
+
+  // AC5: No hover row in compact mode
+  it('does not render hover "Add item" row in compact mode', () => {
+    const onAddItem = vi.fn();
+    const { container } = render(
+      <Column status="To Do" items={[]} onDrop={vi.fn()} onAddItem={onAddItem} compact />
+    );
+    const addRow = container.querySelector('.column-add-row');
+    expect(addRow).toBeNull();
+  });
+
+  // AC3: Hover row calls onAddItem when clicked
+  it('hover "Add item" row calls onAddItem when clicked', () => {
+    const onAddItem = vi.fn();
+    const { container } = render(
+      <Column status="Done" items={[]} onDrop={vi.fn()} onAddItem={onAddItem} />
+    );
+    const addRow = container.querySelector('.column-add-row') as HTMLButtonElement;
+    fireEvent.click(addRow);
+    expect(onAddItem).toHaveBeenCalledTimes(1);
+  });
+
+  // AC4: Hover row not rendered during drag
+  it('does not render hover row when a drag is active', () => {
+    cardMock.currentDragStatus = 'To Do';
+    const onAddItem = vi.fn();
+    const { container } = render(
+      <Column status="In Progress" items={[]} onDrop={vi.fn()} onAddItem={onAddItem} />
+    );
+    const addRow = container.querySelector('.column-add-row');
+    expect(addRow).toBeNull();
+  });
+
+  // No onAddItem prop means no button or row
+  it('does not render "+" button or hover row when onAddItem is not provided', () => {
+    const { container } = render(
+      <Column status="To Do" items={[]} onDrop={vi.fn()} />
+    );
+    expect(container.querySelector('.column-add-btn')).toBeNull();
+    expect(container.querySelector('.column-add-row')).toBeNull();
+  });
+
+  // Hover row has tabIndex=-1 (mouse-only)
+  it('hover row has tabIndex=-1 for mouse-only interaction', () => {
+    const onAddItem = vi.fn();
+    const { container } = render(
+      <Column status="To Do" items={[]} onDrop={vi.fn()} onAddItem={onAddItem} />
+    );
+    const addRow = container.querySelector('.column-add-row') as HTMLButtonElement;
+    expect(addRow.tabIndex).toBe(-1);
+  });
+});

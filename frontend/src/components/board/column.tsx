@@ -23,6 +23,8 @@ interface Props {
   sortMode?: SortMode;
   /** Called when the user selects a new sort mode. */
   onSortChange?: (mode: SortMode) => void;
+  /** Called when the user clicks the "+" header button or the "Add item" hover row. */
+  onAddItem?: () => void;
 }
 
 const SORT_LABELS: Record<SortMode, string> = {
@@ -43,7 +45,7 @@ const STATUS_COLORS: Record<ItemStatus, string> = {
   'Done': 'var(--color-done)',
 };
 
-export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact, allDoneCount, hasArchived, archiveTriggerRef, onOpenArchive, sortMode, onSortChange }: Props) {
+export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact, allDoneCount, hasArchived, archiveTriggerRef, onOpenArchive, sortMode, onSortChange, onAddItem }: Props) {
   // Track the insertion indicator position for within-column reorder
   const [dropIndicator, setDropIndicator] = useState<{ index: number; position: 'above' | 'below' } | null>(null);
   // aria-live announcement text
@@ -288,6 +290,13 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
         <div class="column-header-row">
           <h2>{status}</h2>
           <span class="column-count">{items.length}</span>
+          {!compact && onAddItem && (
+            <button
+              class="column-add-btn"
+              onClick={onAddItem}
+              aria-label={`Add item to ${status}`}
+            >+</button>
+          )}
           {/* Sort selector only in board view (not compact/swimlane) */}
           {!compact && status === 'Done' && (
             <select
@@ -341,6 +350,16 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
         ))}
         {items.length === 0 && (
           <div class="column-empty">No items</div>
+        )}
+        {/* Hover "Add item" row — only in board view, hidden during drag */}
+        {!compact && onAddItem && !currentDragStatus && (
+          <button
+            class="column-add-row"
+            onClick={onAddItem}
+            tabIndex={-1}
+          >
+            <span class="column-add-row-icon">+</span> Add item
+          </button>
         )}
         {/* AC7/AC8: Date-sort overlay for cross-column drag */}
         {showDateSortOverlay && (

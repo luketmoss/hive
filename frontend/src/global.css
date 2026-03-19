@@ -867,6 +867,62 @@ body {
   border-radius: 10px;
 }
 
+/* Header "+" button — always visible in board view */
+.column-add-btn {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+.column-add-btn:hover {
+  background: var(--overlay-hover);
+  color: var(--color-text);
+}
+.column-add-btn:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+/* Hover "Add item" row — appears on column hover, mouse-only */
+.column-add-row {
+  display: none;
+  width: 100%;
+  padding: 8px 12px;
+  margin-top: 4px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  align-items: center;
+  gap: 4px;
+}
+.column:hover .column-add-row {
+  display: flex;
+}
+.column-add-row:hover {
+  background: var(--overlay-hover);
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+.column-add-row-icon {
+  font-size: 15px;
+  font-weight: 600;
+}
+
 .column-cards {
   flex: 1;
   overflow-y: auto;
