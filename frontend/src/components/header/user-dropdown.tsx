@@ -8,13 +8,14 @@ interface UserDropdownProps {
   displayName: string;
   onSignOut: () => void;
   onOpenProfile?: () => void;
+  onOpenSettings?: () => void;
 }
 
 /**
  * AC1: User dropdown replaces separate header controls.
  * Avatar + Name button opens a floating panel with email, theme toggle, and sign out.
  */
-export function UserDropdown({ user, displayName, onSignOut, onOpenProfile }: UserDropdownProps) {
+export function UserDropdown({ user, displayName, onSignOut, onOpenProfile, onOpenSettings }: UserDropdownProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -37,6 +38,11 @@ export function UserDropdown({ user, displayName, onSignOut, onOpenProfile }: Us
     closeDropdown();
     onOpenProfile?.();
   }, [closeDropdown, onOpenProfile]);
+
+  const handleOpenSettings = useCallback(() => {
+    closeDropdown();
+    onOpenSettings?.();
+  }, [closeDropdown, onOpenSettings]);
 
   // Close on Escape
   useEffect(() => {
@@ -142,6 +148,19 @@ export function UserDropdown({ user, displayName, onSignOut, onOpenProfile }: Us
                 data-testid="user-dropdown-edit-profile"
               >
                 Edit profile
+              </button>
+              <hr class="user-dropdown-divider" />
+            </>
+          )}
+          {onOpenSettings && (
+            <>
+              <button
+                class="user-dropdown-settings"
+                role="menuitem"
+                onClick={handleOpenSettings}
+                data-testid="user-dropdown-settings"
+              >
+                Settings
               </button>
               <hr class="user-dropdown-divider" />
             </>
