@@ -255,6 +255,9 @@ export const allDoneItemsSorted = computed(() =>
   allDoneItems.value.slice().sort(byCompletedAtDesc)
 );
 
+// --- UI state for settings modal ---
+export const showSettings = signal(false);
+
 // --- UI state for archive dialog ---
 export const showArchiveDialog = signal(false);
 

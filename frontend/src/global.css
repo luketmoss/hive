@@ -2601,6 +2601,194 @@ body {
   flex-wrap: wrap;
 }
 
+/* === Settings Page === */
+.settings-page {
+  width: 640px;
+  max-width: 95vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* --- Label Settings --- */
+.label-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.label-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.label-settings-heading {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.label-settings-loading {
+  display: flex;
+  justify-content: center;
+  padding: 32px 0;
+}
+
+.label-settings-empty {
+  text-align: center;
+  padding: 32px 0;
+  color: var(--color-text-secondary);
+}
+
+.label-settings-empty p {
+  margin: 0 0 12px 0;
+}
+
+.label-settings-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.label-settings-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.label-settings-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.label-settings-swatch {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+.label-settings-name {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--label-color);
+  color: var(--label-text-color);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.label-settings-count {
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.label-settings-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.label-settings-action-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.label-settings-delete-btn {
+  color: var(--color-danger, #e74c3c);
+}
+
+/* --- Settings forms (create / edit / delete confirm) --- */
+.label-settings-create-form,
+.label-settings-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-surface-raised, var(--color-surface));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.label-settings-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label-settings-form-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.label-settings-form-field input {
+  padding: 6px 8px;
+  font-size: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.label-settings-form-field input[aria-invalid="true"] {
+  border-color: var(--color-danger, #e74c3c);
+}
+
+.label-settings-error {
+  color: var(--color-danger, #e74c3c);
+  font-size: 12px;
+}
+
+.label-settings-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.label-settings-delete-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--color-surface-raised, var(--color-surface));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.label-settings-delete-message {
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+/* Settings menu item in user dropdown */
+.user-dropdown-settings {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  text-align: left;
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.user-dropdown-settings:hover {
+  background: var(--color-surface-hover);
+}
+
 /* === FAB (Floating Action Button) === */
 .fab {
   position: fixed;
