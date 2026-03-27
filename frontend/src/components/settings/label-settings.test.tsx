@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor, cleanup } from '@testing-library/preact';
-import { labels, items, loading } from '../../state/board-store';
+import { labels, items, loading, activeBoardId } from '../../state/board-store';
 import { LabelSettings } from './label-settings';
 import type { Label, ItemWithRow } from '../../api/types';
 
@@ -14,9 +14,9 @@ vi.mock('../../state/actions', () => ({
 import { createLabel, updateLabel, deleteLabel } from '../../state/actions';
 
 const MOCK_LABELS: Label[] = [
-  { label: 'Errands', color: '#42a5f5' },
-  { label: 'Home', color: '#66bb6a' },
-  { label: 'School', color: '#ffa726' },
+  { label: 'Errands', color: '#42a5f5', board_id: 'board-1' },
+  { label: 'Home', color: '#66bb6a', board_id: 'board-1' },
+  { label: 'School', color: '#ffa726', board_id: 'board-1' },
 ];
 
 function makeItem(overrides: Partial<ItemWithRow> = {}): ItemWithRow {
@@ -42,6 +42,7 @@ function makeItem(overrides: Partial<ItemWithRow> = {}): ItemWithRow {
 
 describe('LabelSettings', () => {
   beforeEach(() => {
+    activeBoardId.value = 'board-1';
     labels.value = [...MOCK_LABELS];
     items.value = [
       makeItem({ id: 'i1', labels: 'Errands' }),

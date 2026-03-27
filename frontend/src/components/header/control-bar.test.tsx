@@ -56,7 +56,7 @@ vi.mock('../../state/board-store', () => ({
     get value() { return mockState.groupBy; },
     set value(v: string) { mockState.groupBy = v; },
   },
-  labels: { get value() { return mockState.labels; } },
+  boardLabels: { get value() { return mockState.labels; } },
   rootItems: { get value() { return mockState.rootItems; } },
   switchBoard: (...args: any[]) => mockSwitchBoard(...args),
   setViewMode: (...args: any[]) => mockSetViewMode(...args),

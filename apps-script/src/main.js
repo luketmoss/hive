@@ -67,7 +67,7 @@ function doGet(e) {
         break;
 
       case 'getLabels':
-        result = { success: true, data: getLabels() };
+        result = { success: true, data: getLabels(e.parameter.board_id || '') };
         break;
 
       case 'getBoards':

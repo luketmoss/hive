@@ -1,4 +1,4 @@
-import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl, permissions, currentUserEmail, selectedItemId } from './board-store';
+import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl, permissions, currentUserEmail, selectedItemId, boardItems as boardItemsComputed } from './board-store';
 import { validateStatusTransition, applyStatusSideEffects } from './rules';
 import {
   fetchAllItems as sheetsFetchAllItems,
@@ -175,8 +175,53 @@ export async function loadBoard(token: string, user?: UserInfo | null) {
     ]);
     items.value = itemsData;
     owners.value = ownersData;
-    labels.value = labelsData;
     boards.value = boardsData;
+
+    // AC4: One-time migration — assign board_id to orphaned labels
+    const orphanedLabels = labelsData.filter(l => !l.board_id);
+    if (orphanedLabels.length > 0 && boardsData.length > 0) {
+      // For each board, find labels used by that board's items
+      const assignedNames = new Set<string>();
+      const migratedLabels = labelsData.map(l => ({ ...l }));
+
+      for (const board of boardsData) {
+        const boardItemsForMigration = itemsData.filter(i => i.board_id === board.id);
+        const usedLabelNames = new Set<string>();
+        for (const item of boardItemsForMigration) {
+          for (const name of item.labels.split(',').map(s => s.trim()).filter(Boolean)) {
+            usedLabelNames.add(name);
+          }
+        }
+        for (const label of migratedLabels) {
+          if (label.board_id) continue; // already assigned
+          if (usedLabelNames.has(label.label) && !assignedNames.has(label.label)) {
+            label.board_id = board.id;
+            assignedNames.add(label.label);
+          }
+        }
+      }
+
+      // Assign remaining unassigned labels to the first board
+      const firstBoardId = boardsData[0].id;
+      for (const label of migratedLabels) {
+        if (!label.board_id) {
+          label.board_id = firstBoardId;
+        }
+      }
+
+      // Persist migration to sheet
+      const labelsWithRows = await fetchLabelsWithRows(token);
+      for (const label of migratedLabels) {
+        const rowData = labelsWithRows.find(r => r.label === label.label && !r.board_id);
+        if (rowData) {
+          await updateLabelRow(rowData.sheetRow, label.label, label.color, label.board_id, token);
+        }
+      }
+
+      labels.value = migratedLabels;
+    } else {
+      labels.value = labelsData;
+    }
 
     // Set current user email for permission filtering
     if (user) {
@@ -810,12 +855,13 @@ export async function createLabel(
   color: string,
   token: string
 ) {
+  const boardId = activeBoardId.value;
   // Optimistic update
   const oldLabels = [...labels.value];
-  labels.value = [...labels.value, { label: name, color }];
+  labels.value = [...labels.value, { label: name, color, board_id: boardId }];
 
   try {
-    await createLabelRow(name, color, token);
+    await createLabelRow(name, color, boardId, token);
     await refreshLabels(token);
     showToast('Label created');
   } catch (err: any) {
@@ -832,9 +878,10 @@ export async function updateLabel(
   newColor: string,
   token: string
 ) {
-  // Find the label row
+  const boardId = activeBoardId.value;
+  // Find the label row (scoped to active board)
   const labelsWithRows = await fetchLabelsWithRows(token);
-  const labelRow = labelsWithRows.find(l => l.label === oldName);
+  const labelRow = labelsWithRows.find(l => l.label === oldName && l.board_id === boardId);
   if (!labelRow) {
     showToast('Label not found', 'error');
     return;
@@ -844,11 +891,12 @@ export async function updateLabel(
   const oldLabels = [...labels.value];
   const oldItems = [...items.value];
   labels.value = labels.value.map(l =>
-    l.label === oldName ? { label: newName, color: newColor } : l
+    l.label === oldName && l.board_id === boardId ? { label: newName, color: newColor, board_id: boardId } : l
   );
-  // Also optimistically update items if label was renamed
+  // Also optimistically update items on this board if label was renamed
   if (oldName !== newName) {
     items.value = items.value.map(i => {
+      if (i.board_id !== boardId) return i;
       const labelsList = i.labels.split(',').map(x => x.trim()).filter(Boolean);
       if (!labelsList.includes(oldName)) return i;
       const updated = labelsList.map(l => l === oldName ? newName : l);
@@ -857,9 +905,9 @@ export async function updateLabel(
   }
 
   try {
-    await updateLabelRow(labelRow.sheetRow, newName, newColor, token);
+    await updateLabelRow(labelRow.sheetRow, newName, newColor, boardId, token);
     if (oldName !== newName) {
-      await cascadeLabelUpdate(oldName, newName, token);
+      await cascadeLabelUpdate(oldName, newName, token, boardId);
     }
     await refreshLabels(token);
     await refreshItems(token);
@@ -877,19 +925,21 @@ export async function deleteLabel(
   labelName: string,
   token: string
 ) {
-  // Find the label row
+  const boardId = activeBoardId.value;
+  // Find the label row (scoped to active board)
   const labelsWithRows = await fetchLabelsWithRows(token);
-  const labelRow = labelsWithRows.find(l => l.label === labelName);
+  const labelRow = labelsWithRows.find(l => l.label === labelName && l.board_id === boardId);
   if (!labelRow) {
     showToast('Label not found', 'error');
     return;
   }
 
-  // Optimistic update
+  // Optimistic update — only remove this board's label and update this board's items
   const oldLabels = [...labels.value];
   const oldItems = [...items.value];
-  labels.value = labels.value.filter(l => l.label !== labelName);
+  labels.value = labels.value.filter(l => !(l.label === labelName && l.board_id === boardId));
   items.value = items.value.map(i => {
+    if (i.board_id !== boardId) return i;
     const labelsList = i.labels.split(',').map(x => x.trim()).filter(Boolean);
     if (!labelsList.includes(labelName)) return i;
     const updated = labelsList.filter(l => l !== labelName);
@@ -897,7 +947,7 @@ export async function deleteLabel(
   });
 
   try {
-    await cascadeLabelUpdate(labelName, '', token);
+    await cascadeLabelUpdate(labelName, '', token, boardId);
     await deleteLabelRow(labelRow.sheetRow, token);
     await refreshLabels(token);
     await refreshItems(token);

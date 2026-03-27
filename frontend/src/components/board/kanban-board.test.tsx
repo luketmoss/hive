@@ -62,7 +62,7 @@ vi.mock('../../state/board-store', () => ({
   openDetailWithTitleEdit: { value: false },
   groupBy: { value: 'none' },
   owners: { value: [] },
-  labels: { value: [] },
+  boardLabels: { value: [] },
   filterOwner: { value: null },
   filterLabel: { value: null },
   loading: { value: false },
@@ -90,7 +90,6 @@ vi.mock('../../state/board-store', () => ({
     set value(v: boolean) { mockState.showDeleteBoardModal = v; },
   },
   showMoveToBoardModal: { value: false },
-  showSettings: { value: false },
   accessibleBoards: { get value() { return mockState.accessibleBoards; } },
   activeBoard: { value: null },
   userBoardRole: { get value() { return mockState.userBoardRole; } },
@@ -160,9 +159,6 @@ vi.mock('../profile/profile-dialog', () => ({
 }));
 vi.mock('../archive/archive-dialog', () => ({
   ArchiveDialog: () => <div data-testid="archive-dialog" />,
-}));
-vi.mock('../settings/settings-page', () => ({
-  SettingsPage: () => <div data-testid="settings-page" />,
 }));
 vi.mock('../shared/hive-logo', () => ({
   HiveLogo: (props: any) => <svg data-testid="hive-logo" class={props.class} />,

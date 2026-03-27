@@ -5,6 +5,7 @@ import { shareBoard, unshareBoard, updateBoardAppearance, renameBoardName } from
 import { useFocusTrap } from '../../hooks/use-focus-trap';
 import { ColorPicker } from '../shared/color-picker';
 import { IconPicker } from '../shared/icon-picker';
+import { LabelSettings } from '../settings/label-settings';
 
 const MAX_NAME_LENGTH = 30;
 const HEADING_ID = 'board-settings-title';
@@ -335,6 +336,12 @@ export function ShareModal() {
             <button type="button" class="btn btn-ghost" onClick={close}>Done</button>
           </div>
         </form>
+
+        {/* Labels section */}
+        <hr class="share-modal-divider" />
+        <div class="share-modal-labels-wrapper">
+          {token && <LabelSettings token={token} />}
+        </div>
       </div>
     </div>
   );

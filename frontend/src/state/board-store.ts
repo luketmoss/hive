@@ -48,6 +48,13 @@ export const userBoardRole = computed((): PermissionRole | null => {
   return null;
 });
 
+/** Labels scoped to the active board. */
+export const boardLabels = computed(() => {
+  const bid = activeBoardId.value;
+  if (!bid) return labels.value;
+  return labels.value.filter(l => l.board_id === bid);
+});
+
 /** Items scoped to the active board (plus their children). */
 export const boardItems = computed(() => {
   const bid = activeBoardId.value;
@@ -254,9 +261,6 @@ export const hasArchivedItems = computed(() =>
 export const allDoneItemsSorted = computed(() =>
   allDoneItems.value.slice().sort(byCompletedAtDesc)
 );
-
-// --- UI state for settings modal ---
-export const showSettings = signal(false);
 
 // --- UI state for archive dialog ---
 export const showArchiveDialog = signal(false);

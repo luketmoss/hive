@@ -134,10 +134,17 @@ server.tool(
 
 server.tool(
   "hive_list_labels",
-  "List valid labels for Hive board items",
-  {},
-  async () => {
-    const result = await apiGet("getLabels");
+  "List valid labels for Hive board items. Optionally filter by board.",
+  {
+    board: z.string().optional().describe("Board name to filter labels by (optional — omit to list all)"),
+  },
+  async ({ board }) => {
+    const params = {};
+    if (board) {
+      const resolved = await resolveBoard(board);
+      params.board_id = resolved.id;
+    }
+    const result = await apiGet("getLabels", params);
     if (!result.success) return { content: [{ type: "text", text: `Error: ${result.error}` }] };
     const text = result.data.map((l) => `- ${l.label}${l.color ? ` (${l.color})` : ""}`).join("\n");
     return { content: [{ type: "text", text: text || "No labels found." }] };
@@ -150,9 +157,15 @@ server.tool(
   {
     label: z.string().describe("Label name"),
     color: z.string().optional().describe("Label color (e.g., 'red', '#FF0000')"),
+    board: z.string().optional().describe("Board name to scope this label to (optional)"),
   },
-  async ({ label, color }) => {
-    const result = await apiWrite("createLabel", { label, color: color || "" });
+  async ({ label, color, board }) => {
+    const payload = { label, color: color || "" };
+    if (board) {
+      const resolved = await resolveBoard(board);
+      payload.board_id = resolved.id;
+    }
+    const result = await apiWrite("createLabel", payload);
     if (!result.success) return { content: [{ type: "text", text: `Error: ${result.error}` }] };
     const l = result.data;
     return { content: [{ type: "text", text: `Created label: **${l.label}**${l.color ? ` (${l.color})` : ""}` }] };

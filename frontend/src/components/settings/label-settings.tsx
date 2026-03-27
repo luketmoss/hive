@@ -1,5 +1,5 @@
 import { useState, useRef } from 'preact/hooks';
-import { labels as labelsStore, items, loading } from '../../state/board-store';
+import { boardLabels as labelsStore, boardItems, loading } from '../../state/board-store';
 import { createLabel, updateLabel, deleteLabel } from '../../state/actions';
 import { getContrastTextColor } from '../../utils/color';
 import { ColorSwatchGrid } from '../labels/color-swatch-grid';
@@ -26,7 +26,7 @@ export function LabelSettings({ token }: LabelSettingsProps) {
   const editInputRef = useRef<HTMLInputElement>(null);
 
   const allLabels = labelsStore.value;
-  const allItems = items.value;
+  const allItems = boardItems.value;
 
   const getUsageCount = (labelName: string): number => {
     return allItems.filter(item => {

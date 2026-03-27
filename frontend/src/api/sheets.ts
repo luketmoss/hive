@@ -150,10 +150,11 @@ export async function fetchOwners(token: string): Promise<Owner[]> {
 
 export async function fetchLabels(token: string): Promise<Label[]> {
   return withReauth(token, async (t) => {
-    const rows = await sheetsGet('Labels!A2:B', t);
+    const rows = await sheetsGet('Labels!A2:C', t);
     return rows.map(row => ({
       label: row[0] || '',
       color: row[1] || '',
+      board_id: row[2] || '',
     }));
   });
 }
@@ -236,12 +237,12 @@ export async function appendAuditEntry(
 
 // --- Label CRUD ---
 
-export async function createLabelRow(label: string, color: string, token: string): Promise<void> {
-  return withReauth(token, (t) => sheetsAppend('Labels!A:B', [[label, color]], t));
+export async function createLabelRow(label: string, color: string, boardId: string, token: string): Promise<void> {
+  return withReauth(token, (t) => sheetsAppend('Labels!A:C', [[label, color, boardId]], t));
 }
 
-export async function updateLabelRow(sheetRow: number, label: string, color: string, token: string): Promise<void> {
-  return withReauth(token, (t) => sheetsUpdate(`Labels!A${sheetRow}:B${sheetRow}`, [[label, color]], t));
+export async function updateLabelRow(sheetRow: number, label: string, color: string, boardId: string, token: string): Promise<void> {
+  return withReauth(token, (t) => sheetsUpdate(`Labels!A${sheetRow}:C${sheetRow}`, [[label, color, boardId]], t));
 }
 
 export async function deleteLabelRow(sheetRow: number, token: string): Promise<void> {
@@ -263,12 +264,13 @@ export async function deleteLabelRow(sheetRow: number, token: string): Promise<v
 /**
  * Fetch labels with their sheet row numbers for update/delete operations.
  */
-export async function fetchLabelsWithRows(token: string): Promise<Array<{ label: string; color: string; sheetRow: number }>> {
+export async function fetchLabelsWithRows(token: string): Promise<Array<{ label: string; color: string; board_id: string; sheetRow: number }>> {
   return withReauth(token, async (t) => {
-    const rows = await sheetsGet('Labels!A2:B', t);
+    const rows = await sheetsGet('Labels!A2:C', t);
     return rows.map((row, i) => ({
       label: row[0] || '',
       color: row[1] || '',
+      board_id: row[2] || '',
       sheetRow: i + 2, // 1-based, header is row 1
     }));
   });
@@ -282,11 +284,15 @@ export async function fetchLabelsWithRows(token: string): Promise<Array<{ label:
 export async function cascadeLabelUpdate(
   oldName: string,
   newName: string,
-  token: string
+  token: string,
+  boardId?: string
 ): Promise<void> {
   return withReauth(token, async (t) => {
     const rows = await sheetsGet('Items!A2:N', t);
     for (let i = 0; i < rows.length; i++) {
+      // Scope to board if provided
+      if (boardId && (rows[i][13] || '') !== boardId) continue;
+
       const labelsStr = rows[i][6] || '';
       const labelsList = labelsStr.split(',').map((l: string) => l.trim()).filter(Boolean);
       if (!labelsList.includes(oldName)) continue;

@@ -4,7 +4,7 @@ import {
   accessibleBoards, activeBoard, userBoardRole,
   viewMode, setViewMode,
   filterLabel, filterSearch, filterDue, groupBy,
-  labels as labelsStore, rootItems,
+  boardLabels as labelsStore, rootItems,
 } from '../../state/board-store';
 import type { DueFilter } from '../../state/board-store';
 

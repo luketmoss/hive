@@ -27,13 +27,13 @@ export const MOCK_OWNERS: Owner[] = [
 
 // --- Labels ---
 export const MOCK_LABELS: Label[] = [
-  { label: 'Errands', color: '#42a5f5' },
-  { label: 'Home', color: '#66bb6a' },
-  { label: 'School', color: '#ffa726' },
-  { label: 'Health', color: '#ef5350' },
-  { label: 'Important', color: '#ab47bc' },
-  { label: 'Family', color: '#ec407a' },
-  { label: 'Fun', color: '#26c6da' },
+  { label: 'Errands', color: '#42a5f5', board_id: 'board-family' },
+  { label: 'Home', color: '#66bb6a', board_id: 'board-family' },
+  { label: 'School', color: '#ffa726', board_id: 'board-family' },
+  { label: 'Health', color: '#ef5350', board_id: 'board-family' },
+  { label: 'Important', color: '#ab47bc', board_id: 'board-family' },
+  { label: 'Family', color: '#ec407a', board_id: 'board-family' },
+  { label: 'Fun', color: '#26c6da', board_id: 'board-family' },
 ];
 
 // --- Boards ---
