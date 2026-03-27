@@ -63,7 +63,7 @@ describe('Sheets API label CRUD', () => {
   it('createLabelRow appends a new row to Labels sheet', async () => {
     mockFetch.mockResolvedValueOnce(mockSheetsWriteResponse());
 
-    await createLabelRow('Urgent', '#E74C3C', 'test-token');
+    await createLabelRow('Urgent', '#E74C3C', 'board-1', 'test-token');
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const call = mockFetch.mock.calls[0];
@@ -71,14 +71,14 @@ describe('Sheets API label CRUD', () => {
     expect(url).toContain('Labels');
     expect(url).toContain(':append');
     const body = JSON.parse(call[1].body);
-    expect(body.values).toEqual([['Urgent', '#E74C3C']]);
+    expect(body.values).toEqual([['Urgent', '#E74C3C', 'board-1']]);
   });
 
   // Scenario 3: updateLabelRow updates a specific row in Labels sheet
   it('updateLabelRow updates a specific row', async () => {
     mockFetch.mockResolvedValueOnce(mockSheetsWriteResponse());
 
-    await updateLabelRow(3, 'Renamed', '#00FF00', 'test-token');
+    await updateLabelRow(3, 'Renamed', '#00FF00', 'board-1', 'test-token');
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const call = mockFetch.mock.calls[0];
@@ -86,7 +86,7 @@ describe('Sheets API label CRUD', () => {
     expect(url).toContain('Labels!A3');
     expect(call[1].method).toBe('PUT');
     const body = JSON.parse(call[1].body);
-    expect(body.values).toEqual([['Renamed', '#00FF00']]);
+    expect(body.values).toEqual([['Renamed', '#00FF00', 'board-1']]);
   });
 
   // Scenario 4: deleteLabelRow finds Labels sheet ID and deletes the row
@@ -113,16 +113,16 @@ describe('Sheets API label CRUD', () => {
   it('fetchLabelsWithRows returns labels with sheetRow', async () => {
     mockFetch.mockResolvedValueOnce(
       mockSheetsGetResponse([
-        ['Errands', '#42a5f5'],
-        ['Home', '#66bb6a'],
+        ['Errands', '#42a5f5', 'board-1'],
+        ['Home', '#66bb6a', 'board-1'],
       ])
     );
 
     const result = await fetchLabelsWithRows('test-token');
 
     expect(result).toEqual([
-      { label: 'Errands', color: '#42a5f5', sheetRow: 2 },
-      { label: 'Home', color: '#66bb6a', sheetRow: 3 },
+      { label: 'Errands', color: '#42a5f5', board_id: 'board-1', sheetRow: 2 },
+      { label: 'Home', color: '#66bb6a', board_id: 'board-1', sheetRow: 3 },
     ]);
   });
 

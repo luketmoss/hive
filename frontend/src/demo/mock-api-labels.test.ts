@@ -23,7 +23,7 @@ describe('Mock API label CRUD', () => {
   // AC1: createLabelRow appends a label
   it('createLabelRow adds a label in-memory', async () => {
     const before = await fetchLabels('demo-token');
-    await createLabelRow('New Label', '#FF0000', 'demo-token');
+    await createLabelRow('New Label', '#FF0000', 'board-family', 'demo-token');
     const after = await fetchLabels('demo-token');
     expect(after.length).toBe(before.length + 1);
     expect(after.find(l => l.label === 'New Label')).toBeTruthy();
@@ -33,7 +33,7 @@ describe('Mock API label CRUD', () => {
   it('updateLabelRow modifies a label in-memory', async () => {
     const labelsWithRows = await fetchLabelsWithRows('demo-token');
     const first = labelsWithRows[0];
-    await updateLabelRow(first.sheetRow, 'Renamed', '#00FF00', 'demo-token');
+    await updateLabelRow(first.sheetRow, 'Renamed', '#00FF00', first.board_id, 'demo-token');
     const after = await fetchLabels('demo-token');
     const renamed = after.find(l => l.label === 'Renamed');
     expect(renamed).toBeTruthy();
@@ -90,7 +90,7 @@ describe('Mock API label CRUD', () => {
 
   // Reset restores labels too
   it('resetMockState restores labels to original', async () => {
-    await createLabelRow('Temporary', '#000', 'demo-token');
+    await createLabelRow('Temporary', '#000', 'board-family', 'demo-token');
     const afterCreate = await fetchLabels('demo-token');
     expect(afterCreate.length).toBe(MOCK_LABELS.length + 1);
 
@@ -103,9 +103,9 @@ describe('Mock API label CRUD', () => {
   it('no HTTP requests are made for label operations', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     await fetchLabels('demo-token');
-    await createLabelRow('Test', '#FFF', 'demo-token');
+    await createLabelRow('Test', '#FFF', 'board-family', 'demo-token');
     await fetchLabelsWithRows('demo-token');
-    await updateLabelRow(2, 'Updated', '#000', 'demo-token');
+    await updateLabelRow(2, 'Updated', '#000', 'board-family', 'demo-token');
     await deleteLabelRow(2, 'demo-token');
     await cascadeLabelUpdate('Test', 'Test2', 'demo-token');
     expect(fetchSpy).not.toHaveBeenCalled();

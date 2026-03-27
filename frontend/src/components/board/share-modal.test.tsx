@@ -44,6 +44,10 @@ vi.mock('../../hooks/use-focus-trap', () => ({
   useFocusTrap: () => ({ current: null }),
 }));
 
+vi.mock('../settings/label-settings', () => ({
+  LabelSettings: () => <div data-testid="label-settings-mock" />,
+}));
+
 const mockAuth: AuthState = {
   token: 'test-token',
   user: { email: 'owner@family.com', name: 'Owner', picture: '' },

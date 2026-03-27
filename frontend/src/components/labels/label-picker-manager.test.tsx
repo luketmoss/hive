@@ -14,9 +14,9 @@ vi.mock('../../state/actions', () => ({
 import { createLabel, updateLabel, deleteLabel } from '../../state/actions';
 
 const MOCK_LABELS: Label[] = [
-  { label: 'Errands', color: '#42a5f5' },
-  { label: 'Home', color: '#66bb6a' },
-  { label: 'School', color: '#ffa726' },
+  { label: 'Errands', color: '#42a5f5', board_id: 'board-1' },
+  { label: 'Home', color: '#66bb6a', board_id: 'board-1' },
+  { label: 'School', color: '#ffa726', board_id: 'board-1' },
 ];
 
 describe('LabelPickerManager', () => {

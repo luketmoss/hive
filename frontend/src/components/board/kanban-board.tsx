@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, createModalInitialStatus, selectedItem, groupBy, rootItems, items, owners, labels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, showSettings, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement, showToast } from '../../state/board-store';
+import { columns, showCreateModal, createModalInitialStatus, selectedItem, groupBy, rootItems, items, owners, boardLabels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement, showToast } from '../../state/board-store';
 import type { SortMode } from '../../state/board-store';
 import { moveItem, reorderItem, createItem, deleteItem } from '../../state/actions';
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts';
@@ -16,7 +16,6 @@ import { MoveToBoardModal } from './move-to-board-modal';
 import { ShortcutsHelp } from './shortcuts-help';
 import { ProfileDialog } from '../profile/profile-dialog';
 import { ArchiveDialog } from '../archive/archive-dialog';
-import { SettingsPage } from '../settings/settings-page';
 import { UserDropdown } from '../header/user-dropdown';
 import { ControlBar } from '../header/control-bar';
 import { HiveLogo } from '../shared/hive-logo';
@@ -55,7 +54,6 @@ export function KanbanBoard() {
     !showCreateModal.value &&
     !showCreateBoardModal.value &&
     !showArchiveDialog.value &&
-    !showSettings.value &&
     !selectedItem.value &&
     !showShortcutsHelp;
 
@@ -292,7 +290,6 @@ export function KanbanBoard() {
               displayName={displayName}
               onSignOut={logout}
               onOpenProfile={() => setShowProfile(true)}
-              onOpenSettings={() => { showSettings.value = true; }}
             />
           )}
         </div>
@@ -330,7 +327,6 @@ export function KanbanBoard() {
       {showShareModal.value && <ShareModal />}
       {showDeleteBoardModal.value && <DeleteBoardModal />}
       {showMoveToBoardModal.value && <MoveToBoardModal />}
-      {showSettings.value && token && <SettingsPage token={token} />}
       {showArchiveDialog.value && <ArchiveDialog onClose={handleCloseArchive} />}
       {showShortcutsHelp && <ShortcutsHelp onClose={() => setShowShortcutsHelp(false)} />}
       {showProfile && user && token && (

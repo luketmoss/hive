@@ -33,6 +33,7 @@ export interface Owner {
 export interface Label {
   label: string;
   color: string;
+  board_id: string;
 }
 
 export interface Board {

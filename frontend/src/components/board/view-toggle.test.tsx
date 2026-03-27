@@ -28,7 +28,7 @@ vi.mock('../../state/board-store', () => ({
   openDetailWithTitleEdit: { value: false },
   groupBy: { value: 'none' },
   owners: { value: [] },
-  labels: { value: [] },
+  boardLabels: { value: [] },
   filterOwner: { value: null },
   filterLabel: { value: null },
   filterSearch: { value: '' },

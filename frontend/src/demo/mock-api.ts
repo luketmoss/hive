@@ -9,7 +9,7 @@ import { MOCK_ITEMS, MOCK_OWNERS, MOCK_LABELS, MOCK_BOARDS, MOCK_PERMISSIONS } f
 // In-memory state — deep-clone from static data so writes don't mutate the originals.
 const mockItemsState = signal<ItemWithRow[]>(structuredClone(MOCK_ITEMS));
 const mockLabelsState = signal<Array<Label & { sheetRow: number }>>(
-  structuredClone(MOCK_LABELS).map((l, i) => ({ ...l, sheetRow: i + 2 }))
+  structuredClone(MOCK_LABELS).map((l, i) => ({ ...l, board_id: l.board_id || '', sheetRow: i + 2 }))
 );
 const mockBoardsState = signal<Board[]>(structuredClone(MOCK_BOARDS));
 const mockPermissionsState = signal<BoardPermission[]>(structuredClone(MOCK_PERMISSIONS));
@@ -33,7 +33,7 @@ export async function fetchOwners(_token: string): Promise<Owner[]> {
 }
 
 export async function fetchLabels(_token: string): Promise<Label[]> {
-  return mockLabelsState.value.map(({ label, color }) => ({ label, color }));
+  return mockLabelsState.value.map(({ label, color, board_id }) => ({ label, color, board_id: board_id || '' }));
 }
 
 // --- Write operations (in-memory only) ---
@@ -88,14 +88,14 @@ export async function cascadeOwnerUpdate(
 
 // --- Label CRUD (in-memory) ---
 
-export async function createLabelRow(label: string, color: string, _token: string): Promise<void> {
+export async function createLabelRow(label: string, color: string, boardId: string, _token: string): Promise<void> {
   const maxRow = mockLabelsState.value.reduce((max, l) => Math.max(max, l.sheetRow), 1);
-  mockLabelsState.value = [...mockLabelsState.value, { label, color, sheetRow: maxRow + 1 }];
+  mockLabelsState.value = [...mockLabelsState.value, { label, color, board_id: boardId, sheetRow: maxRow + 1 }];
 }
 
-export async function updateLabelRow(sheetRow: number, label: string, color: string, _token: string): Promise<void> {
+export async function updateLabelRow(sheetRow: number, label: string, color: string, boardId: string, _token: string): Promise<void> {
   mockLabelsState.value = mockLabelsState.value.map(l =>
-    l.sheetRow === sheetRow ? { label, color, sheetRow } : l
+    l.sheetRow === sheetRow ? { label, color, board_id: boardId, sheetRow } : l
   );
 }
 
@@ -103,17 +103,21 @@ export async function deleteLabelRow(sheetRow: number, _token: string): Promise<
   mockLabelsState.value = mockLabelsState.value.filter(l => l.sheetRow !== sheetRow);
 }
 
-export async function fetchLabelsWithRows(_token: string): Promise<Array<{ label: string; color: string; sheetRow: number }>> {
-  return mockLabelsState.value;
+export async function fetchLabelsWithRows(_token: string): Promise<Array<{ label: string; color: string; board_id: string; sheetRow: number }>> {
+  return mockLabelsState.value.map(l => ({ label: l.label, color: l.color, board_id: l.board_id || '', sheetRow: l.sheetRow }));
 }
 
 export async function cascadeLabelUpdate(
   oldName: string,
   newName: string,
-  _token: string
+  _token: string,
+  boardId?: string
 ): Promise<void> {
   // Update items in-memory: rename or remove the label from all items that reference it.
   mockItemsState.value = mockItemsState.value.map(item => {
+    // Scope to board if provided
+    if (boardId && item.board_id !== boardId) return item;
+
     const labelsList = item.labels.split(',').map(l => l.trim()).filter(Boolean);
     if (!labelsList.includes(oldName)) return item;
 

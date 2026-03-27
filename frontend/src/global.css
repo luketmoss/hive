@@ -1429,6 +1429,21 @@ body {
 
 .share-modal {
   width: 480px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.share-modal-divider {
+  margin: 0;
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+.share-modal-labels-wrapper {
+  overflow-y: auto;
+  max-height: 300px;
+  padding: 16px 20px;
 }
 
 .share-all-toggle {
