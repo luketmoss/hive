@@ -25,10 +25,10 @@ describe('LoginScreen logo (Issue #30 AC4)', () => {
     expect(logoIdx).toBeLessThan(h1Idx);
   });
 
-  it('renders logo at size 56', () => {
+  it('renders logo at size 64', () => {
     const { container } = render(<LoginScreen />);
     const logo = container.querySelector('[data-testid="hive-logo"]');
-    expect(logo!.getAttribute('width')).toBe('56');
+    expect(logo!.getAttribute('width')).toBe('64');
   });
 
   it('logo has the login-logo class', () => {

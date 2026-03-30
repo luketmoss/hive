@@ -7,7 +7,7 @@ export function LoginScreen() {
   return (
     <div class="login-screen">
       <div class="login-card">
-        <HiveLogo size={56} class="login-logo" />
+        <HiveLogo size={64} class="login-logo" />
         <h1>Hive</h1>
         <p>Family Kanban Board</p>
         <button class="login-btn" onClick={login}>
