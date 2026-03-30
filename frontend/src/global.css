@@ -3545,3 +3545,238 @@ body {
     height: 20px;
   }
 }
+
+/* === View tabs (Board / Upcoming toggle) === */
+.control-bar-view-tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--overlay-view-toggle);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.view-tab {
+  padding: 4px 12px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.view-tab:hover {
+  background: var(--overlay-sm);
+}
+
+.view-tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.view-tab-active {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 1px 2px var(--overlay-md);
+}
+
+/* === Upcoming view === */
+.upcoming-view {
+  padding: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.upcoming-filters {
+  margin-bottom: 16px;
+}
+
+.upcoming-filter-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.upcoming-filter-content-collapsed {
+  display: none;
+}
+
+.upcoming-board-filter {
+  position: relative;
+}
+
+.upcoming-board-filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 13px;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.upcoming-board-filter-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.upcoming-board-filter-chevron {
+  font-size: 10px;
+  transition: transform 0.15s;
+}
+
+.upcoming-board-filter-chevron.open {
+  transform: rotate(180deg);
+}
+
+.upcoming-board-checkboxes {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 8px;
+  z-index: 10;
+  min-width: 200px;
+}
+
+.upcoming-board-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  min-height: 44px;
+}
+
+.upcoming-board-checkbox-label:hover {
+  background: var(--overlay-sm);
+}
+
+.upcoming-board-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+}
+
+.upcoming-board-checkbox-label input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Buckets */
+.upcoming-buckets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.upcoming-bucket {
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  padding: 12px;
+}
+
+.upcoming-bucket-overdue {
+  border-left: 3px solid var(--color-overdue);
+}
+
+.upcoming-bucket-this-week {
+  border-left: 3px solid var(--color-primary);
+}
+
+.upcoming-bucket-next-week {
+  border-left: 3px solid var(--color-warning);
+}
+
+.upcoming-bucket-later {
+  border-left: 3px solid var(--color-text-secondary);
+}
+
+.upcoming-bucket-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.upcoming-bucket-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--overlay-badge);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.upcoming-bucket-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upcoming-card {
+  cursor: pointer;
+}
+
+.upcoming-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+/* Board badge — same pattern as label-badge */
+.board-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.upcoming-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--color-text-secondary);
+  font-size: 16px;
+}
+
+/* Mobile: buckets stack vertically */
+@media (max-width: 768px) {
+  .upcoming-buckets {
+    grid-template-columns: 1fr;
+  }
+
+  .upcoming-board-filter-toggle {
+    min-height: 44px;
+  }
+
+  .upcoming-board-checkbox-label {
+    min-height: 44px;
+  }
+}

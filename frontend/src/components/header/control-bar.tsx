@@ -5,6 +5,7 @@ import {
   viewMode, setViewMode,
   filterLabel, filterSearch, filterDue, groupBy,
   boardLabels as labelsStore, rootItems,
+  activeView, switchToUpcoming, switchToBoard,
 } from '../../state/board-store';
 import type { DueFilter } from '../../state/board-store';
 
@@ -161,38 +162,65 @@ export function ControlBar() {
     setMenuOpen(false);
   };
 
+  const isUpcoming = activeView.value === 'upcoming';
+
   return (
     <div class="control-bar" data-testid="control-bar">
-      {/* Board selector */}
-      <div class="control-bar-section">
-        {boardColor && (
-          <span
-            class="board-color-dot"
-            style={`background: ${boardColor};`}
-            aria-hidden="true"
-            data-testid="board-color-dot"
-          />
-        )}
-        <span id="board-switcher-hint" class="sr-only">{BOARD_SWITCHER_HINT}</span>
-        <select
-          class="board-switcher-select"
-          value={activeBoardId.value}
-          onChange={handleBoardChange}
-          aria-label="Select board"
-          aria-describedby="board-switcher-hint"
-          title={BOARD_SWITCHER_HINT}
-          data-testid="control-bar-board-select"
+      {/* Board/Upcoming tab toggle */}
+      <div class="control-bar-section control-bar-view-tabs" data-testid="control-bar-view-tabs">
+        <button
+          class={`view-tab${!isUpcoming ? ' view-tab-active' : ''}`}
+          onClick={() => { if (isUpcoming) switchToBoard(); }}
+          aria-pressed={!isUpcoming ? 'true' : 'false'}
+          data-testid="view-tab-board"
         >
-          {accessibleBoards.value.map((b) => (
-            <option key={b.id} value={b.id}>
-              {boardOptionLabel(b.name, b.icon)}
-            </option>
-          ))}
-          <option value="__new__">+ New Board...</option>
-        </select>
+          Board
+        </button>
+        <button
+          class={`view-tab${isUpcoming ? ' view-tab-active' : ''}`}
+          onClick={() => { if (!isUpcoming) switchToUpcoming(); }}
+          aria-pressed={isUpcoming ? 'true' : 'false'}
+          data-testid="view-tab-upcoming"
+        >
+          Upcoming
+        </button>
       </div>
 
-      <span class="control-bar-separator" aria-hidden="true" />
+      {/* Board selector — hidden in upcoming view */}
+      {!isUpcoming && (
+        <>
+          <span class="control-bar-separator" aria-hidden="true" />
+          <div class="control-bar-section">
+            {boardColor && (
+              <span
+                class="board-color-dot"
+                style={`background: ${boardColor};`}
+                aria-hidden="true"
+                data-testid="board-color-dot"
+              />
+            )}
+            <span id="board-switcher-hint" class="sr-only">{BOARD_SWITCHER_HINT}</span>
+            <select
+              class="board-switcher-select"
+              value={activeBoardId.value}
+              onChange={handleBoardChange}
+              aria-label="Select board"
+              aria-describedby="board-switcher-hint"
+              title={BOARD_SWITCHER_HINT}
+              data-testid="control-bar-board-select"
+            >
+              {accessibleBoards.value.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {boardOptionLabel(b.name, b.icon)}
+                </option>
+              ))}
+              <option value="__new__">+ New Board...</option>
+            </select>
+          </div>
+        </>
+      )}
+
+      {!isUpcoming && <span class="control-bar-separator" aria-hidden="true" />}
 
       {/* Filters section */}
       <div class="control-bar-section control-bar-filters">
@@ -304,28 +332,32 @@ export function ControlBar() {
             class="overflow-menu-dropdown"
             data-testid="overflow-menu-dropdown"
           >
-            {/* VIEWS section */}
-            <div class="overflow-menu-section-header" role="presentation">Views</div>
-            <button
-              role="menuitem"
-              class={`overflow-menu-item${viewMode.value === 'board' ? ' overflow-menu-item-checked' : ''}`}
-              aria-checked={viewMode.value === 'board'}
-              onClick={() => { setViewMode('board'); setMenuOpen(false); }}
-              data-testid="overflow-menu-view-board"
-            >
-              Board view
-            </button>
-            <button
-              role="menuitem"
-              class={`overflow-menu-item${viewMode.value === 'list' ? ' overflow-menu-item-checked' : ''}`}
-              aria-checked={viewMode.value === 'list'}
-              onClick={() => { setViewMode('list'); setMenuOpen(false); }}
-              data-testid="overflow-menu-view-list"
-            >
-              List view
-            </button>
+            {/* VIEWS section — hidden when Upcoming view is active */}
+            {!isUpcoming && (
+              <>
+                <div class="overflow-menu-section-header" role="presentation">Views</div>
+                <button
+                  role="menuitem"
+                  class={`overflow-menu-item${viewMode.value === 'board' ? ' overflow-menu-item-checked' : ''}`}
+                  aria-checked={viewMode.value === 'board'}
+                  onClick={() => { setViewMode('board'); setMenuOpen(false); }}
+                  data-testid="overflow-menu-view-board"
+                >
+                  Board view
+                </button>
+                <button
+                  role="menuitem"
+                  class={`overflow-menu-item${viewMode.value === 'list' ? ' overflow-menu-item-checked' : ''}`}
+                  aria-checked={viewMode.value === 'list'}
+                  onClick={() => { setViewMode('list'); setMenuOpen(false); }}
+                  data-testid="overflow-menu-view-list"
+                >
+                  List view
+                </button>
 
-            <hr class="overflow-menu-divider" />
+                <hr class="overflow-menu-divider" />
+              </>
+            )}
 
             {/* GROUPING section */}
             <div class="overflow-menu-section-header" role="presentation">Grouping</div>

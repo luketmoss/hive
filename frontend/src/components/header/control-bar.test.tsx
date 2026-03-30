@@ -69,6 +69,9 @@ vi.mock('../../state/board-store', () => ({
     set value(v: boolean) { mockState.showShareModal = v; },
   },
   openDetailWithTitleEdit: { value: false },
+  activeView: { value: 'board' },
+  switchToUpcoming: vi.fn(),
+  switchToBoard: vi.fn(),
 }));
 
 afterEach(() => {

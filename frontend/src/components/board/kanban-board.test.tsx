@@ -107,6 +107,7 @@ vi.mock('../../state/board-store', () => ({
   },
   setColumnSortMode: () => {},
   columnAnnouncement: { value: null },
+  activeView: { value: 'board' },
 }));
 
 const mockMoveItem = vi.fn();
@@ -135,6 +136,9 @@ vi.mock('../header/control-bar', () => ({
 // Mock other sub-components
 vi.mock('./list-view', () => ({
   ListView: () => <div class="list-view" data-testid="list-view" />,
+}));
+vi.mock('../upcoming/upcoming-view', () => ({
+  UpcomingView: () => <div class="upcoming-view" data-testid="upcoming-view" />,
 }));
 vi.mock('./card-detail', () => ({
   CardDetail: () => <div data-testid="card-detail" />,

@@ -1,4 +1,4 @@
-import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl, permissions, currentUserEmail, selectedItemId, boardItems as boardItemsComputed } from './board-store';
+import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl, initActiveViewFromUrl, initUpcomingBoardFilter, permissions, currentUserEmail, selectedItemId, boardItems as boardItemsComputed } from './board-store';
 import { validateStatusTransition, applyStatusSideEffects } from './rules';
 import {
   fetchAllItems as sheetsFetchAllItems,
@@ -254,6 +254,8 @@ export async function loadBoard(token: string, user?: UserInfo | null) {
     // Initialize active board from URL or default to first accessible board
     if (boardsData.length > 0) {
       initActiveBoardFromUrl();
+      initUpcomingBoardFilter();
+      initActiveViewFromUrl();
     }
 
     // Allowlist check: the Owners sheet is the source of truth for who can
