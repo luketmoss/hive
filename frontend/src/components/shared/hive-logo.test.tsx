@@ -30,11 +30,11 @@ describe('HiveLogo (Issue #30 AC1)', () => {
     expect(svg!.classList.contains('my-class')).toBe(true);
   });
 
-  it('uses var(--color-primary) as the fill colour', () => {
+  it('uses var(--color-accent) as the fill colour', () => {
     const { container } = render(<HiveLogo />);
     const polygon = container.querySelector('polygon');
     expect(polygon).not.toBeNull();
-    expect(polygon!.getAttribute('fill')).toBe('var(--color-primary)');
+    expect(polygon!.getAttribute('fill')).toBe('var(--color-accent)');
   });
 
   it('contains the hexagon and checkmark shapes', () => {

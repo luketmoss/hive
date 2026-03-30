@@ -13,7 +13,7 @@ export function HiveLogo({ size = 24, class: className }: HiveLogoProps) {
       height={size}
       class={className}
     >
-      <polygon points="12 2 21 7 21 17 12 22 3 17 3 7" fill="var(--color-primary)" />
+      <polygon points="12 2 21 7 21 17 12 22 3 17 3 7" fill="var(--color-accent)" />
       <path
         d="M7 12.5l3.2 3.2L17 9.5"
         fill="none"
