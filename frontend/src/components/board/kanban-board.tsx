@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, createModalInitialStatus, selectedItem, groupBy, rootItems, items, owners, boardLabels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement, showToast } from '../../state/board-store';
+import { columns, showCreateModal, createModalInitialStatus, selectedItem, groupBy, rootItems, items, owners, boardLabels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement, showToast, activeView } from '../../state/board-store';
 import type { SortMode } from '../../state/board-store';
 import { moveItem, reorderItem, createItem, deleteItem } from '../../state/actions';
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts';
@@ -19,6 +19,7 @@ import { ArchiveDialog } from '../archive/archive-dialog';
 import { UserDropdown } from '../header/user-dropdown';
 import { ControlBar } from '../header/control-bar';
 import { HiveLogo } from '../shared/hive-logo';
+import { UpcomingView } from '../upcoming/upcoming-view';
 import type { ItemStatus, ItemWithRow } from '../../api/types';
 
 export function KanbanBoard() {
@@ -299,7 +300,9 @@ export function KanbanBoard() {
       <ControlBar />
 
       <main class="board-main">
-        {isBoardEmpty ? (
+        {activeView.value === 'upcoming' ? (
+          <UpcomingView />
+        ) : isBoardEmpty ? (
           <div class="board-welcome" data-testid="board-welcome">
             <div class="board-welcome-icon">&#128203;</div>
             <h2>No tasks yet</h2>

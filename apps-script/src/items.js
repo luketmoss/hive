@@ -28,6 +28,14 @@ function getItems(filters) {
     if (filters.roots_only === 'true') {
       items = items.filter(function(i) { return !i.parent_id; });
     }
+    if (filters.due_after) {
+      var dueAfter = filters.due_after;
+      items = items.filter(function(i) { return i.due_date && i.due_date >= dueAfter; });
+    }
+    if (filters.due_before) {
+      var dueBefore = filters.due_before;
+      items = items.filter(function(i) { return i.due_date && i.due_date <= dueBefore; });
+    }
   }
 
   return items.sort(function(a, b) { return a.sort_order - b.sort_order; });

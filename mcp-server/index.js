@@ -174,28 +174,45 @@ server.tool(
 
 server.tool(
   "hive_list_items",
-  "List items on a Hive kanban board, optionally filtered by status",
+  "List items on a Hive kanban board, optionally filtered by status and/or date range. Omit board to query across all boards.",
   {
-    board: z.string().describe("Board name (e.g., 'Work', 'Family')"),
+    board: z.string().optional().describe("Board name (e.g., 'Work', 'Family'). Omit to query all boards."),
     status: z
       .enum(["To Do", "In Progress", "Done"])
       .optional()
       .describe("Filter by status"),
+    due_after: z.string().optional().describe("Only items with due_date >= this date (YYYY-MM-DD)"),
+    due_before: z.string().optional().describe("Only items with due_date <= this date (YYYY-MM-DD)"),
   },
-  async ({ board, status }) => {
-    const resolved = await resolveBoard(board);
-    const params = { board_id: resolved.id };
+  async ({ board, status, due_after, due_before }) => {
+    // Resolve board name → id map for board_name enrichment
+    const boardsResult = await apiGet("getBoards");
+    const allBoards = boardsResult.success ? boardsResult.data : [];
+    const boardMap = Object.fromEntries(allBoards.map((b) => [b.id, b.name]));
+
+    const params = {};
+    let boardLabel = "All boards";
+    if (board) {
+      const resolved = await resolveBoard(board);
+      params.board_id = resolved.id;
+      boardLabel = resolved.name;
+    }
     if (status) params.status = status;
+    if (due_after) params.due_after = normalizeDate(due_after);
+    if (due_before) params.due_before = normalizeDate(due_before);
+
     const result = await apiGet("getItems", params);
     if (!result.success) return { content: [{ type: "text", text: `Error: ${result.error}` }] };
     const items = result.data;
     if (!items.length)
       return {
-        content: [{ type: "text", text: `No items found on "${resolved.name}"${status ? ` with status "${status}"` : ""}.` }],
+        content: [{ type: "text", text: `No items found on "${boardLabel}"${status ? ` with status "${status}"` : ""}.` }],
       };
     const text = items
       .map((i) => {
+        const bName = boardMap[i.board_id] || "unknown";
         const parts = [`- [${i.status}] **${i.title}** (id: ${i.id})`];
+        parts.push(`board: ${bName}`);
         if (i.owner) parts.push(`(${i.owner})`);
         if (i.due_date) parts.push(`due: ${i.due_date}`);
         if (i.labels) parts.push(`labels: ${i.labels}`);
@@ -203,7 +220,7 @@ server.tool(
         return parts.join(" ");
       })
       .join("\n");
-    return { content: [{ type: "text", text: `**${resolved.name}** board:\n${text}` }] };
+    return { content: [{ type: "text", text: `**${boardLabel}**:\n${text}` }] };
   }
 );
 

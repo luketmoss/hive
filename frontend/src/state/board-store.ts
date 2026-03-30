@@ -76,6 +76,63 @@ export type DueFilter = 'today' | 'this-week' | null;
 export const filterDue = signal<DueFilter>(null);
 export const groupBy = signal<'none' | 'owner' | 'label'>('none');
 
+// --- Active view (Board vs Upcoming) ---
+export type ActiveView = 'board' | 'upcoming';
+export const activeView = signal<ActiveView>('board');
+
+/** Switch to the upcoming view. Updates URL and hides board param. */
+export function switchToUpcoming() {
+  activeView.value = 'upcoming';
+  const url = new URL(window.location.href);
+  url.searchParams.delete('board');
+  url.searchParams.set('view', 'upcoming');
+  window.history.replaceState(null, '', url.toString());
+  document.title = 'Hive — Upcoming';
+}
+
+/** Switch back to board view. Restores board param from activeBoardId. */
+export function switchToBoard() {
+  activeView.value = 'board';
+  const url = new URL(window.location.href);
+  url.searchParams.delete('view');
+  if (activeBoardId.value) {
+    url.searchParams.set('board', activeBoardId.value);
+  }
+  window.history.replaceState(null, '', url.toString());
+  const board = boards.value.find(b => b.id === activeBoardId.value);
+  if (board) document.title = `Hive — ${board.name}`;
+}
+
+/** Read view from URL on init. */
+export function initActiveViewFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('view') === 'upcoming') {
+    activeView.value = 'upcoming';
+    document.title = 'Hive — Upcoming';
+  }
+}
+
+// --- Upcoming view: filter signals ---
+export const upcomingFilterSearch = signal('');
+export const upcomingFilterLabel = signal<string | null>(null);
+export const upcomingFilterBoards = signal<Set<string>>(new Set());
+
+/** Initialize upcoming board filter to all accessible boards. */
+export function initUpcomingBoardFilter() {
+  upcomingFilterBoards.value = new Set(accessibleBoards.value.map(b => b.id));
+}
+
+/** Toggle a board in the upcoming filter. */
+export function toggleUpcomingBoard(boardId: string) {
+  const current = new Set(upcomingFilterBoards.value);
+  if (current.has(boardId)) {
+    current.delete(boardId);
+  } else {
+    current.add(boardId);
+  }
+  upcomingFilterBoards.value = current;
+}
+
 // --- UI state ---
 export const selectedItemId = signal<string | null>(null);
 /** When true, CardDetail opens with the title EditableField in edit mode. */
@@ -376,6 +433,160 @@ export const columns = computed(() => ({
   'In Progress': sortItems(rootItems.value.filter(i => i.status === 'In Progress'), columnSortModes.value['In Progress']),
   'Done': recentDoneItems.value,
 }));
+
+// --- Upcoming view: time-bucketed items ---
+export type UpcomingBucket = 'overdue' | 'this-week' | 'next-week' | 'later';
+
+export interface UpcomingBucketData {
+  key: UpcomingBucket;
+  label: string;
+  items: ItemWithRow[];
+}
+
+/** Get Monday of the current week as YYYY-MM-DD. */
+function mondayOfWeek(d: Date): string {
+  const copy = new Date(d);
+  const day = copy.getDay(); // 0=Sun
+  const diff = day === 0 ? -6 : 1 - day; // Mon=1
+  copy.setDate(copy.getDate() + diff);
+  return `${copy.getFullYear()}-${String(copy.getMonth() + 1).padStart(2, '0')}-${String(copy.getDate()).padStart(2, '0')}`;
+}
+
+/** Get Sunday of the current week as YYYY-MM-DD. */
+function sundayOfWeek(d: Date): string {
+  const copy = new Date(d);
+  const day = copy.getDay(); // 0=Sun
+  const diff = day === 0 ? 0 : 7 - day;
+  copy.setDate(copy.getDate() + diff);
+  return `${copy.getFullYear()}-${String(copy.getMonth() + 1).padStart(2, '0')}-${String(copy.getDate()).padStart(2, '0')}`;
+}
+
+/** Get next week's Monday and Sunday. */
+function nextWeekRange(d: Date): [string, string] {
+  const copy = new Date(d);
+  const day = copy.getDay();
+  const toNextMon = day === 0 ? 1 : 8 - day;
+  copy.setDate(copy.getDate() + toNextMon);
+  const monday = `${copy.getFullYear()}-${String(copy.getMonth() + 1).padStart(2, '0')}-${String(copy.getDate()).padStart(2, '0')}`;
+  copy.setDate(copy.getDate() + 6);
+  const sunday = `${copy.getFullYear()}-${String(copy.getMonth() + 1).padStart(2, '0')}-${String(copy.getDate()).padStart(2, '0')}`;
+  return [monday, sunday];
+}
+
+function classifyDueDate(dueDate: string, today: string, thisMonday: string, thisSunday: string, nextMonday: string, nextSunday: string): UpcomingBucket {
+  if (dueDate < today) return 'overdue';
+  if (dueDate >= thisMonday && dueDate <= thisSunday) return 'this-week';
+  if (dueDate >= nextMonday && dueDate <= nextSunday) return 'next-week';
+  return 'later';
+}
+
+export const upcomingBuckets = computed((): UpcomingBucketData[] => {
+  const now = new Date();
+  const today = todayStr();
+  const thisMonday = mondayOfWeek(now);
+  const thisSunday = sundayOfWeek(now);
+  const [nextMonday, nextSunday] = nextWeekRange(now);
+
+  // Get all non-Done items across all accessible boards
+  const selectedBoards = upcomingFilterBoards.value;
+  const allItems = items.value.filter(i =>
+    i.status !== 'Done' && selectedBoards.has(i.board_id)
+  );
+
+  const search = upcomingFilterSearch.value.trim();
+  const labelFilter = upcomingFilterLabel.value;
+
+  // Classify items with due dates into buckets
+  const rootsWithDue = allItems.filter(i => !i.parent_id && i.due_date);
+  const children = allItems.filter(i => i.parent_id);
+
+  // Build parent → earliest child bucket map for AC3
+  const parentBucketMap = new Map<string, UpcomingBucket>();
+  for (const child of children) {
+    if (!child.due_date) continue;
+    const bucket = classifyDueDate(child.due_date, today, thisMonday, thisSunday, nextMonday, nextSunday);
+    const existing = parentBucketMap.get(child.parent_id);
+    if (!existing || bucketOrder(bucket) < bucketOrder(existing)) {
+      parentBucketMap.set(child.parent_id, bucket);
+    }
+  }
+
+  // Collect all qualifying root items
+  const buckets: Record<UpcomingBucket, ItemWithRow[]> = {
+    'overdue': [],
+    'this-week': [],
+    'next-week': [],
+    'later': [],
+  };
+
+  // Roots with their own due dates
+  for (const item of rootsWithDue) {
+    const bucket = classifyDueDate(item.due_date, today, thisMonday, thisSunday, nextMonday, nextSunday);
+    buckets[bucket].push(item);
+  }
+
+  // AC3: Parents without qualifying due date but with qualifying children
+  const rootsWithoutDue = allItems.filter(i => !i.parent_id && !i.due_date);
+  for (const item of rootsWithoutDue) {
+    const childBucket = parentBucketMap.get(item.id);
+    if (childBucket) {
+      buckets[childBucket].push(item);
+    }
+  }
+
+  // Also include roots whose own due_date doesn't qualify but whose children do
+  // (e.g., root due_date is in "later" but child is in "overdue")
+  // The root already appears via its own due date, so skip re-adding
+
+  // Apply search and label filters
+  const applyFilters = (list: ItemWithRow[]): ItemWithRow[] => {
+    let result = list;
+    if (search) {
+      const t = search.toLowerCase();
+      result = result.filter(i =>
+        i.title.toLowerCase().includes(t) ||
+        i.description.toLowerCase().includes(t) ||
+        i.labels.toLowerCase().includes(t)
+      );
+    }
+    if (labelFilter) {
+      result = result.filter(i =>
+        i.labels.split(',').map(l => l.trim()).includes(labelFilter)
+      );
+    }
+    return result;
+  };
+
+  // Sort each bucket by due_date ascending
+  const sortByDue = (a: ItemWithRow, b: ItemWithRow) => {
+    if (!a.due_date && !b.due_date) return 0;
+    if (!a.due_date) return 1;
+    if (!b.due_date) return -1;
+    return a.due_date.localeCompare(b.due_date);
+  };
+
+  const result: UpcomingBucketData[] = [];
+  const bucketDefs: { key: UpcomingBucket; label: string }[] = [
+    { key: 'overdue', label: 'Overdue' },
+    { key: 'this-week', label: 'This Week' },
+    { key: 'next-week', label: 'Next Week' },
+    { key: 'later', label: 'Later' },
+  ];
+
+  for (const def of bucketDefs) {
+    const filtered = applyFilters(buckets[def.key]).sort(sortByDue);
+    if (filtered.length > 0) {
+      result.push({ key: def.key, label: def.label, items: filtered });
+    }
+  }
+
+  return result;
+});
+
+function bucketOrder(bucket: UpcomingBucket): number {
+  const order: Record<UpcomingBucket, number> = { 'overdue': 0, 'this-week': 1, 'next-week': 2, 'later': 3 };
+  return order[bucket];
+}
 
 export const selectedItem = computed(() =>
   selectedItemId.value ? items.value.find(i => i.id === selectedItemId.value) ?? null : null

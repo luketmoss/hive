@@ -254,14 +254,14 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     sheetRow: 11,
   },
 
-  // 8. Long title edge case — In Progress
+  // 8. Long title edge case — In Progress, with due date on work board
   {
     id: 'demo-008',
     title: 'A very long task title that tests how the card handles text wrapping and overflow for wordy items',
     description: '',
     status: 'In Progress',
     owner: 'Mom',
-    due_date: '',
+    due_date: daysFromNow(10),
 
     labels: 'Home',
     parent_id: '',
@@ -372,5 +372,45 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     created_by: 'mom@family.com',
     board_id: 'board-work',
     sheetRow: 16,
+  },
+
+  // 14. Quarterly review — To Do, due next week, work board
+  {
+    id: 'demo-014',
+    title: 'Quarterly review prep',
+    description: 'Prepare slides and metrics for the quarterly review.',
+    status: 'To Do',
+    owner: 'Dad',
+    due_date: daysFromNow(9),
+
+    labels: 'Important',
+    parent_id: '',
+    created_at: daysAgo(3),
+    updated_at: daysAgo(1),
+    completed_at: '',
+    sort_order: 5,
+    created_by: 'dad@family.com',
+    board_id: 'board-work',
+    sheetRow: 18,
+  },
+
+  // 15. Submit expense report — To Do, overdue, work board
+  {
+    id: 'demo-015',
+    title: 'Submit expense report',
+    description: 'March expenses need to be filed.',
+    status: 'To Do',
+    owner: 'Dad',
+    due_date: daysAgo(3),
+
+    labels: 'Errands',
+    parent_id: '',
+    created_at: daysAgo(10),
+    updated_at: daysAgo(5),
+    completed_at: '',
+    sort_order: 6,
+    created_by: 'dad@family.com',
+    board_id: 'board-work',
+    sheetRow: 19,
   },
 ];

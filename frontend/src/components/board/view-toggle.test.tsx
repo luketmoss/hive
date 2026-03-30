@@ -58,11 +58,20 @@ vi.mock('../../state/board-store', () => ({
   setTheme: () => {},
   columnSortModes: { value: {} },
   setColumnSortMode: vi.fn(),
+  activeView: { value: 'board' },
+  switchToUpcoming: vi.fn(),
+  switchToBoard: vi.fn(),
+  columnAnnouncement: { value: null },
+  showMoveToBoardModal: { value: false },
+  showToast: vi.fn(),
+  createModalInitialStatus: { value: null },
 }));
 
 vi.mock('../../state/actions', () => ({
   moveItem: vi.fn(),
   reorderItem: vi.fn(),
+  createItem: vi.fn(),
+  deleteItem: vi.fn(),
 }));
 
 vi.mock('./create-board-modal', () => ({
@@ -78,6 +87,10 @@ vi.mock('./delete-board-modal', () => ({
 
 vi.mock('./list-view', () => ({
   ListView: () => <div class="list-view" data-testid="list-view" />,
+}));
+
+vi.mock('../upcoming/upcoming-view', () => ({
+  UpcomingView: () => <div class="upcoming-view" data-testid="upcoming-view" />,
 }));
 
 vi.mock('./card-detail', () => ({
