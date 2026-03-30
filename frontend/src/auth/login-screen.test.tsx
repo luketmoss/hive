@@ -37,3 +37,29 @@ describe('LoginScreen logo (Issue #30 AC4)', () => {
     expect(logo!.classList.contains('login-logo')).toBe(true);
   });
 });
+
+describe('Login tagline (Issue #189)', () => {
+  it('AC1: displays "Plan. Track. Do." as the tagline', () => {
+    const { container } = render(<LoginScreen />);
+    const p = container.querySelector('.login-card p');
+    expect(p).not.toBeNull();
+    expect(p!.textContent).toBe('Plan. Track. Do.');
+  });
+
+  it('AC1: tagline appears between the title and sign-in button', () => {
+    const { container } = render(<LoginScreen />);
+    const card = container.querySelector('.login-card')!;
+    const children = Array.from(card.children);
+    const h1Idx = children.findIndex(c => c.tagName === 'H1');
+    const pIdx = children.findIndex(c => c.tagName === 'P');
+    const btnIdx = children.findIndex(c => c.tagName === 'BUTTON');
+    expect(pIdx).toBeGreaterThan(h1Idx);
+    expect(pIdx).toBeLessThan(btnIdx);
+  });
+
+  it('AC1: "Hive" is still the title', () => {
+    const { container } = render(<LoginScreen />);
+    const h1 = container.querySelector('.login-card h1');
+    expect(h1!.textContent).toBe('Hive');
+  });
+});
