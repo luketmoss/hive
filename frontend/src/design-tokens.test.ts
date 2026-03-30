@@ -142,6 +142,99 @@ describe('Design tokens: shared vocabulary (Issue #191)', () => {
   });
 });
 
+describe('Design tokens: gold color scheme (Issue #190)', () => {
+  describe('AC1: Gold primary tokens in light mode', () => {
+    it('--color-primary is #C49200 in :root', () => {
+      expect(rootBlock).toMatch(/--color-primary:\s*#C49200/);
+    });
+    it('--color-primary-hover is #A67B00 in :root', () => {
+      expect(rootBlock).toMatch(/--color-primary-hover:\s*#A67B00/);
+    });
+    it('--color-primary-rgb is 196, 146, 0 in :root', () => {
+      expect(rootBlock).toMatch(/--color-primary-rgb:\s*196, 146, 0/);
+    });
+    it('--color-focus is #C49200 in :root', () => {
+      expect(rootBlock).toMatch(/--color-focus:\s*#C49200/);
+    });
+  });
+
+  describe('AC2: Gold primary tokens in dark mode', () => {
+    it('--color-primary is #F5B700 in dark mode', () => {
+      expect(darkBlock).toMatch(/--color-primary:\s*#F5B700/);
+    });
+    it('--color-primary-hover is #FFD54F in dark mode', () => {
+      expect(darkBlock).toMatch(/--color-primary-hover:\s*#FFD54F/);
+    });
+    it('--color-primary-rgb is 245, 183, 0 in dark mode', () => {
+      expect(darkBlock).toMatch(/--color-primary-rgb:\s*245, 183, 0/);
+    });
+    it('--color-focus is #F5B700 in dark mode', () => {
+      expect(darkBlock).toMatch(/--color-focus:\s*#F5B700/);
+    });
+  });
+
+  describe('AC3: Accent token for logo/branding', () => {
+    it('--color-accent is #F5B700 in :root', () => {
+      expect(rootBlock).toMatch(/--color-accent:\s*#F5B700/);
+    });
+    it('--color-accent is #F5B700 in dark mode', () => {
+      expect(darkBlock).toMatch(/--color-accent:\s*#F5B700/);
+    });
+  });
+
+  describe('AC4: WCAG AA contrast for interactive elements', () => {
+    it('.btn-primary uses dark text (#1f1f1f) not white', () => {
+      const match = css.match(/\.btn-primary\s*\{[^}]*\}/);
+      expect(match).not.toBeNull();
+      expect(match![0]).toContain('color: #1f1f1f');
+      expect(match![0]).not.toContain('color: white');
+    });
+  });
+
+  describe('AC5: No blue primary remnants', () => {
+    it('no #1976d2 in global.css', () => {
+      expect(css).not.toContain('#1976d2');
+    });
+    it('no #90caf9 in global.css', () => {
+      expect(css).not.toContain('#90caf9');
+    });
+    it('no #1565c0 in global.css', () => {
+      expect(css).not.toContain('#1565c0');
+    });
+    it('no #64b5f6 in global.css', () => {
+      expect(css).not.toContain('#64b5f6');
+    });
+    it('.column-sort-active SVG uses gold fill in light mode', () => {
+      const match = css.match(/\.column-sort-active\s*\{[^}]*\}/);
+      expect(match).not.toBeNull();
+      expect(match![0]).toContain("fill='%23C49200'");
+    });
+    it('[data-theme="dark"] .column-sort-active SVG uses gold fill', () => {
+      const match = css.match(/\[data-theme="dark"\]\s*\.column-sort-active\s*\{[^}]*\}/);
+      expect(match).not.toBeNull();
+      expect(match![0]).toContain("fill='%23F5B700'");
+    });
+  });
+
+  describe('AC6: Semantic and neutral tokens unchanged', () => {
+    it('--color-bg is #f0f2f5', () => {
+      expect(rootBlock).toMatch(/--color-bg:\s*#f0f2f5/);
+    });
+    it('--color-surface is #ffffff', () => {
+      expect(rootBlock).toMatch(/--color-surface:\s*#ffffff/);
+    });
+    it('--color-border is #dadce0', () => {
+      expect(rootBlock).toMatch(/--color-border:\s*#dadce0/);
+    });
+    it('--color-text is #1f1f1f', () => {
+      expect(rootBlock).toMatch(/--color-text:\s*#1f1f1f/);
+    });
+    it('--color-text-secondary is #5f6368', () => {
+      expect(rootBlock).toMatch(/--color-text-secondary:\s*#5f6368/);
+    });
+  });
+});
+
 describe('Design token: --color-primary-light (Issue #104)', () => {
   // AC1: Token defined in :root
   describe('AC1: Token defined in :root', () => {

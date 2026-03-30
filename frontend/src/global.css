@@ -4,11 +4,14 @@
   --color-bg: #f0f2f5;
   --color-surface: #ffffff;
 
-  /* Brand colours */
-  --color-primary: #1976d2;
-  --color-primary-hover: #1565c0;
+  /* Brand colours — two-tier system:
+     --color-accent (#F5B700): logo/branding/decorative (same both modes)
+     --color-primary: interactive elements, tuned for WCAG AA contrast per mode */
+  --color-accent: #F5B700;
+  --color-primary: #C49200;
+  --color-primary-hover: #A67B00;
   /* RGB components for alpha-blended highlights */
-  --color-primary-rgb: 25, 118, 210;
+  --color-primary-rgb: 196, 146, 0;
   --color-primary-light: color-mix(in srgb, var(--color-primary) 8%, transparent);
 
   /* Text */
@@ -82,7 +85,7 @@
   --radius-full: 9999px;
   --shadow: 0 1px 3px var(--overlay-3xl), 0 1px 2px var(--overlay-md);
   --shadow-lg: 0 4px 12px var(--overlay-3xl);
-  --color-focus: #1976d2;
+  --color-focus: #C49200;
   --focus-ring: 0 0 0 2px var(--color-focus);
   --column-width: 320px;
   --header-height: 44px;
@@ -94,9 +97,10 @@
   --color-bg: #121212;
   --color-surface: #1e1e1e;
 
-  --color-primary: #90caf9;
-  --color-primary-hover: #64b5f6;
-  --color-primary-rgb: 144, 202, 249;
+  --color-accent: #F5B700;
+  --color-primary: #F5B700;
+  --color-primary-hover: #FFD54F;
+  --color-primary-rgb: 245, 183, 0;
 
   --color-text: #e8eaed;
   --color-text-secondary: #9aa0a6;
@@ -136,7 +140,7 @@
 
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.5);
-  --color-focus: #90caf9;
+  --color-focus: #F5B700;
   --focus-ring: 0 0 0 2px var(--color-focus);
 }
 
@@ -177,7 +181,7 @@ body {
 
 .btn-primary {
   background: var(--color-primary);
-  color: white;
+  color: #1f1f1f;
 }
 .btn-primary:hover { background: var(--color-primary-hover); }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -967,12 +971,15 @@ body {
   outline-offset: 1px;
 }
 
-/* AC7: Visual accent when a non-custom sort is active — #1565c0 on column header bg ≥ 3:1 */
+/* AC7: Visual accent when a non-custom sort is active — gold on column header bg ≥ 3:1 */
 .column-sort-active {
   border-color: var(--color-primary);
   color: var(--color-primary);
   font-weight: 600;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%231976d2'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23C49200'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .column-sort-active {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23F5B700'/%3E%3C/svg%3E");
 }
 
 .column-count {
