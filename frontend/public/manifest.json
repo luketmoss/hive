@@ -4,8 +4,8 @@
   "description": "Family task management board powered by Google Sheets",
   "start_url": "/hive/",
   "display": "standalone",
-  "background_color": "#f8f9fa",
-  "theme_color": "#1976d2",
+  "background_color": "#F5B700",
+  "theme_color": "#F5B700",
   "icons": [
     {
       "src": "hive-icon-192.svg",

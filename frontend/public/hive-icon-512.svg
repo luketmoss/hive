@@ -1,5 +1,5 @@
 <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="80" fill="#1976d2"/>
+  <rect width="512" height="512" rx="80" fill="#F5B700"/>
   <g transform="translate(96, 96)">
     <polygon points="160 26.7 280 86.7 280 206.7 160 266.7 40 206.7 40 86.7" fill="none" stroke="white" stroke-width="16"/>
     <path d="M115 155.4l36 36L231 120.4" fill="none" stroke="white" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
