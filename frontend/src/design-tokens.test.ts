@@ -235,6 +235,116 @@ describe('Design tokens: gold color scheme (Issue #190)', () => {
   });
 });
 
+describe('UX alignment (Issue #192)', () => {
+  describe('AC1: Login card styling', () => {
+    it('login-card has max-width 400px', () => {
+      const match = css.match(/\.login-card\s*\{[^}]*\}/);
+      expect(match).not.toBeNull();
+      expect(match![0]).toContain('max-width: 400px');
+    });
+    it('login-card has border-radius var(--radius-lg)', () => {
+      const match = css.match(/\.login-card\s*\{[^}]*\}/);
+      expect(match![0]).toContain('border-radius: var(--radius-lg)');
+    });
+    it('login-card has width 100%', () => {
+      const match = css.match(/\.login-card\s*\{[^}]*\}/);
+      expect(match![0]).toContain('width: 100%');
+    });
+    it('login-screen has padding var(--space-lg)', () => {
+      const match = css.match(/\.login-screen\s*\{[^}]*\}/);
+      expect(match![0]).toContain('padding: var(--space-lg)');
+    });
+    it('login-card h1 uses var(--text-2xl)', () => {
+      const match = css.match(/\.login-card h1\s*\{[^}]*\}/);
+      expect(match![0]).toContain('var(--text-2xl)');
+    });
+    it('login-btn has width 100% and font-weight 600', () => {
+      const match = css.match(/\.login-btn\s*\{[^}]*\}/);
+      expect(match![0]).toContain('width: 100%');
+      expect(match![0]).toContain('font-weight: 600');
+    });
+  });
+
+  describe('AC2: Button touch targets', () => {
+    it('.btn has min-height 48px', () => {
+      const match = css.match(/\.btn\s*\{[^}]*\}/);
+      expect(match![0]).toContain('min-height: 48px');
+    });
+    it('.btn has font-weight 600', () => {
+      const match = css.match(/\.btn\s*\{[^}]*\}/);
+      expect(match![0]).toContain('font-weight: 600');
+    });
+    it('.btn has border-radius var(--radius)', () => {
+      const match = css.match(/\.btn\s*\{[^}]*\}/);
+      expect(match![0]).toContain('border-radius: var(--radius)');
+    });
+  });
+
+  describe('AC3: Form input styling', () => {
+    it('form inputs have padding 12px 16px', () => {
+      const match = css.match(/\.form-field input,[\s\S]*?\.form-field textarea\s*\{[^}]*\}/);
+      expect(match).not.toBeNull();
+      expect(match![0]).toContain('padding: 12px 16px');
+    });
+    it('form inputs have min-height 48px', () => {
+      const match = css.match(/\.form-field input,[\s\S]*?\.form-field textarea\s*\{[^}]*\}/);
+      expect(match![0]).toContain('min-height: 48px');
+    });
+    it('form inputs have font-size 16px', () => {
+      const match = css.match(/\.form-field input,[\s\S]*?\.form-field textarea\s*\{[^}]*\}/);
+      expect(match![0]).toContain('font-size: 16px');
+    });
+    it('form inputs have border-radius var(--radius)', () => {
+      const match = css.match(/\.form-field input,[\s\S]*?\.form-field textarea\s*\{[^}]*\}/);
+      expect(match![0]).toContain('border-radius: var(--radius)');
+    });
+    it('form inputs use var(--color-surface-raised) background', () => {
+      const match = css.match(/\.form-field input,[\s\S]*?\.form-field textarea\s*\{[^}]*\}/);
+      expect(match![0]).toContain('var(--color-surface-raised)');
+    });
+  });
+
+  describe('AC4: Modal styling', () => {
+    it('overlay uses rgba(0,0,0,0.4) via --overlay-4xl', () => {
+      expect(rootBlock).toMatch(/--overlay-4xl:\s*rgba\(0,\s*0,\s*0,\s*0\.4\)/);
+    });
+    it('.modal has border-radius var(--radius-lg)', () => {
+      const match = css.match(/\.modal\s*\{[^}]*\}/);
+      expect(match![0]).toContain('border-radius: var(--radius-lg)');
+    });
+  });
+
+  describe('AC5: Toast at top-center', () => {
+    it('.toast uses top positioning', () => {
+      const match = css.match(/\.toast\s*\{[^}]*\}/);
+      expect(match![0]).toContain('top: calc(var(--header-height');
+      expect(match![0]).not.toContain('bottom:');
+    });
+    it('toast-in animates from translateY(-16px)', () => {
+      const match = css.match(/@keyframes toast-in\s*\{[^}]*from\s*\{[^}]*\}/);
+      expect(match).not.toBeNull();
+      expect(match![0]).toContain('translateY(-16px)');
+    });
+  });
+
+  describe('AC6: Theme toggle surface-elevate style', () => {
+    it('.theme-toggle-active uses surface background', () => {
+      const match = css.match(/\.theme-toggle-active\s*\{[^}]*\}/);
+      expect(match![0]).toContain('var(--color-surface)');
+      expect(match![0]).not.toContain('var(--color-primary)');
+    });
+    it('.theme-toggle-active uses color: var(--color-text)', () => {
+      const match = css.match(/\.theme-toggle-active\s*\{[^}]*\}/);
+      expect(match![0]).toContain('color: var(--color-text)');
+      expect(match![0]).not.toContain('color: white');
+    });
+    it('.theme-toggle-active has box-shadow', () => {
+      const match = css.match(/\.theme-toggle-active\s*\{[^}]*\}/);
+      expect(match![0]).toContain('box-shadow:');
+    });
+  });
+});
+
 describe('Design token: --color-primary-light (Issue #104)', () => {
   // AC1: Token defined in :root
   describe('AC1: Token defined in :root', () => {
