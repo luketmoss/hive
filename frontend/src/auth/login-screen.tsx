@@ -9,7 +9,7 @@ export function LoginScreen() {
       <div class="login-card">
         <HiveLogo size={64} class="login-logo" />
         <h1>Hive</h1>
-        <p>Family Kanban Board</p>
+        <p>Plan. Track. Do.</p>
         <button class="login-btn" onClick={login}>
           Sign in with Google
         </button>
