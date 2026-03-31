@@ -2,10 +2,8 @@ import { useState, useCallback, useRef, useEffect } from 'preact/hooks';
 import {
   upcomingBuckets,
   upcomingFilterSearch,
-  upcomingFilterLabel,
   upcomingFilterBoards,
   toggleUpcomingBoard,
-  labels as labelsStore,
   accessibleBoards,
   boards,
   items,
@@ -22,7 +20,6 @@ export function UpcomingView() {
   const [localSearch, setLocalSearch] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [boardFilterOpen, setBoardFilterOpen] = useState(false);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   // Mobile detect
@@ -67,7 +64,6 @@ export function UpcomingView() {
 
   const activeFilterCount =
     (upcomingFilterSearch.value ? 1 : 0) +
-    (upcomingFilterLabel.value ? 1 : 0) +
     (selectedBoardCount < totalBoardCount ? 1 : 0);
 
   return (
@@ -115,62 +111,29 @@ export function UpcomingView() {
             )}
           </div>
 
-          {/* Label chips */}
-          <div role="group" aria-label="Filter by label" class="filter-chip-group">
-            <span class="filter-chip-group-label">Label:</span>
-            {labelsStore.value.map(l => {
-              const active = upcomingFilterLabel.value === l.label;
+          {/* Board filter tiles */}
+          <div
+            role="group"
+            aria-label="Filter by board"
+            class="upcoming-board-tiles"
+            data-testid="upcoming-board-tiles"
+          >
+            {accessibleBoards.value.map(b => {
+              const active = upcomingFilterBoards.value.has(b.id);
               return (
                 <button
-                  key={l.label}
-                  class={`filter-chip filter-chip-label${active ? ' filter-chip-active' : ''}`}
+                  key={b.id}
+                  class={`upcoming-board-tile${active ? ' upcoming-board-tile-active' : ''}`}
                   aria-pressed={active ? 'true' : 'false'}
-                  style={`--label-color: ${l.color}`}
-                  onClick={() => { upcomingFilterLabel.value = active ? null : l.label; }}
+                  style={`--board-color: ${b.color || '#999'}`}
+                  onClick={() => toggleUpcomingBoard(b.id)}
+                  data-testid={`upcoming-board-tile-${b.id}`}
                 >
-                  {l.label}
+                  {b.icon && <span aria-hidden="true">{b.icon}</span>}
+                  {b.name}
                 </button>
               );
             })}
-          </div>
-
-          {/* Board filter */}
-          <div class="upcoming-board-filter" data-testid="upcoming-board-filter">
-            <button
-              class="upcoming-board-filter-toggle"
-              aria-expanded={boardFilterOpen}
-              aria-controls="upcoming-board-checkboxes"
-              onClick={() => setBoardFilterOpen(prev => !prev)}
-              data-testid="upcoming-board-filter-toggle"
-            >
-              Boards ({selectedBoardCount}/{totalBoardCount})
-              <span class={`upcoming-board-filter-chevron${boardFilterOpen ? ' open' : ''}`}>&#9660;</span>
-            </button>
-            {boardFilterOpen && (
-              <div
-                id="upcoming-board-checkboxes"
-                role="group"
-                aria-label="Filter by board"
-                class="upcoming-board-checkboxes"
-                data-testid="upcoming-board-checkboxes"
-              >
-                {accessibleBoards.value.map(b => {
-                  const checked = upcomingFilterBoards.value.has(b.id);
-                  return (
-                    <label key={b.id} class="upcoming-board-checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleUpcomingBoard(b.id)}
-                        data-testid={`upcoming-board-checkbox-${b.id}`}
-                      />
-                      {b.icon && <span aria-hidden="true">{b.icon} </span>}
-                      {b.name}
-                    </label>
-                  );
-                })}
-              </div>
-            )}
           </div>
         </div>
       </div>

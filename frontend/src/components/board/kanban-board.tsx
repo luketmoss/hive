@@ -283,6 +283,7 @@ export function KanbanBoard() {
         <div class="board-header-left">
           <HiveLogo class="board-header-logo" />
           <h1>Hive</h1>
+          <span class="board-header-brand-sep" aria-hidden="true" />
           {/* AC1 #198: View mode tabs in header */}
           <div class="control-bar-view-tabs" role="group" aria-label="View" data-testid="control-bar-view-tabs">
             <button
