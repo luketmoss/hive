@@ -34,19 +34,10 @@ export function BoardSwitcher() {
   }
 
   const boardName = activeBoard.value?.name || 'board';
-  const boardColor = activeBoard.value?.color || '';
   const isOwner = userBoardRole.value === 'owner';
 
   return (
     <div class="board-switcher" data-testid="board-switcher">
-      {boardColor && (
-        <span
-          class="board-color-dot"
-          style={`background: ${boardColor};`}
-          aria-hidden="true"
-          data-testid="board-color-dot"
-        />
-      )}
       <span id="board-switcher-hint" class="sr-only">{BOARD_SWITCHER_HINT}</span>
       <select
         class="board-switcher-select"

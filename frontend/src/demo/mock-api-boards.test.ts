@@ -1,5 +1,6 @@
 /**
- * Tests for mock-api board operations with color and icon (issue #74).
+ * Tests for mock-api board operations with icon (issue #74).
+ * Board color has been removed — only icon is supported.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { fetchBoards, createBoardRow, updateBoardRow } from './mock-api';
@@ -10,57 +11,59 @@ beforeEach(() => {
   resetMockState();
 });
 
-describe('mock-api board color and icon', () => {
-  it('fetchBoards returns boards with color and icon from MOCK_BOARDS', async () => {
+describe('mock-api board icon', () => {
+  it('fetchBoards returns boards with icon from MOCK_BOARDS', async () => {
     const boards = await fetchBoards('tok');
     const familyBoard = boards.find(b => b.id === 'board-family');
-    expect(familyBoard?.color).toBe('#388e3c');
     expect(familyBoard?.icon).toBe('👨‍👩‍👧');
   });
 
-  it('createBoardRow stores color and icon', async () => {
+  it('board has no color property', async () => {
+    const boards = await fetchBoards('tok');
+    const familyBoard = boards.find(b => b.id === 'board-family');
+    expect(familyBoard).not.toHaveProperty('color');
+  });
+
+  it('createBoardRow stores icon', async () => {
     await createBoardRow({
       id: 'board-test',
       name: 'Test Board',
       created_at: '',
       created_by: '',
-      color: '#d32f2f',
       icon: '🎯',
     }, 'tok');
 
     const boards = await fetchBoards('tok');
     const b = boards.find(x => x.id === 'board-test');
-    expect(b?.color).toBe('#d32f2f');
     expect(b?.icon).toBe('🎯');
   });
 
-  it('updateBoardRow updates color and icon in memory', async () => {
-    await updateBoardRow('board-family', '#d32f2f', '🎯', 'tok');
+  it('updateBoardRow updates icon in memory', async () => {
+    await updateBoardRow('board-family', '', '🎯', 'tok');
 
     const boards = await fetchBoards('tok');
     const b = boards.find(x => x.id === 'board-family');
-    expect(b?.color).toBe('#d32f2f');
     expect(b?.icon).toBe('🎯');
   });
 
   it('updateBoardRow is a no-op for unknown board IDs', async () => {
     const before = await fetchBoards('tok');
-    await updateBoardRow('nonexistent-board', '#fff', '❓', 'tok');
+    await updateBoardRow('nonexistent-board', '', '❓', 'tok');
     const after = await fetchBoards('tok');
     expect(after).toEqual(before);
   });
 });
 
-describe('MOCK_BOARDS has color and icon', () => {
-  it('Family Board has color and icon set', () => {
+describe('MOCK_BOARDS has icon', () => {
+  it('Family Board has icon set', () => {
     const b = MOCK_BOARDS.find(x => x.id === 'board-family');
-    expect(b?.color).toBeTruthy();
     expect(b?.icon).toBeTruthy();
+    expect(b).not.toHaveProperty('color');
   });
 
-  it('Work Projects board has color and icon set', () => {
+  it('Work Projects board has icon set', () => {
     const b = MOCK_BOARDS.find(x => x.id === 'board-work');
-    expect(b?.color).toBeTruthy();
     expect(b?.icon).toBeTruthy();
+    expect(b).not.toHaveProperty('color');
   });
 });
