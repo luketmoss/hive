@@ -70,8 +70,6 @@ vi.mock('../../state/board-store', () => ({
   },
   openDetailWithTitleEdit: { value: false },
   activeView: { value: 'board' },
-  switchToUpcoming: vi.fn(),
-  switchToBoard: vi.fn(),
 }));
 
 afterEach(() => {
