@@ -30,7 +30,7 @@ Task management system using Google Sheets as data layer.
 - Demo mode: fake user, no Google auth, changes not persisted
 
 ## Data Model
-Google Sheet "Hive Board" with 4 tabs: Items, Owners, Labels, Audit Log.
+Google Sheet "Hive Board" with 6 tabs: Items, Owners, Labels, Boards, Permissions, Audit Log.
 
 ## Agent Routing
 
