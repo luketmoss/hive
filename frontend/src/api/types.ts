@@ -41,7 +41,6 @@ export interface Board {
   name: string;
   created_at: string;
   created_by: string;
-  color?: string;
   icon?: string;
 }
 

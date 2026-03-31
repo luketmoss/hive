@@ -38,8 +38,8 @@ export const MOCK_LABELS: Label[] = [
 
 // --- Boards ---
 export const MOCK_BOARDS: Board[] = [
-  { id: 'board-family', name: 'Family Board', created_at: daysAgo(30), created_by: 'mom@family.com', color: '#388e3c', icon: '👨‍👩‍👧' },
-  { id: 'board-work', name: 'Work Projects', created_at: daysAgo(14), created_by: 'dad@family.com', color: '#1976d2', icon: '🏢' },
+  { id: 'board-family', name: 'Family Board', created_at: daysAgo(30), created_by: 'mom@family.com', icon: '👨‍👩‍👧' },
+  { id: 'board-work', name: 'Work Projects', created_at: daysAgo(14), created_by: 'dad@family.com', icon: '🏢' },
 ];
 
 // --- Permissions ---

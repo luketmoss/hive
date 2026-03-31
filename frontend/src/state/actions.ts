@@ -972,7 +972,6 @@ export async function createBoard(
   name: string,
   actor: string,
   token: string,
-  color?: string,
   icon?: string
 ): Promise<boolean> {
   const trimmed = name.trim();
@@ -989,7 +988,6 @@ export async function createBoard(
     name: trimmed,
     created_at: new Date().toISOString(),
     created_by: actor,
-    color: color || '',
     icon: icon || '',
   };
 
@@ -1043,7 +1041,6 @@ export async function createBoard(
 
 export async function updateBoardAppearance(
   boardId: string,
-  color: string,
   icon: string,
   token: string
 ): Promise<boolean> {
@@ -1051,11 +1048,11 @@ export async function updateBoardAppearance(
 
   // Optimistic update
   boards.value = boards.value.map(b =>
-    b.id === boardId ? { ...b, color, icon } : b
+    b.id === boardId ? { ...b, icon } : b
   );
 
   try {
-    await updateBoardRowApi(boardId, color, icon, token);
+    await updateBoardRowApi(boardId, '', icon, token);
     return true;
   } catch (err: any) {
     boards.value = oldBoards;

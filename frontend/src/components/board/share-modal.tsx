@@ -3,7 +3,6 @@ import { useAuth } from '../../auth/auth-context';
 import { showShareModal, activeBoard, activeBoardId, permissions, owners, boards, showDeleteBoardModal, userBoardRole, accessibleBoards } from '../../state/board-store';
 import { shareBoard, unshareBoard, updateBoardAppearance, renameBoardName } from '../../state/actions';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
-import { ColorPicker } from '../shared/color-picker';
 import { IconPicker } from '../shared/icon-picker';
 import { LabelSettings } from '../settings/label-settings';
 
@@ -17,7 +16,6 @@ export function ShareModal() {
   const [submitting, setSubmitting] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
   const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null);
-  const [color, setColor] = useState(activeBoard.value?.color || '');
   const [icon, setIcon] = useState(activeBoard.value?.icon || '');
   const [name, setName] = useState(activeBoard.value?.name || '');
   const [nameError, setNameError] = useState('');
@@ -72,15 +70,9 @@ export function ShareModal() {
     }
   };
 
-  // --- Color / icon (still auto-save) ---
-  const handleColorChange = async (newColor: string) => {
-    setColor(newColor);
-    if (token) await updateBoardAppearance(boardId, newColor, icon, token);
-  };
-
   const handleIconChange = async (newIcon: string) => {
     setIcon(newIcon);
-    if (token) await updateBoardAppearance(boardId, color, newIcon, token);
+    if (token) await updateBoardAppearance(boardId, newIcon, token);
   };
 
   // --- Share / unshare ---
@@ -188,11 +180,6 @@ export function ShareModal() {
                   {name.length}/{MAX_NAME_LENGTH}
                 </span>
               </div>
-            </div>
-
-            <div class="form-field">
-              <label>Color</label>
-              <ColorPicker value={color} onChange={handleColorChange} disabled={!isOwner} />
             </div>
 
             <div class="form-field">

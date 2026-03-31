@@ -1,5 +1,6 @@
 /**
- * Tests for sheets.ts board operations with color and icon (issue #74).
+ * Tests for sheets.ts board operations with icon (issue #74).
+ * Board color has been removed from the frontend type — column E is always written as empty.
  */
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
@@ -42,27 +43,37 @@ beforeEach(() => {
   mockFetch.mockReset();
 });
 
-// --- AC1/AC2: fetchBoards maps color (col E) and icon (col F) ---
+// --- fetchBoards maps icon (col F) ---
 
-describe('fetchBoards — color and icon columns', () => {
-  it('maps color (column E) and icon (column F) from Boards!A2:F', async () => {
+describe('fetchBoards — icon column', () => {
+  it('maps icon (column F) from Boards!A2:F', async () => {
     mockFetch.mockResolvedValueOnce(
       mockSheetsGetResponse([
-        ['board-1', 'Family', '2025-01-01', 'user@test.com', '#1976d2', '🏠'],
-        ['board-2', 'Work', '2025-01-02', 'other@test.com', '#388e3c', '🏢'],
+        ['board-1', 'Family', '2025-01-01', 'user@test.com', '', '🏠'],
+        ['board-2', 'Work', '2025-01-02', 'other@test.com', '', '🏢'],
       ])
     );
 
     const boards = await fetchBoards('test-token');
 
     expect(boards).toHaveLength(2);
-    expect(boards[0].color).toBe('#1976d2');
     expect(boards[0].icon).toBe('🏠');
-    expect(boards[1].color).toBe('#388e3c');
     expect(boards[1].icon).toBe('🏢');
   });
 
-  it('returns empty string for missing color/icon (AC5: migration)', async () => {
+  it('board has no color property', async () => {
+    mockFetch.mockResolvedValueOnce(
+      mockSheetsGetResponse([
+        ['board-1', 'Family', '2025-01-01', 'user@test.com', '#1976d2', '🏠'],
+      ])
+    );
+
+    const boards = await fetchBoards('test-token');
+
+    expect(boards[0]).not.toHaveProperty('color');
+  });
+
+  it('returns empty string for missing icon (migration)', async () => {
     mockFetch.mockResolvedValueOnce(
       mockSheetsGetResponse([
         ['board-1', 'Old Board', '2024-01-01', 'user@test.com'],
@@ -72,7 +83,6 @@ describe('fetchBoards — color and icon columns', () => {
 
     const boards = await fetchBoards('test-token');
 
-    expect(boards[0].color).toBe('');
     expect(boards[0].icon).toBe('');
   });
 
@@ -82,15 +92,14 @@ describe('fetchBoards — color and icon columns', () => {
     await fetchBoards('test-token');
 
     const url: string = mockFetch.mock.calls[0][0];
-    // sheets.ts uses encodeURIComponent on the range — '!' stays as '!' in the base URL
     expect(url).toContain('Boards!A2%3AF');
   });
 });
 
-// --- AC1/AC2: createBoardRow writes color and icon ---
+// --- createBoardRow writes empty color (col E) and icon (col F) ---
 
-describe('createBoardRow — color and icon written to columns E and F', () => {
-  it('appends board with color and icon', async () => {
+describe('createBoardRow — icon written to column F, color always empty', () => {
+  it('appends board with empty color and icon', async () => {
     mockFetch.mockResolvedValueOnce(mockSheetsWriteResponse());
 
     await createBoardRow({
@@ -98,17 +107,16 @@ describe('createBoardRow — color and icon written to columns E and F', () => {
       name: 'My Board',
       created_at: '2025-01-01',
       created_by: 'user@test.com',
-      color: '#d32f2f',
       icon: '🎯',
     }, 'test-token');
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     const row = body.values[0];
-    expect(row[4]).toBe('#d32f2f'); // column E = color
-    expect(row[5]).toBe('🎯');     // column F = icon
+    expect(row[4]).toBe('');   // column E = color (always empty)
+    expect(row[5]).toBe('🎯'); // column F = icon
   });
 
-  it('writes empty strings when color and icon are not set', async () => {
+  it('writes empty strings when icon is not set', async () => {
     mockFetch.mockResolvedValueOnce(mockSheetsWriteResponse());
 
     await createBoardRow({
@@ -125,7 +133,7 @@ describe('createBoardRow — color and icon written to columns E and F', () => {
   });
 });
 
-// --- AC4: updateBoardRow writes color and icon for existing board ---
+// --- updateBoardRow writes color and icon for existing board ---
 
 describe('updateBoardRow', () => {
   it('finds board row by ID and updates columns E and F', async () => {
@@ -139,7 +147,7 @@ describe('updateBoardRow', () => {
     // Second call: sheetsUpdate to write color and icon
     mockFetch.mockResolvedValueOnce(mockSheetsWriteResponse());
 
-    await updateBoardRow('board-2', '#7b1fa2', '🎮', 'test-token');
+    await updateBoardRow('board-2', '', '🎮', 'test-token');
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
 
@@ -148,7 +156,7 @@ describe('updateBoardRow', () => {
     expect(updateUrl).toContain('Boards!E3%3AF3');
     expect(updateOptions.method).toBe('PUT');
     const body = JSON.parse(updateOptions.body);
-    expect(body.values[0]).toEqual(['#7b1fa2', '🎮']);
+    expect(body.values[0]).toEqual(['', '🎮']);
   });
 
   it('is a no-op if board ID is not found', async () => {
@@ -156,14 +164,13 @@ describe('updateBoardRow', () => {
       mockSheetsGetResponse([['board-1'], ['board-2']])
     );
 
-    // No second fetch call expected
-    await updateBoardRow('board-999', '#fff', '❓', 'test-token');
+    await updateBoardRow('board-999', '', '❓', 'test-token');
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 });
 
-// --- #138: renameBoardRow writes name to column B ---
+// --- renameBoardRow writes name to column B ---
 
 describe('renameBoardRow (issue #138)', () => {
   it('finds board row by ID and updates column B with the new name', async () => {

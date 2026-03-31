@@ -1,36 +1,22 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { render, cleanup, fireEvent } from '@testing-library/preact';
+import { render, cleanup } from '@testing-library/preact';
 import { UpcomingView } from './upcoming-view';
 
-const { mockState, mockToggleUpcomingBoard } = vi.hoisted(() => ({
+const { mockState } = vi.hoisted(() => ({
   mockState: {
     upcomingBuckets: [] as any[],
-    upcomingFilterSearch: '',
-    upcomingFilterBoards: new Set(['b1', 'b2']) as Set<string>,
-    accessibleBoards: [
-      { id: 'b1', name: 'Work', icon: '💼', color: '#4a90e2' },
-      { id: 'b2', name: 'Home', icon: '🏠', color: '#7ed321' },
-    ] as any[],
     boards: [
-      { id: 'b1', name: 'Work', icon: '💼', color: '#4a90e2' },
-      { id: 'b2', name: 'Home', icon: '🏠', color: '#7ed321' },
+      { id: 'b1', name: 'Work', icon: '💼' },
+      { id: 'b2', name: 'Home', icon: '🏠' },
     ] as any[],
     items: [] as any[],
     selectedItemId: null as string | null,
     openDetailWithTitleEdit: false,
   },
-  mockToggleUpcomingBoard: vi.fn(),
 }));
 
 vi.mock('../../state/board-store', () => ({
   upcomingBuckets: { get value() { return mockState.upcomingBuckets; } },
-  upcomingFilterSearch: {
-    get value() { return mockState.upcomingFilterSearch; },
-    set value(v: string) { mockState.upcomingFilterSearch = v; },
-  },
-  upcomingFilterBoards: { get value() { return mockState.upcomingFilterBoards; } },
-  toggleUpcomingBoard: (...args: any[]) => mockToggleUpcomingBoard(...args),
-  accessibleBoards: { get value() { return mockState.accessibleBoards; } },
   boards: { get value() { return mockState.boards; } },
   items: { get value() { return mockState.items; } },
   selectedItemId: {
@@ -42,145 +28,120 @@ vi.mock('../../state/board-store', () => ({
     set value(v: boolean) { mockState.openDetailWithTitleEdit = v; },
   },
   getChildCount: () => ({ total: 0, done: 0 }),
+  // Required by LabelBadge which is used in UpcomingCard
+  labels: { value: [] },
 }));
 
 afterEach(() => {
   cleanup();
-  mockToggleUpcomingBoard.mockClear();
 });
 
 beforeEach(() => {
   mockState.upcomingBuckets = [];
-  mockState.upcomingFilterSearch = '';
-  mockState.upcomingFilterBoards = new Set(['b1', 'b2']);
-  mockState.accessibleBoards = [
-    { id: 'b1', name: 'Work', icon: '💼', color: '#4a90e2' },
-    { id: 'b2', name: 'Home', icon: '🏠', color: '#7ed321' },
-  ];
   mockState.boards = [
-    { id: 'b1', name: 'Work', icon: '💼', color: '#4a90e2' },
-    { id: 'b2', name: 'Home', icon: '🏠', color: '#7ed321' },
+    { id: 'b1', name: 'Work', icon: '💼' },
+    { id: 'b2', name: 'Home', icon: '🏠' },
   ];
   mockState.items = [];
-  Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1280 });
 });
 
 describe('UpcomingView', () => {
-  describe('Board filter tiles', () => {
-    it('renders board tiles instead of dropdown', () => {
-      const { container } = render(<UpcomingView />);
-      expect(container.querySelector('[data-testid="upcoming-board-tiles"]')).not.toBeNull();
-      expect(container.querySelector('[data-testid="upcoming-board-filter-toggle"]')).toBeNull();
-      expect(container.querySelector('[data-testid="upcoming-board-checkboxes"]')).toBeNull();
-    });
-
-    it('renders one tile per accessible board', () => {
-      const { container } = render(<UpcomingView />);
-      const tiles = container.querySelectorAll('[data-testid^="upcoming-board-tile-"]');
-      expect(tiles.length).toBe(2);
-    });
-
-    it('active tile has upcoming-board-tile-active class and aria-pressed="true"', () => {
-      mockState.upcomingFilterBoards = new Set(['b1', 'b2']);
-      const { container } = render(<UpcomingView />);
-      const tile = container.querySelector('[data-testid="upcoming-board-tile-b1"]');
-      expect(tile!.classList.contains('upcoming-board-tile-active')).toBe(true);
-      expect(tile!.getAttribute('aria-pressed')).toBe('true');
-    });
-
-    it('inactive tile has aria-pressed="false" and lacks active class', () => {
-      mockState.upcomingFilterBoards = new Set(['b1']); // b2 excluded
-      const { container } = render(<UpcomingView />);
-      const tile = container.querySelector('[data-testid="upcoming-board-tile-b2"]');
-      expect(tile!.classList.contains('upcoming-board-tile-active')).toBe(false);
-      expect(tile!.getAttribute('aria-pressed')).toBe('false');
-    });
-
-    it('clicking a tile calls toggleUpcomingBoard with its id', () => {
-      const { container } = render(<UpcomingView />);
-      fireEvent.click(container.querySelector('[data-testid="upcoming-board-tile-b1"]') as HTMLElement);
-      expect(mockToggleUpcomingBoard).toHaveBeenCalledWith('b1');
-    });
-
-    it('tiles show board icon and name', () => {
-      const { container } = render(<UpcomingView />);
-      const tile = container.querySelector('[data-testid="upcoming-board-tile-b1"]');
-      expect(tile!.textContent).toContain('💼');
-      expect(tile!.textContent).toContain('Work');
-    });
-
-    it('tiles use --board-color CSS custom property', () => {
-      const { container } = render(<UpcomingView />);
-      const tile = container.querySelector('[data-testid="upcoming-board-tile-b1"]') as HTMLElement;
-      expect(tile.style.getPropertyValue('--board-color')).toBe('#4a90e2');
-    });
-
-    it('board tile group has role="group" and aria-label', () => {
-      const { container } = render(<UpcomingView />);
-      const group = container.querySelector('[data-testid="upcoming-board-tiles"]');
-      expect(group!.getAttribute('role')).toBe('group');
-      expect(group!.getAttribute('aria-label')).toBe('Filter by board');
-    });
-  });
-
-  describe('No label chips in filter bar', () => {
-    it('has no "Filter by label" group', () => {
-      const { container } = render(<UpcomingView />);
-      expect(container.querySelector('[aria-label="Filter by label"]')).toBeNull();
-    });
-
-    it('has no Label: chip group label text', () => {
-      const { container } = render(<UpcomingView />);
-      const labels = Array.from(container.querySelectorAll('.filter-chip-group-label'));
-      expect(labels.find(l => l.textContent === 'Label:')).toBeUndefined();
-    });
-  });
-
-  describe('Filter bar', () => {
-    it('renders search input', () => {
-      const { container } = render(<UpcomingView />);
-      const input = container.querySelector('[data-testid="upcoming-search-input"]') as HTMLInputElement;
-      expect(input).not.toBeNull();
-      expect(input.placeholder).toBe('Search cards...');
-    });
-
-    it('active filter count excludes labels', () => {
-      mockState.upcomingFilterSearch = 'test';
-      mockState.upcomingFilterBoards = new Set(['b1']); // b2 excluded = 1 board filter active
-      const { container } = render(<UpcomingView />);
-      const badge = container.querySelector('.filter-badge');
-      expect(badge).not.toBeNull();
-      expect(badge!.textContent).toBe('2'); // search + board filter
-    });
-
-    it('no filter badge when all boards selected and no search', () => {
-      mockState.upcomingFilterSearch = '';
-      mockState.upcomingFilterBoards = new Set(['b1', 'b2']);
-      const { container } = render(<UpcomingView />);
-      const badge = container.querySelector('.filter-badge');
-      expect(badge).toBeNull();
-    });
-  });
-
   describe('Empty state', () => {
     it('shows empty message when no buckets', () => {
       mockState.upcomingBuckets = [];
       const { container } = render(<UpcomingView />);
       expect(container.querySelector('[data-testid="upcoming-empty"]')).not.toBeNull();
     });
+
+    it('does not show buckets when empty', () => {
+      mockState.upcomingBuckets = [];
+      const { container } = render(<UpcomingView />);
+      expect(container.querySelector('[data-testid="upcoming-buckets"]')).toBeNull();
+    });
   });
 
-  describe('Mobile collapse', () => {
-    it('filter content is collapsed on mobile by default', () => {
-      Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 500 });
-      const { container } = render(<UpcomingView />);
-      const content = container.querySelector('[data-testid="upcoming-filter-content"]');
-      expect(content!.className).toContain('upcoming-filter-content-collapsed');
+  describe('Buckets render as columns', () => {
+    beforeEach(() => {
+      mockState.upcomingBuckets = [
+        {
+          key: 'overdue',
+          label: 'Overdue',
+          items: [
+            { id: 'i1', title: 'Fix bug', status: 'To Do', owner: 'Luke', due_date: '2024-01-01', labels: '', description: '', board_id: 'b1', parent_id: '', created_at: '', updated_at: '', completed_at: '', sort_order: 0, created_by: '', sheetRow: 1 },
+          ],
+        },
+        {
+          key: 'this-week',
+          label: 'This Week',
+          items: [],
+        },
+      ];
     });
 
-    it('filter toggle button is present', () => {
+    it('renders the board-columns container', () => {
       const { container } = render(<UpcomingView />);
-      expect(container.querySelector('[data-testid="upcoming-filter-toggle"]')).not.toBeNull();
+      expect(container.querySelector('[data-testid="upcoming-buckets"]')).not.toBeNull();
+      expect(container.querySelector('.board-columns')).not.toBeNull();
+    });
+
+    it('renders each bucket with the column class', () => {
+      const { container } = render(<UpcomingView />);
+      expect(container.querySelector('[data-testid="upcoming-bucket-overdue"]')).not.toBeNull();
+      expect(container.querySelector('.column')).not.toBeNull();
+    });
+
+    it('each bucket has the correct color class', () => {
+      const { container } = render(<UpcomingView />);
+      expect(container.querySelector('.upcoming-bucket-overdue')).not.toBeNull();
+      expect(container.querySelector('.upcoming-bucket-this-week')).not.toBeNull();
+    });
+
+    it('bucket header shows label and count', () => {
+      const { container } = render(<UpcomingView />);
+      const header = container.querySelector('[data-testid="upcoming-bucket-overdue"] .column-header');
+      expect(header!.textContent).toContain('Overdue');
+      expect(header!.textContent).toContain('1');
+    });
+
+    it('renders card items in the bucket', () => {
+      const { container } = render(<UpcomingView />);
+      expect(container.querySelector('[data-testid="upcoming-card-i1"]')).not.toBeNull();
+    });
+
+    it('no filter UI rendered inside upcoming view (moved to control bar)', () => {
+      const { container } = render(<UpcomingView />);
+      expect(container.querySelector('[data-testid="upcoming-filter-toggle"]')).toBeNull();
+      expect(container.querySelector('[data-testid="upcoming-search-input"]')).toBeNull();
+      expect(container.querySelector('[data-testid="upcoming-board-tiles"]')).toBeNull();
+    });
+  });
+
+  describe('Card rendering', () => {
+    beforeEach(() => {
+      mockState.upcomingBuckets = [
+        {
+          key: 'this-week',
+          label: 'This Week',
+          items: [
+            { id: 'c1', title: 'Write tests', status: 'To Do', owner: 'Luke', due_date: '2026-04-02', labels: 'Work', description: 'A task', board_id: 'b1', parent_id: '', created_at: '', updated_at: '', completed_at: '', sort_order: 0, created_by: '', sheetRow: 2 },
+          ],
+        },
+      ];
+    });
+
+    it('card shows title', () => {
+      const { container } = render(<UpcomingView />);
+      expect(container.querySelector('[data-testid="upcoming-card-c1"]')!.textContent).toContain('Write tests');
+    });
+
+    it('card shows owner name', () => {
+      const { container } = render(<UpcomingView />);
+      expect(container.querySelector('[data-testid="upcoming-card-c1"]')!.textContent).toContain('Luke');
+    });
+
+    it('board badge shows board name', () => {
+      const { container } = render(<UpcomingView />);
+      expect(container.querySelector('[data-testid="board-badge-b1"]')!.textContent).toContain('Work');
     });
   });
 });

@@ -345,7 +345,6 @@ export async function fetchBoards(token: string): Promise<Board[]> {
         name: row[1] || '',
         created_at: row[2] || '',
         created_by: row[3] || '',
-        color: row[4] || '',
         icon: row[5] || '',
       }));
     });
@@ -384,7 +383,7 @@ export async function createBoardRow(board: Board, token: string): Promise<void>
     try {
       await sheetsAppend('Boards!A:F', [[
         board.id, board.name, board.created_at, board.created_by,
-        board.color || '', board.icon || '',
+        '', board.icon || '',
       ]], t);
     } catch (err) {
       // If Boards tab doesn't exist, create it and retry
@@ -392,7 +391,7 @@ export async function createBoardRow(board: Board, token: string): Promise<void>
         await ensureBoardsTab(t);
         await sheetsAppend('Boards!A:F', [[
           board.id, board.name, board.created_at, board.created_by,
-          board.color || '', board.icon || '',
+          '', board.icon || '',
         ]], t);
         return;
       }

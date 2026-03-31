@@ -26,6 +26,12 @@
   --color-inprogress: #fff3e0;
   --color-done: #e8f5e9;
 
+  /* Upcoming bucket pastels */
+  --color-bucket-overdue: #fce4e4;
+  --color-bucket-this-week: #fff8e1;
+  --color-bucket-next-week: #e3f2fd;
+  --color-bucket-later: #f5f5f5;
+
   /* Status colours */
   --color-danger: #d32f2f;
   --color-danger-hover: #b71c1c;
@@ -111,6 +117,12 @@
   --color-todo: #1a2a3a;
   --color-inprogress: #2a1f10;
   --color-done: #1a2a1a;
+
+  /* Upcoming bucket pastels (dark) */
+  --color-bucket-overdue: #3b1f1f;
+  --color-bucket-this-week: #3b3010;
+  --color-bucket-next-week: #1a2e3b;
+  --color-bucket-later: #2a2a2a;
 
   --color-danger: #ef5350;
   --color-danger-hover: #e53935;
@@ -1398,15 +1410,6 @@ body {
   outline-offset: 2px;
 }
 
-/* Colored dot showing the active board's color, displayed before the select */
-.board-color-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  margin-right: 8px;
-}
 
 /* === Color & Icon Pickers === */
 .picker-row {
@@ -3658,126 +3661,14 @@ body {
 
 /* === Upcoming view === */
 .upcoming-view {
-  padding: 16px;
-  max-width: 1200px;
-  margin: 0 auto;
+  display: contents;
 }
 
-.upcoming-filters {
-  margin-bottom: 16px;
-}
-
-.upcoming-filter-content {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.upcoming-filter-content-collapsed {
-  display: none;
-}
-
-/* === Board filter tiles (replaces dropdown) === */
-.upcoming-board-tiles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-}
-
-.upcoming-board-tile {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border: 2px solid var(--board-color, #999);
-  border-radius: 14px;
-  background: transparent;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--color-text);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background var(--transition-fast), opacity var(--transition-fast);
-  opacity: 0.45;
-}
-
-.upcoming-board-tile:hover {
-  background: color-mix(in srgb, var(--board-color, #999) 15%, transparent);
-  opacity: 1;
-}
-
-.upcoming-board-tile-active {
-  background: color-mix(in srgb, var(--board-color, #999) 15%, transparent);
-  opacity: 1;
-}
-
-.upcoming-board-tile:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-/* Buckets */
-.upcoming-buckets {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-}
-
-.upcoming-bucket {
-  background: var(--color-surface);
-  border-radius: var(--radius);
-  border: 1px solid var(--color-border);
-  padding: 12px;
-}
-
-.upcoming-bucket-overdue {
-  border-left: 3px solid var(--color-overdue);
-}
-
-.upcoming-bucket-this-week {
-  border-left: 3px solid var(--color-primary);
-}
-
-.upcoming-bucket-next-week {
-  border-left: 3px solid var(--color-warning);
-}
-
-.upcoming-bucket-later {
-  border-left: 3px solid var(--color-text-secondary);
-}
-
-.upcoming-bucket-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.upcoming-bucket-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 10px;
-  background: var(--overlay-badge);
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-}
-
-.upcoming-bucket-items {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+/* Bucket column colors — each bucket reuses .column with a specific --column-color */
+.upcoming-bucket-overdue  { --column-color: var(--color-bucket-overdue); }
+.upcoming-bucket-this-week { --column-color: var(--color-bucket-this-week); }
+.upcoming-bucket-next-week { --column-color: var(--color-bucket-next-week); }
+.upcoming-bucket-later    { --column-color: var(--color-bucket-later); }
 
 .upcoming-card {
   cursor: pointer;
@@ -3790,13 +3681,18 @@ body {
   margin-top: 6px;
 }
 
-/* Board badge — same pattern as label-badge */
+/* Board badge — neutral bordered pill */
 .board-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   padding: 2px 8px;
   border-radius: 10px;
   font-size: 11px;
   font-weight: 500;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 .upcoming-empty {
@@ -3806,15 +3702,4 @@ body {
   min-height: 200px;
   color: var(--color-text-secondary);
   font-size: 16px;
-}
-
-/* Mobile: buckets stack vertically */
-@media (max-width: 768px) {
-  .upcoming-buckets {
-    grid-template-columns: 1fr;
-  }
-
-  .upcoming-board-tile {
-    min-height: 44px;
-  }
 }
