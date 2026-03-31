@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, createModalInitialStatus, selectedItem, groupBy, rootItems, items, owners, boardLabels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement, showToast, activeView } from '../../state/board-store';
+import { columns, showCreateModal, createModalInitialStatus, selectedItem, groupBy, rootItems, items, owners, boardLabels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement, showToast, activeView, switchToUpcoming, switchToBoard } from '../../state/board-store';
 import type { SortMode } from '../../state/board-store';
 import { moveItem, reorderItem, createItem, deleteItem } from '../../state/actions';
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts';
@@ -283,6 +283,25 @@ export function KanbanBoard() {
         <div class="board-header-left">
           <HiveLogo class="board-header-logo" />
           <h1>Hive</h1>
+          {/* AC1 #198: View mode tabs in header */}
+          <div class="control-bar-view-tabs" role="group" aria-label="View" data-testid="control-bar-view-tabs">
+            <button
+              class={`view-tab${activeView.value !== 'upcoming' ? ' view-tab-active' : ''}`}
+              onClick={() => { if (activeView.value === 'upcoming') switchToBoard(); }}
+              aria-pressed={activeView.value !== 'upcoming' ? 'true' : 'false'}
+              data-testid="view-tab-board"
+            >
+              Board
+            </button>
+            <button
+              class={`view-tab${activeView.value === 'upcoming' ? ' view-tab-active' : ''}`}
+              onClick={() => { if (activeView.value !== 'upcoming') switchToUpcoming(); }}
+              aria-pressed={activeView.value === 'upcoming' ? 'true' : 'false'}
+              data-testid="view-tab-upcoming"
+            >
+              Upcoming
+            </button>
+          </div>
         </div>
         <div class="board-header-right">
           {user && (

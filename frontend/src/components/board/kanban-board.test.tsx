@@ -19,6 +19,8 @@ const mockState = {
 };
 
 const mockSwitchBoard = vi.fn();
+const mockSwitchToUpcoming = vi.fn();
+const mockSwitchToBoard = vi.fn();
 
 afterEach(() => {
   cleanup();
@@ -33,6 +35,8 @@ afterEach(() => {
   mockState.accessibleBoards = [];
   mockState.viewMode = 'board';
   mockSwitchBoard.mockClear();
+  mockSwitchToUpcoming.mockClear();
+  mockSwitchToBoard.mockClear();
   mockMoveItem.mockClear();
 });
 
@@ -108,6 +112,8 @@ vi.mock('../../state/board-store', () => ({
   setColumnSortMode: () => {},
   columnAnnouncement: { value: null },
   activeView: { value: 'board' },
+  switchToUpcoming: (...args: any[]) => mockSwitchToUpcoming(...args),
+  switchToBoard: (...args: any[]) => mockSwitchToBoard(...args),
 }));
 
 const mockMoveItem = vi.fn();
@@ -259,6 +265,57 @@ describe('KanbanBoard compact header (Issue #132)', () => {
       mockState.items = [];
       const { container } = renderBoard();
       expect(container.querySelector('[data-testid="view-toggle-bar"]')).toBeNull();
+    });
+  });
+});
+
+describe('KanbanBoard view tabs in header (Issue #198)', () => {
+  describe('AC1: View tabs appear in header, not control bar', () => {
+    it('renders view tab group inside board-header-left', () => {
+      mockState.items = [];
+      const { container } = renderBoard();
+      const headerLeft = container.querySelector('.board-header-left');
+      expect(headerLeft!.querySelector('[data-testid="control-bar-view-tabs"]')).not.toBeNull();
+    });
+
+    it('view tab group has role="group" and aria-label="View"', () => {
+      mockState.items = [];
+      const { container } = renderBoard();
+      const tabGroup = container.querySelector('[data-testid="control-bar-view-tabs"]') as HTMLElement;
+      expect(tabGroup.getAttribute('role')).toBe('group');
+      expect(tabGroup.getAttribute('aria-label')).toBe('View');
+    });
+  });
+
+  describe('AC2 + AC3: Tab state and ARIA', () => {
+    it('Board tab has aria-pressed="true" when in board view', () => {
+      mockState.items = [];
+      const { container } = renderBoard();
+      const boardTab = container.querySelector('[data-testid="view-tab-board"]') as HTMLElement;
+      expect(boardTab.getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('Upcoming tab has aria-pressed="false" when in board view', () => {
+      mockState.items = [];
+      const { container } = renderBoard();
+      const upcomingTab = container.querySelector('[data-testid="view-tab-upcoming"]') as HTMLElement;
+      expect(upcomingTab.getAttribute('aria-pressed')).toBe('false');
+    });
+
+    it('clicking Upcoming tab calls switchToUpcoming', () => {
+      mockState.items = [];
+      const { container } = renderBoard();
+      const upcomingTab = container.querySelector('[data-testid="view-tab-upcoming"]') as HTMLElement;
+      fireEvent.click(upcomingTab);
+      expect(mockSwitchToUpcoming).toHaveBeenCalled();
+    });
+
+    it('clicking Board tab when already active does not call switchToBoard', () => {
+      mockState.items = [];
+      const { container } = renderBoard();
+      const boardTab = container.querySelector('[data-testid="view-tab-board"]') as HTMLElement;
+      fireEvent.click(boardTab);
+      expect(mockSwitchToBoard).not.toHaveBeenCalled();
     });
   });
 });

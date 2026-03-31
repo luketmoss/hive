@@ -368,6 +368,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  align-self: stretch;
 }
 
 .board-header-logo {
@@ -3614,10 +3615,14 @@ body {
   background: var(--overlay-view-toggle);
   border-radius: var(--radius-sm);
   padding: 2px;
+  align-self: stretch;
+  align-items: stretch;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .view-tab {
-  padding: 4px 12px;
+  padding: 0 12px;
   border: none;
   background: transparent;
   border-radius: var(--radius-sm);

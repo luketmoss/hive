@@ -5,7 +5,7 @@ import {
   viewMode, setViewMode,
   filterLabel, filterSearch, filterDue, groupBy,
   boardLabels as labelsStore, rootItems,
-  activeView, switchToUpcoming, switchToBoard,
+  activeView,
 } from '../../state/board-store';
 import type { DueFilter } from '../../state/board-store';
 
@@ -166,30 +166,9 @@ export function ControlBar() {
 
   return (
     <div class="control-bar" data-testid="control-bar">
-      {/* Board/Upcoming tab toggle */}
-      <div class="control-bar-section control-bar-view-tabs" data-testid="control-bar-view-tabs">
-        <button
-          class={`view-tab${!isUpcoming ? ' view-tab-active' : ''}`}
-          onClick={() => { if (isUpcoming) switchToBoard(); }}
-          aria-pressed={!isUpcoming ? 'true' : 'false'}
-          data-testid="view-tab-board"
-        >
-          Board
-        </button>
-        <button
-          class={`view-tab${isUpcoming ? ' view-tab-active' : ''}`}
-          onClick={() => { if (!isUpcoming) switchToUpcoming(); }}
-          aria-pressed={isUpcoming ? 'true' : 'false'}
-          data-testid="view-tab-upcoming"
-        >
-          Upcoming
-        </button>
-      </div>
-
       {/* Board selector — hidden in upcoming view */}
       {!isUpcoming && (
         <>
-          <span class="control-bar-separator" aria-hidden="true" />
           <div class="control-bar-section">
             {boardColor && (
               <span
