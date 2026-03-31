@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'preact/hooks';
 import {
   boards, activeBoardId, switchBoard, showCreateBoardModal, showShareModal,
-  accessibleBoards, activeBoard, userBoardRole,
+  accessibleBoards, userBoardRole,
   viewMode, setViewMode,
   filterLabel, filterSearch, filterDue, groupBy,
   boardLabels as labelsStore, rootItems,
   activeView,
+  upcomingFilterSearch, upcomingFilterBoards, toggleUpcomingBoard,
 } from '../../state/board-store';
-import type { DueFilter } from '../../state/board-store';
 
 /**
  * #177: Redesigned control bar with text search, due date filter, label chips,
@@ -91,7 +91,7 @@ export function ControlBar() {
     }
   }, [filterSearch.value]);
 
-  // Debounced search
+  // Debounced search (board view)
   const handleSearchInput = useCallback((e: Event) => {
     const value = (e.target as HTMLInputElement).value;
     setLocalSearch(value);
@@ -115,6 +115,33 @@ export function ControlBar() {
     }
   }, [localSearch, clearSearch]);
 
+  // Upcoming search state
+  const [localUpcomingSearch, setLocalUpcomingSearch] = useState('');
+  const upcomingSearchRef = useRef<HTMLInputElement>(null);
+  const upcomingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleUpcomingSearchInput = useCallback((e: Event) => {
+    const value = (e.target as HTMLInputElement).value;
+    setLocalUpcomingSearch(value);
+    if (upcomingDebounceRef.current) clearTimeout(upcomingDebounceRef.current);
+    upcomingDebounceRef.current = setTimeout(() => {
+      upcomingFilterSearch.value = value;
+    }, 150);
+  }, []);
+
+  const clearUpcomingSearch = useCallback(() => {
+    setLocalUpcomingSearch('');
+    upcomingFilterSearch.value = '';
+    upcomingSearchRef.current?.focus();
+  }, []);
+
+  const handleUpcomingSearchKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape' && localUpcomingSearch) {
+      e.preventDefault();
+      clearUpcomingSearch();
+    }
+  }, [localUpcomingSearch, clearUpcomingSearch]);
+
   const handleBoardChange = (e: Event) => {
     const value = (e.target as HTMLSelectElement).value;
     if (value === '__new__') {
@@ -125,7 +152,6 @@ export function ControlBar() {
     switchBoard(value);
   };
 
-  const boardColor = activeBoard.value?.color || '';
   const isOwner = userBoardRole.value === 'owner';
 
   // Active filter count for mobile badge
@@ -164,44 +190,105 @@ export function ControlBar() {
 
   const isUpcoming = activeView.value === 'upcoming';
 
-  if (isUpcoming) return null;
+  // Upcoming view: show search + board chips only
+  if (isUpcoming) {
+    const upcomingActiveCount =
+      (upcomingFilterSearch.value ? 1 : 0) +
+      (upcomingFilterBoards.value.size < accessibleBoards.value.length ? 1 : 0);
+
+    return (
+      <div class="control-bar" data-testid="control-bar">
+        <div class="control-bar-section control-bar-filters">
+          <button
+            class="filter-toggle"
+            aria-expanded={filtersExpanded}
+            aria-controls="upcoming-filter-content"
+            onClick={() => setFiltersExpanded(prev => !prev)}
+            data-testid="upcoming-filter-toggle"
+          >
+            Filters
+            {upcomingActiveCount > 0 && <span class="filter-badge">{upcomingActiveCount}</span>}
+          </button>
+
+          <div
+            id="upcoming-filter-content"
+            class={filterContentClass}
+            data-testid="upcoming-filter-content"
+          >
+            <div class="filter-search-wrapper" data-testid="upcoming-search-wrapper">
+              <input
+                ref={upcomingSearchRef}
+                type="text"
+                class="filter-search-input"
+                placeholder="Search cards..."
+                aria-label="Search cards"
+                value={localUpcomingSearch}
+                onInput={handleUpcomingSearchInput}
+                onKeyDown={handleUpcomingSearchKeyDown}
+                data-testid="upcoming-search-input"
+              />
+              {localUpcomingSearch && (
+                <button
+                  class="filter-search-clear"
+                  aria-label="Clear search"
+                  onClick={clearUpcomingSearch}
+                  data-testid="upcoming-search-clear"
+                >
+                  &times;
+                </button>
+              )}
+            </div>
+
+            {accessibleBoards.value.length > 1 && (
+              <div role="group" aria-label="Filter by board" class="filter-chip-group" data-testid="upcoming-board-filter-group">
+                <span class="filter-chip-group-label">Board:</span>
+                {accessibleBoards.value.map(b => {
+                  const active = upcomingFilterBoards.value.has(b.id);
+                  return (
+                    <button
+                      key={b.id}
+                      class={`filter-chip${active ? ' filter-chip-active' : ''}`}
+                      aria-pressed={active ? 'true' : 'false'}
+                      onClick={() => toggleUpcomingBoard(b.id)}
+                      data-testid={`upcoming-board-chip-${b.id}`}
+                    >
+                      {b.icon && <span aria-hidden="true">{b.icon} </span>}
+                      {b.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div class="control-bar" data-testid="control-bar">
-      {/* Board selector — hidden in upcoming view */}
-      {!isUpcoming && (
-        <>
-          <div class="control-bar-section">
-            {boardColor && (
-              <span
-                class="board-color-dot"
-                style={`background: ${boardColor};`}
-                aria-hidden="true"
-                data-testid="board-color-dot"
-              />
-            )}
-            <span id="board-switcher-hint" class="sr-only">{BOARD_SWITCHER_HINT}</span>
-            <select
-              class="board-switcher-select"
-              value={activeBoardId.value}
-              onChange={handleBoardChange}
-              aria-label="Select board"
-              aria-describedby="board-switcher-hint"
-              title={BOARD_SWITCHER_HINT}
-              data-testid="control-bar-board-select"
-            >
-              {accessibleBoards.value.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {boardOptionLabel(b.name, b.icon)}
-                </option>
-              ))}
-              <option value="__new__">+ New Board...</option>
-            </select>
-          </div>
-        </>
-      )}
+      {/* Board selector */}
+      <div class="control-bar-section">
+        <span id="board-switcher-hint" class="sr-only">{BOARD_SWITCHER_HINT}</span>
+        <select
+          class="board-switcher-select"
+          value={activeBoardId.value}
+          onChange={handleBoardChange}
+          aria-label="Select board"
+          aria-describedby="board-switcher-hint"
+          title={BOARD_SWITCHER_HINT}
+          data-testid="control-bar-board-select"
+        >
+          {accessibleBoards.value.map((b) => (
+            <option key={b.id} value={b.id}>
+              {boardOptionLabel(b.name, b.icon)}
+            </option>
+          ))}
+          <option value="__new__">+ New Board...</option>
+        </select>
+      </div>
 
-      {!isUpcoming && <span class="control-bar-separator" aria-hidden="true" />}
+      <span class="control-bar-separator" aria-hidden="true" />
 
       {/* Filters section */}
       <div class="control-bar-section control-bar-filters">
@@ -313,32 +400,27 @@ export function ControlBar() {
             class="overflow-menu-dropdown"
             data-testid="overflow-menu-dropdown"
           >
-            {/* VIEWS section — hidden when Upcoming view is active */}
-            {!isUpcoming && (
-              <>
-                <div class="overflow-menu-section-header" role="presentation">Views</div>
-                <button
-                  role="menuitem"
-                  class={`overflow-menu-item${viewMode.value === 'board' ? ' overflow-menu-item-checked' : ''}`}
-                  aria-checked={viewMode.value === 'board'}
-                  onClick={() => { setViewMode('board'); setMenuOpen(false); }}
-                  data-testid="overflow-menu-view-board"
-                >
-                  Board view
-                </button>
-                <button
-                  role="menuitem"
-                  class={`overflow-menu-item${viewMode.value === 'list' ? ' overflow-menu-item-checked' : ''}`}
-                  aria-checked={viewMode.value === 'list'}
-                  onClick={() => { setViewMode('list'); setMenuOpen(false); }}
-                  data-testid="overflow-menu-view-list"
-                >
-                  List view
-                </button>
+            <div class="overflow-menu-section-header" role="presentation">Views</div>
+            <button
+              role="menuitem"
+              class={`overflow-menu-item${viewMode.value === 'board' ? ' overflow-menu-item-checked' : ''}`}
+              aria-checked={viewMode.value === 'board'}
+              onClick={() => { setViewMode('board'); setMenuOpen(false); }}
+              data-testid="overflow-menu-view-board"
+            >
+              Board view
+            </button>
+            <button
+              role="menuitem"
+              class={`overflow-menu-item${viewMode.value === 'list' ? ' overflow-menu-item-checked' : ''}`}
+              aria-checked={viewMode.value === 'list'}
+              onClick={() => { setViewMode('list'); setMenuOpen(false); }}
+              data-testid="overflow-menu-view-list"
+            >
+              List view
+            </button>
 
-                <hr class="overflow-menu-divider" />
-              </>
-            )}
+            <hr class="overflow-menu-divider" />
 
             {/* GROUPING section */}
             <div class="overflow-menu-section-header" role="presentation">Grouping</div>

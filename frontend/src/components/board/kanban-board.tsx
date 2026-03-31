@@ -335,14 +335,16 @@ export function KanbanBoard() {
         )}
       </main>
 
-      <button
-        class="fab"
-        onClick={() => { showCreateModal.value = true; }}
-        title="Create new item"
-        aria-label="Create new item"
-      >
-        +
-      </button>
+      {activeView.value !== 'upcoming' && (
+        <button
+          class="fab"
+          onClick={() => { showCreateModal.value = true; }}
+          title="Create new item"
+          aria-label="Create new item"
+        >
+          +
+        </button>
+      )}
 
       {selectedItem.value && <CardDetail />}
       {showCreateModal.value && <CreateItemModal />}
