@@ -13,6 +13,7 @@ const { mockState, mockSwitchBoard, mockSetViewMode } = vi.hoisted(() => ({
     activeBoard: { name: 'Work', color: '#ff0000' } as any,
     userBoardRole: 'owner' as string | null,
     viewMode: 'board' as string,
+    activeView: 'board' as string,
     filterLabel: null as string | null,
     filterSearch: '',
     filterDue: null as string | null,
@@ -69,7 +70,7 @@ vi.mock('../../state/board-store', () => ({
     set value(v: boolean) { mockState.showShareModal = v; },
   },
   openDetailWithTitleEdit: { value: false },
-  activeView: { value: 'board' },
+  activeView: { get value() { return mockState.activeView; } },
 }));
 
 afterEach(() => {
@@ -95,6 +96,7 @@ beforeEach(() => {
   mockState.groupBy = 'none';
   mockState.showCreateBoardModal = false;
   mockState.showShareModal = false;
+  mockState.activeView = 'board';
   mockState.rootItems = [
     { id: '1', title: 'Task 1' },
     { id: '2', title: 'Task 2' },
@@ -471,6 +473,20 @@ describe('ControlBar', () => {
       const { container } = render(<ControlBar />);
       const todayChip = container.querySelector('[data-testid="filter-due-today"]');
       expect(todayChip!.getAttribute('aria-pressed')).toBe('false');
+    });
+  });
+
+  describe('Upcoming view — hidden control bar', () => {
+    it('renders nothing when activeView is upcoming', () => {
+      mockState.activeView = 'upcoming';
+      const { container } = render(<ControlBar />);
+      expect(container.firstChild).toBeNull();
+    });
+
+    it('renders normally when activeView is board', () => {
+      mockState.activeView = 'board';
+      const { container } = render(<ControlBar />);
+      expect(container.querySelector('[data-testid="control-bar"]')).not.toBeNull();
     });
   });
 });

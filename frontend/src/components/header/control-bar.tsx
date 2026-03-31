@@ -164,6 +164,8 @@ export function ControlBar() {
 
   const isUpcoming = activeView.value === 'upcoming';
 
+  if (isUpcoming) return null;
+
   return (
     <div class="control-bar" data-testid="control-bar">
       {/* Board selector — hidden in upcoming view */}
