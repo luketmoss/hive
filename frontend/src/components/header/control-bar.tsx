@@ -169,7 +169,6 @@ export function ControlBar() {
       {/* Board selector — hidden in upcoming view */}
       {!isUpcoming && (
         <>
-          <span class="control-bar-separator" aria-hidden="true" />
           <div class="control-bar-section">
             {boardColor && (
               <span
