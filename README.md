@@ -49,12 +49,14 @@ Open http://localhost:5173/hive/?demo=true — you'll see the board with mock da
 
 ## Features
 
-- Three-column Kanban board (To Do, In Progress, Done)
-- Drag-and-drop cards between columns with business rule enforcement
+- **Multi-board support** — create separate boards per family, project, or context; share boards with other users
+- Three-column Kanban board (To Do, In Progress, Done) with drag-and-drop and business rule enforcement
+- **Upcoming view** — cross-board timeline of items due today, this week, and later
 - Card detail panel with inline editing
 - Sub-task support with progress tracking
 - Filter by owner or label
 - Swimlane grouping by owner or label
+- Board customization (icon picker)
 - Real-time sync via 30-second polling
 - Audit log of all changes
 
@@ -69,7 +71,11 @@ hive/
 │   ├── src/
 │   │   ├── api/              # Google Sheets REST API wrapper
 │   │   ├── auth/             # Google OAuth (GIS token model)
-│   │   ├── components/       # UI components
+│   │   ├── components/       # UI components (board, upcoming view, header, shared)
+│   │   │   ├── board/        # Kanban board, board switcher, sharing
+│   │   │   ├── upcoming/     # Upcoming cross-board timeline view
+│   │   │   ├── header/       # App header, control bar, view toggle
+│   │   │   └── shared/       # Reusable components (labels, icons, modals)
 │   │   ├── demo/             # Demo mode (mock data, no auth)
 │   │   └── state/            # Preact signals store + business rules
 │   └── public/
@@ -84,16 +90,18 @@ Follow these steps to connect to a real Google Sheet instead of demo mode.
 
 ### 1. Google Sheet
 
-Create a Google Sheet named **"Hive Board"** with four tabs:
+Create a Google Sheet named **"Hive Board"** with six tabs:
 
 | Tab | Headers (Row 1) |
 |-----|----------------|
-| **Items** | id, title, description, status, owner, due_date, scheduled_date, labels, parent_id, created_at, updated_at, completed_at, sort_order |
+| **Items** | id, title, description, status, owner, due_date, labels, parent_id, created_at, updated_at, completed_at, sort_order, created_by, board_id |
 | **Owners** | name, google_account |
-| **Labels** | label, color |
+| **Labels** | label, color, board_id |
+| **Boards** | id, name, created_at, created_by, color, icon |
+| **Permissions** | board_id, user_email, role |
 | **Audit Log** | timestamp, item_id, action, field, old_value, new_value, actor |
 
-Add rows to **Owners** and **Labels** with your family members and preferred label categories.
+The app creates the **Boards** and **Permissions** tabs automatically on first use if they don't exist. Add rows to **Owners** with your family members. Labels are managed per-board through the app UI.
 
 ### 2. Google Cloud Project
 
@@ -179,7 +187,3 @@ Demo mode provides a fake user and sample board data. Changes are not persisted.
 | To Do → In Progress | Owner must be assigned |
 | In Progress → Done | All sub-tasks must be Done |
 | Done → To Do / In Progress | Always allowed (reopening) |
-
-## License
-
-Private — for family use.

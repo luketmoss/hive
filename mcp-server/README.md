@@ -24,7 +24,7 @@ Local MCP server that lets Claude Desktop manage Hive kanban boards via natural 
          "env": {
            "HIVE_API_URL": "<apps-script-deployment-url>",
            "HIVE_API_KEY": "<api-key>",
-           "HIVE_DEFAULT_OWNER": "Luke"
+           "HIVE_DEFAULT_OWNER": "Alice"
          }
        }
      }
@@ -39,7 +39,7 @@ Local MCP server that lets Claude Desktop manage Hive kanban boards via natural 
 |----------|----------|-------------|
 | `HIVE_API_URL` | Yes | Apps Script web app deployment URL |
 | `HIVE_API_KEY` | Yes | API key (must match `API_KEY` script property) |
-| `HIVE_DEFAULT_OWNER` | No | Default owner for new items (e.g., "Luke") |
+| `HIVE_DEFAULT_OWNER` | No | Default owner for new items (e.g., "Alice") |
 
 ## Tools
 
