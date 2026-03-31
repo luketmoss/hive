@@ -1,6 +1,6 @@
 # Hive
 
-A family Kanban board powered by Google Sheets. Manage household tasks through a visual board with drag-and-drop, filtering, and sub-task tracking — all backed by a shared Google Sheet.
+A Kanban board app powered by Google Sheets. Manage tasks through a visual board with drag-and-drop, filtering, and sub-task tracking — all backed by a shared Google Sheet.
 
 ## Prerequisites
 
@@ -49,7 +49,7 @@ Open http://localhost:5173/hive/?demo=true — you'll see the board with mock da
 
 ## Features
 
-- **Multi-board support** — create separate boards per family, project, or context; share boards with other users
+- **Multi-board support** — create separate boards per team, project, or context; share boards with other users
 - Three-column Kanban board (To Do, In Progress, Done) with drag-and-drop and business rule enforcement
 - **Upcoming view** — cross-board timeline of items due today, this week, and later
 - Card detail panel with inline editing
@@ -101,7 +101,7 @@ Create a Google Sheet named **"Hive Board"** with six tabs:
 | **Permissions** | board_id, user_email, role |
 | **Audit Log** | timestamp, item_id, action, field, old_value, new_value, actor |
 
-The app creates the **Boards** and **Permissions** tabs automatically on first use if they don't exist. Add rows to **Owners** with your family members. Labels are managed per-board through the app UI.
+The app creates the **Boards** and **Permissions** tabs automatically on first use if they don't exist. Add rows to **Owners** with your team members. Labels are managed per-board through the app UI.
 
 ### 2. Google Cloud Project
 

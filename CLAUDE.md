@@ -1,7 +1,7 @@
-# Hive - Family Kanban Board
+# Hive - Kanban Board
 
 ## Project Overview
-Family task management system using Google Sheets as data layer.
+Task management system using Google Sheets as data layer.
 - **apps-script/**: Google Apps Script API (deployed via clasp) — serves voice/AI agents
 - **frontend/**: Preact SPA (built with Vite) — deployed to GitHub Pages, reads/writes Sheets API directly
 

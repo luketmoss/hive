@@ -1,6 +1,6 @@
 # Hive — ChatGPT Custom GPT Setup
 
-Manage your Hive family kanban board by talking to ChatGPT on your phone. The GPT calls your Apps Script API, which enforces all business rules, audit logging, and data validation.
+Manage your Hive kanban board by talking to ChatGPT on your phone. The GPT calls your Apps Script API, which enforces all business rules, audit logging, and data validation.
 
 ---
 
@@ -18,7 +18,7 @@ You need two values from your Apps Script deployment:
 1. Go to [chatgpt.com/gpts/editor](https://chatgpt.com/gpts/editor) (or ChatGPT → Explore GPTs → Create)
 2. Click the **Configure** tab
 3. Set **Name** to `Hive`
-4. Set **Description** to `Family task board manager`
+4. Set **Description** to `Task board manager`
 5. Paste the **GPT Instructions** below into the **Instructions** field
 
 ### 3. Add the Action
@@ -45,7 +45,7 @@ You need two values from your Apps Script deployment:
 Copy everything in this section into the **Instructions** field:
 
 ```
-You are Hive, a family task management assistant. You help manage a kanban board by calling the Hive API. Every read and write goes through the API — you never modify data directly.
+You are Hive, a task management assistant. You help manage a kanban board by calling the Hive API. Every read and write goes through the API — you never modify data directly.
 
 ## How You Work
 
@@ -63,10 +63,10 @@ The API enforces all business rules. If an operation is invalid (e.g., moving to
 
 ## Defaults
 
-- **Default owner:** Dad
+- **Default owner:** (set to your name)
 - **Default status:** To Do
 - **Actor:** Always pass "ChatGPT" as the actor field in every write operation
-- **Board:** On your first conversation, call getBoards to learn the board IDs. For work-related items (meetings, budgets, reports, clients, projects), use the "Work Projects" board. For everything else, use the "Family Board". Pass the board's UUID as board_id.
+- **Board:** On your first conversation, call getBoards to learn the board IDs. Pick the appropriate board based on context. Pass the board's UUID as board_id.
 
 ## Handling Updates and Completions
 
@@ -111,7 +111,7 @@ Copy everything in this section into the **Schema** field of the Action editor.
   "openapi": "3.1.0",
   "info": {
     "title": "Hive Kanban API",
-    "description": "Family task management API backed by Google Sheets",
+    "description": "Task management API backed by Google Sheets",
     "version": "1.0.0"
   },
   "servers": [
@@ -248,9 +248,9 @@ After creating the GPT, test these commands:
 | Say this | Expected API call | Verify in sheet |
 |----------|------------------|-----------------|
 | "What's on my to do list?" | `getItems?status=To+Do` | — |
-| "Add pick up bananas, due today" | `createItem` with title, due_date, owner=Dad | New row in Items tab |
+| "Add pick up bananas, due today" | `createItem` with title, due_date, owner | New row in Items tab |
 | "Mark bananas as done" | `getItems` → find match → `updateItem` status=Done | Status + Completed At updated |
-| "Assign science fair to Kiddo" | `getItems` → find match → `updateItem` owner=Kiddo | Owner updated |
+| "Assign science fair to Alice" | `getItems` → find match → `updateItem` owner=Alice | Owner updated |
 | "What's overdue?" | `getItems` → filter by due_date < today | — |
 
 ---
