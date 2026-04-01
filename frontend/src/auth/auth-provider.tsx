@@ -65,6 +65,16 @@ export function AuthProvider({ children }: Props) {
   const [token, setToken] = useState<string | null>(demo ? 'demo-token' : cached?.token ?? null);
   const [user, setUser] = useState<UserInfo | null>(demo ? DEMO_USER : cached?.user ?? null);
   const tokenClientRef = useRef<any>(null);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /** Schedule a silent token refresh 5 minutes before expiry. */
+  const scheduleRefresh = useCallback((expiresInSec: number) => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    const delayMs = Math.max(0, (expiresInSec - 300) * 1000);
+    refreshTimerRef.current = setTimeout(() => {
+      tokenClientRef.current?.requestAccessToken({ prompt: '' });
+    }, delayMs);
+  }, []);
 
   /**
    * Pending reauth resolver. When a silent re-auth is triggered by a 401
@@ -73,6 +83,17 @@ export function AuthProvider({ children }: Props) {
    */
   const reauthResolveRef = useRef<((token: string) => void) | null>(null);
   const reauthRejectRef = useRef<((err: Error) => void) | null>(null);
+
+  // If we loaded a cached token on mount, schedule a refresh for when it nears expiry.
+  useEffect(() => {
+    if (demo || !cached) return;
+    const remainingSec = Math.max(0, (cached.expiry - Date.now()) / 1000);
+    scheduleRefresh(remainingSec);
+    return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     // In demo mode, skip GIS initialization entirely.
@@ -110,7 +131,9 @@ export function AuthProvider({ children }: Props) {
             // Re-use the existing cached user info to avoid an extra network call
             const cachedUser = loadCachedAuth()?.user;
             if (cachedUser) {
-              saveCachedAuth(newToken, cachedUser, response.expires_in || 3600);
+              const expiresIn = response.expires_in || 3600;
+              saveCachedAuth(newToken, cachedUser, expiresIn);
+              scheduleRefresh(expiresIn);
             }
             reauthResolveRef.current(newToken);
             reauthResolveRef.current = null;
@@ -128,7 +151,9 @@ export function AuthProvider({ children }: Props) {
                 picture: info.picture,
               };
               setUser(userInfo);
-              saveCachedAuth(newToken, userInfo, response.expires_in || 3600);
+              const expiresIn = response.expires_in || 3600;
+              saveCachedAuth(newToken, userInfo, expiresIn);
+              scheduleRefresh(expiresIn);
             } catch (err) {
               console.error('Failed to fetch user info:', err);
             }
