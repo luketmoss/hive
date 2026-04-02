@@ -2063,6 +2063,19 @@ body {
   overflow: hidden;
   line-height: 1.4;
   cursor: pointer;
+  transition: max-height 0.15s ease;
+  max-height: 2.8em; /* 2 lines × 1.4 line-height */
+}
+
+/* #204 AC1: Expand clamped titles on hover/focus */
+.subtask-item:hover .subtask-title {
+  -webkit-line-clamp: unset;
+  max-height: 20em;
+}
+
+.subtask-item:focus-within .subtask-title {
+  -webkit-line-clamp: unset;
+  max-height: 20em;
 }
 
 .subtask-title:hover,
@@ -2148,6 +2161,32 @@ body {
 /* #58: Add confirm button gets primary color hover for visual differentiation */
 .subtask-add-confirm:not([aria-disabled="true"]):hover {
   color: var(--color-primary);
+}
+
+/* #204 AC2/AC5: Completed sub-items toggle */
+.subtask-completed-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: var(--radius-sm);
+}
+
+.subtask-completed-toggle:hover {
+  color: var(--color-text);
+  background: var(--overlay-sm);
+}
+
+.subtask-completed-toggle:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 /* === #86: Sub-task date badges === */
@@ -3474,8 +3513,16 @@ body {
   }
 
   /* #59 AC1: Ensure title gets at least 120px, forcing actions to wrap */
+  /* #204 AC1: No line-clamp on mobile — detail panel is full-width */
   .subtask-title {
     min-width: 120px;
+    -webkit-line-clamp: unset;
+    max-height: none;
+  }
+
+  /* #204 AC5: Completed toggle meets 44px touch target */
+  .subtask-completed-toggle {
+    min-height: 44px;
   }
 
   /* #59 AC2: Action buttons right-align when wrapped to second row */

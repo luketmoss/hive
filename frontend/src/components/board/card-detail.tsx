@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'preact/hooks';
+import { useState, useRef, useCallback, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
 import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels as labelsStore, showToast, openDetailWithTitleEdit, accessibleBoards, activeBoardId, showMoveToBoardModal } from '../../state/board-store';
 import { updateItem, deleteItem, deleteSubtask, createItem, moveItem, reorderSubtasks } from '../../state/actions';
@@ -17,6 +17,23 @@ export function CardDetail() {
 
   const actor = user?.name || 'web';
   const children = childrenOfSelected.value;
+
+  // #204: Collapse completed sub-items
+  const allChildrenDone = children.length > 0 && children.every(c => c.status === 'Done');
+  const [showCompleted, setShowCompleted] = useState(allChildrenDone);
+  const prevItemId = useRef(item.id);
+  useEffect(() => {
+    if (prevItemId.current !== item.id) {
+      prevItemId.current = item.id;
+      const allDone = children.length > 0 && children.every(c => c.status === 'Done');
+      setShowCompleted(allDone);
+    }
+  }, [item.id, children]);
+
+  const incompleteChildren = children.filter(c => c.status !== 'Done');
+  const doneChildren = children.filter(c => c.status === 'Done');
+  // When collapsed, only show incomplete; when expanded, show all
+  const visibleChildren = showCompleted ? children : incompleteChildren;
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [addingSubtask, setAddingSubtask] = useState(false);
@@ -129,11 +146,13 @@ export function CardDetail() {
 
   const handleReorder = (childId: string, direction: 'up' | 'down') => {
     if (!token) return;
-    const idx = children.findIndex(c => c.id === childId);
+    // #204 AC3: Reorder within visible group only when completed items are collapsed
+    const reorderList = showCompleted ? children : incompleteChildren;
+    const idx = reorderList.findIndex(c => c.id === childId);
     if (idx < 0) return;
     const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= children.length) return;
-    reorderSubtasks(children[idx].id, children[swapIdx].id, actor, token);
+    if (swapIdx < 0 || swapIdx >= reorderList.length) return;
+    reorderSubtasks(reorderList[idx].id, reorderList[swapIdx].id, actor, token);
   };
 
   // #116: Per-subtask title editing
@@ -195,7 +214,7 @@ export function CardDetail() {
       startY: e.touches[0].clientY,
       listEl: list,
       rowHeight,
-      childIds: children.map(c => c.id),
+      childIds: visibleChildren.map(c => c.id),
     };
   };
 
@@ -403,17 +422,18 @@ export function CardDetail() {
           {/* Sub-tasks */}
           <div class="detail-subtasks">
             <div class="detail-subtasks-header">
-              <label>Sub-tasks ({children.length})</label>
+              {/* #204 AC4: Show done/total progress in header */}
+              <label>Sub-tasks ({doneChildren.length}/{children.length})</label>
               {!addingSubtask && (
                 <button ref={addSubtaskBtnRef} class="btn btn-sm" onClick={handleAddSubtask}>+ Add</button>
               )}
             </div>
-            {children.length > 0 && (
+            {visibleChildren.length > 0 && (
               <ul class="subtask-list">
-                {children.map((child, idx) => (
+                {visibleChildren.map((child, idx) => (
                   <li key={child.id} class={`subtask-item ${child.status === 'Done' ? 'subtask-done' : ''}`}>
                     {/* #88 AC5: Drag handle for touch reorder (visible on mobile only via CSS) */}
-                    {children.length > 1 && (
+                    {visibleChildren.length > 1 && (
                       <span
                         class="subtask-drag-handle"
                         aria-label={`Drag to reorder ${child.title}`}
@@ -472,7 +492,7 @@ export function CardDetail() {
                       ))}
                     </select>
                     <div class="subtask-actions">
-                      {children.length > 1 && (
+                      {visibleChildren.length > 1 && (
                         <>
                           <button
                             class="btn-icon subtask-action-btn"
@@ -484,9 +504,9 @@ export function CardDetail() {
                           <button
                             class="btn-icon subtask-action-btn"
                             aria-label="Move down"
-                            aria-disabled={idx === children.length - 1 ? 'true' : undefined}
-                            style={idx === children.length - 1 ? 'opacity: 0.3; cursor: not-allowed;' : undefined}
-                            onClick={() => { if (idx < children.length - 1) handleReorder(child.id, 'down'); }}
+                            aria-disabled={idx === visibleChildren.length - 1 ? 'true' : undefined}
+                            style={idx === visibleChildren.length - 1 ? 'opacity: 0.3; cursor: not-allowed;' : undefined}
+                            onClick={() => { if (idx < visibleChildren.length - 1) handleReorder(child.id, 'down'); }}
                           >&#9660;</button>
                         </>
                       )}
@@ -499,6 +519,22 @@ export function CardDetail() {
                   </li>
                 ))}
               </ul>
+            )}
+            {/* #204 AC2: Completed sub-items toggle */}
+            {doneChildren.length > 0 && (
+              <button
+                class="subtask-completed-toggle"
+                aria-expanded={showCompleted ? 'true' : 'false'}
+                onClick={() => setShowCompleted(!showCompleted)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setShowCompleted(!showCompleted);
+                  }
+                }}
+              >
+                {showCompleted ? '\u25BE' : '\u25B8'} {doneChildren.length} completed
+              </button>
             )}
             {/* #88 AC5: Announce reorder to screen readers */}
             <div class="reorder-live-region" aria-live="polite" role="status">{reorderAnnouncement}</div>
