@@ -1171,10 +1171,11 @@ describe('CardDetail — Touch reorder (Issue #88)', () => {
 
   // AC5: Drag handle rendered on each sub-task
   describe('AC5: Touch-friendly sub-task reorder', () => {
-    it('renders a drag handle on each sub-task when 2+ children exist', () => {
+    it('renders a drag handle on each visible sub-task when 2+ children exist', () => {
       const { container } = renderCardDetail();
       const handles = container.querySelectorAll('.subtask-drag-handle');
-      expect(handles.length).toBe(3);
+      // #204: Only incomplete items visible by default (2 of 3), Done items collapsed
+      expect(handles.length).toBe(2);
     });
 
     it('drag handle has role="button" and accessible label', () => {
@@ -1201,12 +1202,13 @@ describe('CardDetail — Touch reorder (Issue #88)', () => {
       expect(live!.getAttribute('role')).toBe('status');
     });
 
-    it('arrow buttons still rendered (hidden via CSS on mobile)', () => {
+    it('arrow buttons still rendered for visible items (hidden via CSS on mobile)', () => {
       const { container } = renderCardDetail();
       const upBtns = container.querySelectorAll('[aria-label="Move up"]');
       const downBtns = container.querySelectorAll('[aria-label="Move down"]');
-      expect(upBtns.length).toBe(3);
-      expect(downBtns.length).toBe(3);
+      // #204: Only incomplete items visible by default (2 of 3), Done items collapsed
+      expect(upBtns.length).toBe(2);
+      expect(downBtns.length).toBe(2);
     });
   });
 });

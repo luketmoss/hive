@@ -127,12 +127,21 @@ describe('CardDetail ARIA labels (Issue #7)', () => {
 
   // AC5: Subtask checkboxes have accessible labels
   describe('AC5: Subtask checkboxes have accessible labels', () => {
-    it('each subtask checkbox has aria-label matching the subtask title', () => {
+    it('each visible subtask checkbox has aria-label matching the subtask title', () => {
       const { container } = renderCardDetail();
+      // #204: Done items collapsed by default — only 1 incomplete item visible
       const checkboxes = container.querySelectorAll('.subtask-list input[type="checkbox"]');
-      expect(checkboxes.length).toBe(2);
+      expect(checkboxes.length).toBe(1);
       expect((checkboxes[0] as HTMLInputElement).getAttribute('aria-label')).toBe('Buy milk');
-      expect((checkboxes[1] as HTMLInputElement).getAttribute('aria-label')).toBe('Buy bread');
+
+      // Expand completed items via toggle
+      const toggle = container.querySelector('.subtask-completed-toggle') as HTMLElement;
+      if (toggle) {
+        fireEvent.click(toggle);
+        const allCheckboxes = container.querySelectorAll('.subtask-list input[type="checkbox"]');
+        expect(allCheckboxes.length).toBe(2);
+        expect((allCheckboxes[1] as HTMLInputElement).getAttribute('aria-label')).toBe('Buy bread');
+      }
     });
   });
 
