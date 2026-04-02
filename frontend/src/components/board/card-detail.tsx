@@ -29,6 +29,10 @@ export function CardDetail() {
       setShowCompleted(allDone);
     }
   }, [item.id, children]);
+  // Auto-expand when all children become done at runtime (AC2 edge case)
+  useEffect(() => {
+    if (allChildrenDone) setShowCompleted(true);
+  }, [allChildrenDone]);
 
   const incompleteChildren = children.filter(c => c.status !== 'Done');
   const doneChildren = children.filter(c => c.status === 'Done');
