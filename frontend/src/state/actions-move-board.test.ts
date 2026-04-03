@@ -56,6 +56,12 @@ vi.mock('../api/sheets', () => ({
   deleteBoardRow: vi.fn(),
   deleteAllBoardPermissions: vi.fn(),
   updateItemBoardId: (...args: any[]) => mockUpdateItemBoardId(...args),
+  fetchStatuses: vi.fn().mockResolvedValue([]),
+  createStatusRow: vi.fn().mockResolvedValue(undefined),
+  updateStatusRow: vi.fn().mockResolvedValue(undefined),
+  deleteStatusRow: vi.fn().mockResolvedValue(undefined),
+  fetchStatusesWithRows: vi.fn().mockResolvedValue([]),
+  cascadeStatusRename: vi.fn().mockResolvedValue(undefined),
   SheetsApiError: class extends Error { status: number; constructor(s: number, m: string) { super(m); this.status = s; } },
 }));
 

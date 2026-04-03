@@ -1,4 +1,4 @@
-import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl, initActiveViewFromUrl, initUpcomingBoardFilter, permissions, currentUserEmail, selectedItemId, boardItems as boardItemsComputed } from './board-store';
+import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl, initActiveViewFromUrl, initUpcomingBoardFilter, permissions, currentUserEmail, selectedItemId, boardItems as boardItemsComputed, statuses, isTerminalStatus, defaultStatusName, boardStatuses } from './board-store';
 import { validateStatusTransition, applyStatusSideEffects } from './rules';
 import {
   fetchAllItems as sheetsFetchAllItems,
@@ -196,16 +196,18 @@ export class NotAllowedError extends Error {
 export async function loadBoard(token: string, user?: UserInfo | null) {
   loading.value = true;
   try {
-    const [itemsData, ownersData, labelsData, boardsData, permsData] = await Promise.all([
+    const [itemsData, ownersData, labelsData, boardsData, permsData, statusesData] = await Promise.all([
       fetchAllItems(token),
       fetchOwners(token),
       fetchLabels(token),
       fetchBoardsApi(token),
       fetchPermissionsApi(token),
+      fetchStatusesApi(token).catch(() => [] as import('../api/types').BoardStatus[]),
     ]);
     items.value = itemsData;
     owners.value = ownersData;
     boards.value = boardsData;
+    statuses.value = statusesData;
 
     // AC4: One-time migration — assign board_id to orphaned labels
     const orphanedLabels = labelsData.filter(l => !l.board_id);
@@ -328,11 +330,7 @@ export async function createItem(
     return;
   }
 
-  const status: ItemStatus = data.status ?? 'To Do';
-  if (status === 'In Progress' && !data.owner) {
-    showToast('Owner required for In Progress items', 'error');
-    return;
-  }
+  const status: ItemStatus = data.status ?? defaultStatusName();
 
   const now = new Date().toISOString();
   const maxOrder = items.value
@@ -350,7 +348,7 @@ export async function createItem(
     parent_id: data.parent_id || '',
     created_at: now,
     updated_at: now,
-    completed_at: status === 'Done' ? now : '',
+    completed_at: isTerminalStatus(status) ? now : '',
     sort_order: maxOrder + 1,
     created_by: data.created_by || '',
     board_id: data.board_id || activeBoardId.value,
@@ -391,11 +389,7 @@ export async function createItemWithSubtasks(
     return;
   }
 
-  const status: ItemStatus = data.status ?? 'To Do';
-  if (status === 'In Progress' && !data.owner) {
-    showToast('Owner required for In Progress items', 'error');
-    return;
-  }
+  const status: ItemStatus = data.status ?? defaultStatusName();
 
   const now = new Date().toISOString();
   const maxOrder = items.value
@@ -414,7 +408,7 @@ export async function createItemWithSubtasks(
     parent_id: data.parent_id || '',
     created_at: now,
     updated_at: now,
-    completed_at: status === 'Done' ? now : '',
+    completed_at: isTerminalStatus(status) ? now : '',
     sort_order: maxOrder + 1,
     created_by: data.created_by || '',
     board_id: data.board_id || activeBoardId.value,
@@ -422,11 +416,12 @@ export async function createItemWithSubtasks(
 
   // Filter out blank subtasks and build child items
   const validSubtasks = subtasks.filter(s => s.title.trim());
+  const firstStatus = defaultStatusName();
   const children: Item[] = validSubtasks.map((s, i) => ({
     id: generateUUID(),
     title: s.title.trim(),
     description: '',
-    status: 'To Do' as ItemStatus,
+    status: firstStatus as ItemStatus,
     owner: s.owner || '',
     due_date: '',
     labels: '',
@@ -485,6 +480,7 @@ export async function moveItem(
 
   const oldItem = { ...item };
   const oldItems = [...items.value];
+  const terminal = isTerminalStatus(newStatus);
 
   // Get destination column items (root items only, sorted by sort_order)
   const destColumnItems = items.value
@@ -500,7 +496,7 @@ export async function moveItem(
   if (targetIndex !== undefined) {
     // AC2: Insert at specific position and renumber the destination column
     const movedItem: ItemWithRow = {
-      ...applyStatusSideEffects(item, newStatus),
+      ...applyStatusSideEffects(item, newStatus, terminal),
       sheetRow: item.sheetRow,
     };
 
@@ -518,7 +514,7 @@ export async function moveItem(
 
     // #162: Apply cascade to children optimistically
     const cascadedChildren: ItemWithRow[] = childrenToUpdate.map(c => ({
-      ...applyStatusSideEffects(c, newStatus),
+      ...applyStatusSideEffects(c, newStatus, terminal),
       sheetRow: c.sheetRow,
     }));
 
@@ -566,14 +562,14 @@ export async function moveItem(
   const maxSortOrder = destColumnItems.reduce((max, i) => Math.max(max, i.sort_order), 0);
 
   const updated = {
-    ...applyStatusSideEffects(item, newStatus),
+    ...applyStatusSideEffects(item, newStatus, terminal),
     sort_order: maxSortOrder + 1,
     sheetRow: item.sheetRow,
   };
 
   // #162: Apply cascade to children optimistically
   const cascadedChildren: ItemWithRow[] = childrenToUpdate.map(c => ({
-    ...applyStatusSideEffects(c, newStatus),
+    ...applyStatusSideEffects(c, newStatus, terminal),
     sheetRow: c.sheetRow,
   }));
 
@@ -1039,9 +1035,22 @@ export async function createBoard(
   const ownerPerm = { board_id: board.id, user_email: actor, role: 'owner' as const };
   permissions.value = [...permissions.value, ownerPerm];
 
+  // Seed default statuses for the new board
+  const defaultStatuses: import('../api/types').BoardStatus[] = [
+    { id: generateUUID(), board_id: board.id, name: 'To Do', sort_order: 1, color: '#e3f2fd', is_terminal: false, created_at: board.created_at },
+    { id: generateUUID(), board_id: board.id, name: 'In Progress', sort_order: 2, color: '#fff3e0', is_terminal: false, created_at: board.created_at },
+    { id: generateUUID(), board_id: board.id, name: 'Done', sort_order: 3, color: '#e8f5e9', is_terminal: true, created_at: board.created_at },
+  ];
+  statuses.value = [...statuses.value, ...defaultStatuses];
+
   try {
     await createBoardRowApi(board, token);
     await createPermissionRowApi(ownerPerm, token);
+
+    // Create default statuses in sheet
+    for (const s of defaultStatuses) {
+      await createStatusRowApi(s, token);
+    }
 
     // Persist board_id for orphaned items
     for (const item of orphanedItems) {
@@ -1057,6 +1066,7 @@ export async function createBoard(
     // Rollback
     boards.value = boards.value.filter(b => b.id !== board.id);
     permissions.value = permissions.value.filter(p => p.board_id !== board.id);
+    statuses.value = statuses.value.filter(s => s.board_id !== board.id);
     if (orphanedItems.length > 0) {
       items.value = items.value.map(i =>
         orphanedItems.some(o => o.id === i.id) ? { ...i, board_id: '' } : i

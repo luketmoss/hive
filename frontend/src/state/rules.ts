@@ -8,45 +8,40 @@ export interface ValidationResult {
   error?: string;
 }
 
+// Status-specific business rules removed in #218. All transitions are now allowed.
+// These functions are kept for backward compatibility with existing callers.
+
 export function validateStatusTransition(
-  item: Item,
-  newStatus: ItemStatus,
-  allItems: Item[]
+  _item: Item,
+  _newStatus: ItemStatus,
+  _allItems: Item[]
 ): ValidationResult {
-  if (item.status === newStatus) {
-    return { valid: true };
-  }
-
-  // To Do → In Progress: owner must be set
-  if (item.status === 'To Do' && newStatus === 'In Progress') {
-    if (!item.owner) {
-      return { valid: false, error: 'Cannot move to In Progress: owner must be assigned' };
-    }
-  }
-
-  // Note: the "all children must be Done" check was removed in #162.
-  // Moving a parent to Done now cascades the status to all children automatically.
-
   return { valid: true };
 }
 
 export function validateOwnerChange(
-  item: Item,
-  newOwner: string
+  _item: Item,
+  _newOwner: string
 ): ValidationResult {
-  // Cannot remove owner from an "In Progress" item
-  if (item.status === 'In Progress' && !newOwner) {
-    return { valid: false, error: 'Cannot remove owner from In Progress items' };
-  }
   return { valid: true };
 }
 
-export function applyStatusSideEffects(item: Item, newStatus: ItemStatus): Item {
+export function applyStatusSideEffects(item: Item, newStatus: ItemStatus, isTerminal?: boolean): Item {
   const now = new Date().toISOString();
+
+  let completed_at = item.completed_at;
+  if (isTerminal) {
+    // Moving to a terminal column — set completed_at
+    completed_at = now;
+  } else if (item.completed_at && isTerminal === false) {
+    // Moving away from a terminal column — clear completed_at
+    completed_at = '';
+  }
+
   return {
     ...item,
     status: newStatus,
     updated_at: now,
-    completed_at: newStatus === 'Done' ? now : (item.status === 'Done' ? '' : item.completed_at),
+    completed_at,
   };
 }
