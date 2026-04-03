@@ -135,12 +135,22 @@ export function CreateItemModal() {
 
             <div class="form-field">
               <label for="due-date">Due Date</label>
-              <input
-                id="due-date"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate((e.target as HTMLInputElement).value)}
-              />
+              <div class="date-field-row">
+                <input
+                  id="due-date"
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate((e.target as HTMLInputElement).value)}
+                />
+                {dueDate && (
+                  <button
+                    type="button"
+                    class="btn-icon date-clear-btn"
+                    aria-label="Clear due date"
+                    onClick={() => setDueDate('')}
+                  >&#215;</button>
+                )}
+              </div>
               <QuickDateChips value={dueDate} onChange={setDueDate} />
             </div>
 

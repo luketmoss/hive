@@ -547,3 +547,38 @@ describe('CreateItemModal — Inline Add Item (Issue #170)', () => {
     expect(mockCreateItemWithSubtasks.mock.calls[0][0].status).toBe('To Do');
   });
 });
+
+describe('CreateItemModal clear date button (Issue #207)', () => {
+  beforeEach(() => {
+    mockBoardStore.showCreateModal.value = true;
+    mockBoardStore.createModalInitialStatus.value = null;
+    mockCreateItem.mockReset();
+  });
+
+  // AC6: Clear button in create modal
+  it('AC6: no clear button when date is empty', () => {
+    const { container } = render(<CreateItemModal />);
+    const clearBtn = container.querySelector('[aria-label="Clear due date"]');
+    expect(clearBtn).toBeNull();
+  });
+
+  it('AC6: clear button appears after setting a date', () => {
+    const { container } = render(<CreateItemModal />);
+    const dateInput = container.querySelector('#due-date') as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: '2026-04-10' } });
+    const clearBtn = container.querySelector('[aria-label="Clear due date"]');
+    expect(clearBtn).not.toBeNull();
+  });
+
+  it('AC6: clicking clear removes the date', () => {
+    const { container } = render(<CreateItemModal />);
+    const dateInput = container.querySelector('#due-date') as HTMLInputElement;
+    fireEvent.change(dateInput, { target: { value: '2026-04-10' } });
+
+    const clearBtn = container.querySelector('[aria-label="Clear due date"]') as HTMLElement;
+    fireEvent.click(clearBtn);
+
+    expect(dateInput.value).toBe('');
+    expect(container.querySelector('[aria-label="Clear due date"]')).toBeNull();
+  });
+});

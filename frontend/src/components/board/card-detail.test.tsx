@@ -14,6 +14,7 @@ afterEach(() => {
 let mockSelectedItemId: string | null = 'detail-test-1';
 let mockChildren: any[] = [];
 let mockItems: any[] = [];
+let mockItemOverrides: Record<string, any> = {};
 
 vi.mock('../../state/board-store', () => ({
   selectedItemId: {
@@ -39,6 +40,7 @@ vi.mock('../../state/board-store', () => ({
         sort_order: 1,
         created_by: 'luke@example.com',
         sheetRow: 2,
+        ...mockItemOverrides,
       };
     },
   },
@@ -1806,5 +1808,55 @@ describe('CardDetail expand panel (Issue #206)', () => {
 
     expect(container.querySelector('.detail-panel-expanded')).toBeNull();
     expect(container.querySelector('[aria-label="Expand panel"]')).not.toBeNull();
+  });
+});
+
+describe('CardDetail clear date button (Issue #207)', () => {
+  beforeEach(() => {
+    mockSelectedItemId = 'detail-test-1';
+    mockChildren = [];
+    mockItems = [];
+    mockItemOverrides = {};
+    mockUpdateItem.mockReset().mockResolvedValue(true);
+  });
+
+  // AC1: Clear button appears only when date is set
+  it('AC1: no clear button when due_date is empty', () => {
+    const { container } = renderCardDetail();
+    const clearBtn = container.querySelector('[aria-label="Clear due date"]');
+    expect(clearBtn).toBeNull();
+  });
+
+  it('AC1: clear button appears when due_date is set', () => {
+    mockItemOverrides = { due_date: '2026-04-10' };
+    const { container } = renderCardDetail();
+    const clearBtn = container.querySelector('[aria-label="Clear due date"]');
+    expect(clearBtn).not.toBeNull();
+  });
+
+  // AC2: Clearing saves immediately
+  it('AC2: clicking clear button saves empty due_date', async () => {
+    mockItemOverrides = { due_date: '2026-04-10' };
+    const { container } = renderCardDetail();
+    const clearBtn = container.querySelector('[aria-label="Clear due date"]') as HTMLElement;
+    expect(clearBtn).not.toBeNull();
+
+    await act(async () => {
+      fireEvent.click(clearBtn);
+    });
+
+    expect(mockUpdateItem).toHaveBeenCalledWith('detail-test-1', { due_date: '' }, 'Luke', 'test-token');
+  });
+
+  // AC3: No extra vertical space — button is inline in same row as date input
+  it('AC3: clear button is inline with date input in a date-field-row', () => {
+    mockItemOverrides = { due_date: '2026-04-10' };
+    const { container } = renderCardDetail();
+    const row = container.querySelector('.date-field-row');
+    expect(row).not.toBeNull();
+    const dateInput = row!.querySelector('input[type="date"]');
+    const clearBtn = row!.querySelector('[aria-label="Clear due date"]');
+    expect(dateInput).not.toBeNull();
+    expect(clearBtn).not.toBeNull();
   });
 });

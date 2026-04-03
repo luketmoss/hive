@@ -396,16 +396,28 @@ export function CardDetail() {
           <SaveFeedbackField label="Due Date">
             {(onFieldSaved) => (
               <>
-                <input
-                  type="date"
-                  value={item.due_date ? item.due_date.split('T')[0] : ''}
-                  onChange={async (e) => {
-                    const prev = item.due_date ? item.due_date.split('T')[0] : '';
-                    const ok = await save('due_date', (e.target as HTMLInputElement).value);
-                    onFieldSaved(ok);
-                    if (!ok) (e.target as HTMLInputElement).value = prev;
-                  }}
-                />
+                <div class="date-field-row">
+                  <input
+                    type="date"
+                    value={item.due_date ? item.due_date.split('T')[0] : ''}
+                    onChange={async (e) => {
+                      const prev = item.due_date ? item.due_date.split('T')[0] : '';
+                      const ok = await save('due_date', (e.target as HTMLInputElement).value);
+                      onFieldSaved(ok);
+                      if (!ok) (e.target as HTMLInputElement).value = prev;
+                    }}
+                  />
+                  {item.due_date && (
+                    <button
+                      class="btn-icon date-clear-btn"
+                      aria-label="Clear due date"
+                      onClick={async () => {
+                        const ok = await save('due_date', '');
+                        onFieldSaved(ok);
+                      }}
+                    >&#215;</button>
+                  )}
+                </div>
                 <QuickDateChips
                   value={item.due_date ? item.due_date.split('T')[0] : ''}
                   onChange={async (date) => {
