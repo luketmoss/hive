@@ -25,6 +25,12 @@ import {
   deleteBoardRow as sheetsDeleteBoardRow,
   deleteAllBoardPermissions as sheetsDeleteAllBoardPermissions,
   updateItemBoardId as sheetsUpdateItemBoardId,
+  fetchStatuses as sheetsFetchStatuses,
+  createStatusRow as sheetsCreateStatusRow,
+  updateStatusRow as sheetsUpdateStatusRow,
+  deleteStatusRow as sheetsDeleteStatusRow,
+  fetchStatusesWithRows as sheetsFetchStatusesWithRows,
+  cascadeStatusRename as sheetsCascadeStatusRename,
 } from '../api/sheets';
 import {
   fetchAllItems as mockFetchAllItems,
@@ -51,6 +57,12 @@ import {
   deleteBoardRow as mockDeleteBoardRow,
   deleteAllBoardPermissions as mockDeleteAllBoardPermissions,
   updateItemBoardId as mockUpdateItemBoardId,
+  fetchStatuses as mockFetchStatuses,
+  createStatusRow as mockCreateStatusRow,
+  updateStatusRow as mockUpdateStatusRow,
+  deleteStatusRow as mockDeleteStatusRow,
+  fetchStatusesWithRows as mockFetchStatusesWithRows,
+  cascadeStatusRename as mockCascadeStatusRename,
 } from '../demo/mock-api';
 import { isDemoMode } from '../demo/is-demo-mode';
 import { ReauthFailedError } from '../auth/reauth';
@@ -96,6 +108,12 @@ function api() {
       deleteBoardRow: mockDeleteBoardRow,
       deleteAllBoardPermissions: mockDeleteAllBoardPermissions,
       updateItemBoardId: mockUpdateItemBoardId,
+      fetchStatuses: mockFetchStatuses,
+      createStatusRow: mockCreateStatusRow,
+      updateStatusRow: mockUpdateStatusRow,
+      deleteStatusRow: mockDeleteStatusRow,
+      fetchStatusesWithRows: mockFetchStatusesWithRows,
+      cascadeStatusRename: mockCascadeStatusRename,
     };
   }
   return {
@@ -123,6 +141,12 @@ function api() {
     deleteBoardRow: sheetsDeleteBoardRow,
     deleteAllBoardPermissions: sheetsDeleteAllBoardPermissions,
     updateItemBoardId: sheetsUpdateItemBoardId,
+    fetchStatuses: sheetsFetchStatuses,
+    createStatusRow: sheetsCreateStatusRow,
+    updateStatusRow: sheetsUpdateStatusRow,
+    deleteStatusRow: sheetsDeleteStatusRow,
+    fetchStatusesWithRows: sheetsFetchStatusesWithRows,
+    cascadeStatusRename: sheetsCascadeStatusRename,
   };
 }
 
@@ -150,6 +174,12 @@ const deletePermissionRowApi = (...args: Parameters<typeof sheetsDeletePermissio
 const deleteBoardRowApi = (...args: Parameters<typeof sheetsDeleteBoardRow>) => api().deleteBoardRow(...args);
 const deleteAllBoardPermissionsApi = (...args: Parameters<typeof sheetsDeleteAllBoardPermissions>) => api().deleteAllBoardPermissions(...args);
 const updateItemBoardIdApi = (...args: Parameters<typeof sheetsUpdateItemBoardId>) => api().updateItemBoardId(...args);
+const fetchStatusesApi = (...args: Parameters<typeof sheetsFetchStatuses>) => api().fetchStatuses(...args);
+const createStatusRowApi = (...args: Parameters<typeof sheetsCreateStatusRow>) => api().createStatusRow(...args);
+const updateStatusRowApi = (...args: Parameters<typeof sheetsUpdateStatusRow>) => api().updateStatusRow(...args);
+const deleteStatusRowApi = (...args: Parameters<typeof sheetsDeleteStatusRow>) => api().deleteStatusRow(...args);
+const fetchStatusesWithRowsApi = (...args: Parameters<typeof sheetsFetchStatusesWithRows>) => api().fetchStatusesWithRows(...args);
+const cascadeStatusRenameApi = (...args: Parameters<typeof sheetsCascadeStatusRename>) => api().cascadeStatusRename(...args);
 
 function generateUUID(): string {
   return crypto.randomUUID();
