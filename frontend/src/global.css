@@ -3739,3 +3739,215 @@ body {
   color: var(--color-text-secondary);
   font-size: 16px;
 }
+
+/* ── Settings tabs ── */
+
+.settings-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+}
+
+.settings-tab {
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.settings-tab:hover {
+  color: var(--color-text);
+}
+
+.settings-tab-active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
+}
+
+.settings-tab-danger {
+  color: var(--color-danger, #d32f2f);
+}
+
+.settings-tab-danger.settings-tab-active {
+  border-bottom-color: var(--color-danger, #d32f2f);
+}
+
+.settings-panel-container {
+  overflow-y: auto;
+  max-height: calc(90vh - 130px);
+}
+
+/* ── Column settings ── */
+
+.column-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.column-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.column-settings-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--color-surface, var(--color-bg));
+  border: 1px solid var(--color-border);
+}
+
+.column-settings-row-edit,
+.column-settings-row-delete {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.column-settings-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.column-settings-name {
+  flex: 1;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.column-settings-count {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  min-width: 20px;
+  text-align: center;
+}
+
+.column-settings-terminal-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--color-done, #e8f5e9);
+  color: #2e7d32;
+  font-weight: 500;
+}
+
+.column-settings-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.column-settings-actions .btn-icon {
+  font-size: 10px;
+  padding: 2px 4px;
+}
+
+.column-settings-actions .btn-icon:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.column-settings-name-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 14px;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.column-settings-color-row {
+  display: flex;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.column-color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.column-color-swatch:hover {
+  border-color: var(--color-text-secondary);
+}
+
+.column-color-swatch-active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.column-settings-terminal-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  padding: 4px 0;
+}
+
+.column-settings-edit-actions,
+.column-settings-create-actions,
+.column-settings-delete-actions {
+  display: flex;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.column-settings-create {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px dashed var(--color-border);
+  border-radius: 6px;
+}
+
+.column-settings-add-btn {
+  width: 100%;
+  text-align: center;
+  padding: 8px;
+}
+
+.column-settings-delete-prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.column-settings-delete-prompt p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.column-settings-delete-select {
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 14px;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.share-danger-zone-desc {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
