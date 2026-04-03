@@ -287,20 +287,20 @@ export function KanbanBoard() {
           {/* AC1 #198: View mode tabs in header */}
           <div class="control-bar-view-tabs" role="group" aria-label="View" data-testid="control-bar-view-tabs">
             <button
-              class={`view-tab${activeView.value !== 'upcoming' ? ' view-tab-active' : ''}`}
-              onClick={() => { if (activeView.value === 'upcoming') switchToBoard(); }}
-              aria-pressed={activeView.value !== 'upcoming' ? 'true' : 'false'}
-              data-testid="view-tab-board"
-            >
-              Board
-            </button>
-            <button
               class={`view-tab${activeView.value === 'upcoming' ? ' view-tab-active' : ''}`}
               onClick={() => { if (activeView.value !== 'upcoming') switchToUpcoming(); }}
               aria-pressed={activeView.value === 'upcoming' ? 'true' : 'false'}
               data-testid="view-tab-upcoming"
             >
               Upcoming
+            </button>
+            <button
+              class={`view-tab${activeView.value !== 'upcoming' ? ' view-tab-active' : ''}`}
+              onClick={() => { if (activeView.value === 'upcoming') switchToBoard(); }}
+              aria-pressed={activeView.value !== 'upcoming' ? 'true' : 'false'}
+              data-testid="view-tab-board"
+            >
+              Boards
             </button>
           </div>
         </div>
