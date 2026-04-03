@@ -52,6 +52,7 @@ vi.mock('../../state/board-store', () => ({
   },
   owners: { value: [{ name: 'Luke', google_account: 'luke@example.com' }, { name: 'Sarah', google_account: 'sarah@example.com' }] },
   labels: { value: [{ label: 'Urgent', color: '#ff0000' }] },
+  boardLabels: { value: [{ label: 'Urgent', color: '#ff0000' }] },
   showToast: vi.fn(),
   accessibleBoards: { value: [] },
   activeBoardId: { value: 'board-1' },

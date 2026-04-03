@@ -81,6 +81,7 @@ vi.mock('../../state/board-store', () => ({
   items: { value: [] },
   owners: { value: [{ name: 'Luke', google_account: 'luke@example.com' }] },
   labels: { value: [] },
+  boardLabels: { value: [] },
   accessibleBoards: { value: [] },
   activeBoardId: { value: 'board-1' },
   showMoveToBoardModal: { value: false },

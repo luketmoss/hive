@@ -1,5 +1,5 @@
 import { useState, useRef } from 'preact/hooks';
-import { labels as labelsStore } from '../../state/board-store';
+import { boardLabels as labelsStore } from '../../state/board-store';
 import { createLabel, updateLabel, deleteLabel } from '../../state/actions';
 import { getContrastTextColor } from '../../utils/color';
 import { ColorSwatchGrid } from './color-swatch-grid';
