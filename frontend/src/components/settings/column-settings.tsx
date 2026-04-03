@@ -7,27 +7,35 @@ interface ColumnSettingsProps {
   token: string;
 }
 
-interface EditState {
-  name: string;
-  color: string;
-  is_terminal: boolean;
-}
-
+// Stored values (light-mode pastels) — mapped to theme-aware CSS vars at render time
 const COLUMN_PRESET_COLORS = [
   '#e3f2fd', '#e8eaf6', '#f3e5f5', '#fce4ec',
   '#fff3e0', '#e8f5e9', '#e0f2f1', '#fff8e1',
 ];
 
+// More saturated preview colors for the picker swatches (easier to differentiate)
+const SWATCH_PREVIEW_COLORS: Record<string, string> = {
+  '#e3f2fd': '#90caf9', // blue
+  '#e8eaf6': '#9fa8da', // indigo
+  '#f3e5f5': '#ce93d8', // purple
+  '#fce4ec': '#f48fb1', // pink
+  '#fff3e0': '#ffb74d', // orange
+  '#e8f5e9': '#81c784', // green
+  '#e0f2f1': '#80cbc4', // teal
+  '#fff8e1': '#ffd54f', // amber
+};
+
 export function ColumnSettings({ token }: ColumnSettingsProps) {
   const [creating, setCreating] = useState(false);
   const [createName, setCreateName] = useState('');
   const [createColor, setCreateColor] = useState(COLUMN_PRESET_COLORS[0]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editState, setEditState] = useState<EditState | null>(null);
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [editingNameValue, setEditingNameValue] = useState('');
+  const [colorPickerId, setColorPickerId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string>('');
   const createInputRef = useRef<HTMLInputElement>(null);
-  const editInputRef = useRef<HTMLInputElement>(null);
+  const editNameRef = useRef<HTMLInputElement>(null);
 
   const columns = boardStatuses.value;
   const allItems = boardItems.value;
@@ -55,39 +63,33 @@ export function ColumnSettings({ token }: ColumnSettingsProps) {
     setCreateName('');
   };
 
-  // --- Edit ---
-  const handleStartEdit = (col: BoardStatus) => {
-    setEditingId(col.id);
-    setEditState({ name: col.name, color: col.color, is_terminal: col.is_terminal });
-    requestAnimationFrame(() => editInputRef.current?.focus());
+  // --- Inline name edit ---
+  const handleStartNameEdit = (col: BoardStatus) => {
+    setEditingNameId(col.id);
+    setEditingNameValue(col.name);
+    requestAnimationFrame(() => editNameRef.current?.focus());
   };
 
-  const handleSaveEdit = async () => {
-    if (!editingId || !editState) return;
-    const trimmed = editState.name.trim();
-    if (!trimmed) return;
-
-    const current = columns.find(c => c.id === editingId);
-    if (!current) return;
-
-    // Duplicate name check (excluding self)
-    if (columns.some(c => c.id !== editingId && c.name.toLowerCase() === trimmed.toLowerCase())) return;
-
-    const changes: Partial<Pick<BoardStatus, 'name' | 'color' | 'is_terminal'>> = {};
-    if (trimmed !== current.name) changes.name = trimmed;
-    if (editState.color !== current.color) changes.color = editState.color;
-    if (editState.is_terminal !== current.is_terminal) changes.is_terminal = editState.is_terminal;
-
-    if (Object.keys(changes).length > 0) {
-      await updateStatus(editingId, changes, token);
-    }
-    setEditingId(null);
-    setEditState(null);
+  const handleSaveName = async (col: BoardStatus) => {
+    const trimmed = editingNameValue.trim();
+    setEditingNameId(null);
+    if (!trimmed || trimmed === col.name) return;
+    if (columns.some(c => c.id !== col.id && c.name.toLowerCase() === trimmed.toLowerCase())) return;
+    await updateStatus(col.id, { name: trimmed }, token);
   };
 
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditState(null);
+  // --- Inline color change ---
+  const handleColorChange = async (col: BoardStatus, newColor: string) => {
+    setColorPickerId(null);
+    if (newColor === col.color) return;
+    await updateStatus(col.id, { color: newColor }, token);
+  };
+
+  // --- Terminal toggle ---
+  const handleTerminalToggle = async (col: BoardStatus) => {
+    const terminalCount = columns.filter(c => c.is_terminal).length;
+    if (col.is_terminal && terminalCount <= 1) return;
+    await updateStatus(col.id, { is_terminal: !col.is_terminal }, token);
   };
 
   // --- Reorder ---
@@ -107,12 +109,9 @@ export function ColumnSettings({ token }: ColumnSettingsProps) {
 
   // --- Delete ---
   const handleStartDelete = (col: BoardStatus) => {
-    // Guard: cannot delete last column
     if (columns.length <= 1) return;
-    // Guard: cannot delete sole terminal column
     const terminalCount = columns.filter(c => c.is_terminal).length;
     if (col.is_terminal && terminalCount <= 1) return;
-
     setDeletingId(col.id);
     const otherColumns = columns.filter(c => c.id !== col.id);
     setDeleteTarget(otherColumns[0]?.name || '');
@@ -122,7 +121,6 @@ export function ColumnSettings({ token }: ColumnSettingsProps) {
     if (!deletingId) return;
     const col = columns.find(c => c.id === deletingId);
     if (!col) return;
-
     const itemCount = getItemCount(col.name);
     const target = itemCount > 0 ? deleteTarget : null;
     await deleteStatusWithMigration(deletingId, target, token);
@@ -142,7 +140,6 @@ export function ColumnSettings({ token }: ColumnSettingsProps) {
       <div class="column-settings-list">
         {columns.map((col, idx) => {
           const itemCount = getItemCount(col.name);
-          const isEditing = editingId === col.id;
           const isDeleting = deletingId === col.id;
 
           if (isDeleting) {
@@ -181,74 +178,89 @@ export function ColumnSettings({ token }: ColumnSettingsProps) {
             );
           }
 
-          if (isEditing && editState) {
-            return (
-              <div key={col.id} class="column-settings-row column-settings-row-edit">
-                <input
-                  ref={editInputRef}
-                  type="text"
-                  class="column-settings-name-input"
-                  value={editState.name}
-                  onInput={(e) => setEditState({ ...editState, name: (e.target as HTMLInputElement).value })}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveEdit();
-                    if (e.key === 'Escape') handleCancelEdit();
-                  }}
-                />
-                <div class="column-settings-color-row">
-                  {COLUMN_PRESET_COLORS.map(c => (
-                    <button
-                      key={c}
-                      class={`column-color-swatch${editState.color === c ? ' column-color-swatch-active' : ''}`}
-                      style={{ background: c }}
-                      onClick={() => setEditState({ ...editState, color: c })}
-                      aria-label={`Color ${c}`}
-                    />
-                  ))}
-                </div>
-                <label class="column-settings-terminal-label">
-                  <input
-                    type="checkbox"
-                    checked={editState.is_terminal}
-                    onChange={(e) => setEditState({ ...editState, is_terminal: (e.target as HTMLInputElement).checked })}
-                    disabled={col.is_terminal && terminalCount <= 1}
-                  />
-                  Completion column
-                </label>
-                <div class="column-settings-edit-actions">
-                  <button class="btn btn-primary btn-sm" onClick={handleSaveEdit}>Save</button>
-                  <button class="btn btn-ghost btn-sm" onClick={handleCancelEdit}>Cancel</button>
-                </div>
-              </div>
-            );
-          }
-
           return (
             <div key={col.id} class="column-settings-row">
-              <span class="column-settings-swatch" style={{ background: col.color }} />
-              <span class="column-settings-name">{col.name}</span>
-              <span class="column-settings-count">{itemCount}</span>
-              {col.is_terminal && <span class="column-settings-terminal-badge">Completion</span>}
-              <div class="column-settings-actions">
+              {/* Clickable color swatch — opens inline color picker */}
+              <div class="column-settings-swatch-wrap">
                 <button
-                  class="btn-icon"
-                  aria-label="Move up"
-                  disabled={idx === 0}
-                  onClick={() => handleMoveUp(idx)}
-                >{'\u25B2'}</button>
-                <button
-                  class="btn-icon"
-                  aria-label="Move down"
-                  disabled={idx === columns.length - 1}
-                  onClick={() => handleMoveDown(idx)}
-                >{'\u25BC'}</button>
-                <button class="btn btn-ghost btn-sm" onClick={() => handleStartEdit(col)}>Edit</button>
-                <button
-                  class="btn btn-ghost btn-sm"
-                  disabled={columns.length <= 1 || (col.is_terminal && terminalCount <= 1)}
-                  onClick={() => handleStartDelete(col)}
-                >Delete</button>
+                  class="column-settings-swatch"
+                  style={{ background: SWATCH_PREVIEW_COLORS[col.color] || col.color }}
+                  onClick={() => setColorPickerId(colorPickerId === col.id ? null : col.id)}
+                  aria-label={`Change color for ${col.name}`}
+                />
+                {colorPickerId === col.id && (
+                  <div class="column-settings-color-popover">
+                    {COLUMN_PRESET_COLORS.map(c => (
+                      <button
+                        key={c}
+                        class={`column-color-swatch${col.color === c ? ' column-color-swatch-active' : ''}`}
+                        style={{ background: SWATCH_PREVIEW_COLORS[c] || c }}
+                        onClick={() => handleColorChange(col, c)}
+                        aria-label={`Color ${c}`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {/* Clickable name — becomes input on click */}
+              {editingNameId === col.id ? (
+                <input
+                  ref={editNameRef}
+                  type="text"
+                  class="column-settings-name-inline"
+                  value={editingNameValue}
+                  onInput={(e) => setEditingNameValue((e.target as HTMLInputElement).value)}
+                  onBlur={() => handleSaveName(col)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                    if (e.key === 'Escape') { setEditingNameId(null); }
+                  }}
+                />
+              ) : (
+                <button
+                  class="column-settings-name"
+                  onClick={() => handleStartNameEdit(col)}
+                  title="Click to rename"
+                >
+                  {col.name}
+                </button>
+              )}
+
+              <span class="column-settings-count">{itemCount}</span>
+
+              {/* Terminal toggle */}
+              <label class="column-settings-terminal-toggle" title="Completion column">
+                <input
+                  type="checkbox"
+                  checked={col.is_terminal}
+                  onChange={() => handleTerminalToggle(col)}
+                  disabled={col.is_terminal && terminalCount <= 1}
+                />
+                <span class="column-settings-terminal-icon">{col.is_terminal ? '\u2713' : ''}</span>
+              </label>
+
+              {/* Reorder arrows */}
+              <button
+                class="btn-icon"
+                aria-label="Move up"
+                disabled={idx === 0}
+                onClick={() => handleMoveUp(idx)}
+              >{'\u25B2'}</button>
+              <button
+                class="btn-icon"
+                aria-label="Move down"
+                disabled={idx === columns.length - 1}
+                onClick={() => handleMoveDown(idx)}
+              >{'\u25BC'}</button>
+
+              {/* Delete — red text */}
+              <button
+                class="column-settings-delete-btn"
+                disabled={columns.length <= 1 || (col.is_terminal && terminalCount <= 1)}
+                onClick={() => handleStartDelete(col)}
+                aria-label={`Delete ${col.name}`}
+              >Delete</button>
             </div>
           );
         })}
@@ -273,7 +285,7 @@ export function ColumnSettings({ token }: ColumnSettingsProps) {
               <button
                 key={c}
                 class={`column-color-swatch${createColor === c ? ' column-color-swatch-active' : ''}`}
-                style={{ background: c }}
+                style={{ background: SWATCH_PREVIEW_COLORS[c] || c }}
                 onClick={() => setCreateColor(c)}
                 aria-label={`Color ${c}`}
               />

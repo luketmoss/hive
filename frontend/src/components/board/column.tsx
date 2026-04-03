@@ -45,6 +45,23 @@ const SORT_OVERLAY_TEXT: Record<SortMode, string> = {
   created: 'Will be sorted by creation date',
 };
 
+// Map status colors to theme-aware CSS variables (dark mode support)
+const COLOR_TO_CSS_VAR: Record<string, string> = {
+  '#e3f2fd': 'var(--color-todo)',
+  '#fff3e0': 'var(--color-inprogress)',
+  '#e8f5e9': 'var(--color-done)',
+  '#e8eaf6': 'var(--color-col-indigo)',
+  '#f3e5f5': 'var(--color-col-purple)',
+  '#fce4ec': 'var(--color-col-pink)',
+  '#e0f2f1': 'var(--color-col-teal)',
+  '#fff8e1': 'var(--color-col-amber)',
+};
+
+function resolveColumnColor(color?: string): string {
+  if (!color) return 'var(--color-bg)';
+  return COLOR_TO_CSS_VAR[color] || color;
+}
+
 export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact, color, isTerminal, allDoneCount, hasArchived, archiveTriggerRef, onOpenArchive, sortMode, onSortChange, onAddItem, onDeleteItem }: Props) {
   // Track the insertion indicator position for within-column reorder
   const [dropIndicator, setDropIndicator] = useState<{ index: number; position: 'above' | 'below' } | null>(null);
@@ -314,7 +331,7 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      style={{ '--column-color': color || 'var(--color-todo)' } as any}
+      style={{ '--column-color': resolveColumnColor(color) } as any}
     >
       {/* aria-live region for sort change and cross-column keyboard move announcements */}
       <div class="sr-only" aria-live="polite" aria-atomic="true">

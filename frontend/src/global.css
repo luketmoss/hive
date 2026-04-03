@@ -25,6 +25,11 @@
   --color-todo: #e3f2fd;
   --color-inprogress: #fff3e0;
   --color-done: #e8f5e9;
+  --color-col-indigo: #e8eaf6;
+  --color-col-purple: #f3e5f5;
+  --color-col-pink: #fce4ec;
+  --color-col-teal: #e0f2f1;
+  --color-col-amber: #fff8e1;
 
   /* Upcoming bucket pastels */
   --color-bucket-overdue: #fce4e4;
@@ -117,6 +122,11 @@
   --color-todo: #1a2a3a;
   --color-inprogress: #2a1f10;
   --color-done: #1a2a1a;
+  --color-col-indigo: #1f1f30;
+  --color-col-purple: #2a1a2e;
+  --color-col-pink: #2e1a22;
+  --color-col-teal: #1a2a28;
+  --color-col-amber: #2a2610;
 
   /* Upcoming bucket pastels (dark) */
   --color-bucket-overdue: #3b1f1f;
@@ -3814,18 +3824,119 @@ body {
   align-items: stretch;
 }
 
+.column-settings-swatch-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
 .column-settings-swatch {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   border-radius: 4px;
   flex-shrink: 0;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  padding: 0;
+}
+
+.column-settings-swatch:hover {
+  border-color: var(--color-text-secondary);
+}
+
+.column-settings-color-popover {
+  position: absolute;
+  top: 28px;
+  left: 0;
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  background: var(--color-surface, var(--color-bg));
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 10;
 }
 
 .column-settings-name {
   flex: 1;
   font-weight: 500;
   font-size: 14px;
+  background: none;
+  border: none;
+  color: var(--color-text);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  text-align: left;
+}
+
+.column-settings-name:hover {
+  background: var(--color-border);
+}
+
+.column-settings-name-inline {
+  flex: 1;
+  font-weight: 500;
+  font-size: 14px;
+  padding: 2px 4px;
+  border: 1px solid var(--color-primary);
+  border-radius: 4px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  outline: none;
+}
+
+.column-settings-terminal-toggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.column-settings-terminal-toggle input {
+  display: none;
+}
+
+.column-settings-terminal-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #2e7d32;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+.column-settings-terminal-toggle input:checked + .column-settings-terminal-icon {
+  background: var(--color-done, #e8f5e9);
+  border-color: #2e7d32;
+}
+
+.column-settings-terminal-toggle input:disabled + .column-settings-terminal-icon {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.column-settings-delete-btn {
+  background: none;
+  border: none;
+  color: var(--color-danger, #d32f2f);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.column-settings-delete-btn:hover {
+  background: rgba(211, 47, 47, 0.1);
+}
+
+.column-settings-delete-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .column-settings-count {
@@ -3835,27 +3946,12 @@ body {
   text-align: center;
 }
 
-.column-settings-terminal-badge {
-  font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: var(--color-done, #e8f5e9);
-  color: #2e7d32;
-  font-weight: 500;
-}
-
-.column-settings-actions {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-}
-
-.column-settings-actions .btn-icon {
+.column-settings-row .btn-icon {
   font-size: 10px;
   padding: 2px 4px;
 }
 
-.column-settings-actions .btn-icon:disabled {
+.column-settings-row .btn-icon:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
@@ -3880,7 +3976,7 @@ body {
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  border: 2px solid transparent;
+  border: 2px solid rgba(0, 0, 0, 0.12);
   cursor: pointer;
   padding: 0;
 }
@@ -3894,16 +3990,6 @@ body {
   box-shadow: 0 0 0 1px var(--color-primary);
 }
 
-.column-settings-terminal-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  padding: 4px 0;
-}
-
-.column-settings-edit-actions,
 .column-settings-create-actions,
 .column-settings-delete-actions {
   display: flex;
