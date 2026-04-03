@@ -1,4 +1,4 @@
-import { selectedItemId, getChildCount, openDetailWithTitleEdit } from '../../state/board-store';
+import { selectedItemId, getChildCount, openDetailWithTitleEdit, boardStatuses, isTerminalStatus } from '../../state/board-store';
 import { labels as labelsStore } from '../../state/board-store';
 import type { ItemWithRow, ItemStatus } from '../../api/types';
 import { LabelBadge } from '../shared/label-badge';
@@ -7,9 +7,6 @@ import type { KebabAction } from './kebab-menu';
 
 /** Tracks the status of the card currently being dragged (same module, readable during dragover). */
 export let currentDragStatus: string | null = null;
-
-/** Ordered statuses for keyboard column navigation */
-const STATUS_ORDER: ItemStatus[] = ['To Do', 'In Progress', 'Done'];
 
 interface Props {
   item: ItemWithRow;
@@ -30,7 +27,7 @@ export function Card({ item, onMoveStatus, onReorder, columnItems, onMoveToTop, 
     ? item.labels.split(',').map(l => l.trim()).filter(Boolean)
     : [];
 
-  const isOverdue = item.due_date && item.status !== 'Done' &&
+  const isOverdue = item.due_date && !isTerminalStatus(item.status) &&
     parseLocalDate(item.due_date) < new Date(new Date().toDateString());
 
   const handleDragStart = (e: DragEvent) => {
@@ -84,11 +81,12 @@ export function Card({ item, onMoveStatus, onReorder, columnItems, onMoveToTop, 
     // Arrow keys for moving between columns (only without Alt)
     if (!e.altKey && onMoveStatus && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
       e.preventDefault();
-      const currentIndex = STATUS_ORDER.indexOf(item.status);
+      const statusOrder = boardStatuses.value.map(s => s.name);
+      const currentIndex = statusOrder.indexOf(item.status);
       if (currentIndex === -1) return;
       const newIndex = e.key === 'ArrowLeft' ? currentIndex - 1 : currentIndex + 1;
-      if (newIndex >= 0 && newIndex < STATUS_ORDER.length) {
-        onMoveStatus(item.id, STATUS_ORDER[newIndex]);
+      if (newIndex >= 0 && newIndex < statusOrder.length) {
+        onMoveStatus(item.id, statusOrder[newIndex]);
       }
     }
   };

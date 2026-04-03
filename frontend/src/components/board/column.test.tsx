@@ -34,6 +34,14 @@ vi.mock('../../state/board-store', () => ({
   getChildCount: () => ({ done: 0, total: 0 }),
   showToast: (...args: unknown[]) => mockShowToast(...args),
   columnAnnouncement: { value: null },
+  boardStatuses: { value: [
+    { id: 's1', board_id: 'board-1', name: 'To Do', sort_order: 1, color: '#e3f2fd', is_terminal: false, created_at: '' },
+    { id: 's2', board_id: 'board-1', name: 'In Progress', sort_order: 2, color: '#fff3e0', is_terminal: false, created_at: '' },
+    { id: 's3', board_id: 'board-1', name: 'Done', sort_order: 3, color: '#e8f5e9', is_terminal: true, created_at: '' },
+  ] },
+  isTerminalStatus: (name: string) => name === 'Done',
+  defaultStatusName: () => 'To Do',
+  terminalStatusName: () => 'Done',
 }));
 
 // Controllable mock for the card module so tests can set currentDragStatus
@@ -694,7 +702,7 @@ describe('Cross-column drag overlay for date-sorted columns (Issue #161 AC7/AC8)
       makeItem({ id: '1', title: 'Task 1', status: 'Done' }),
     ];
     const { container } = render(
-      <Column status="Done" items={items} onDrop={vi.fn()} onReorder={vi.fn()} />
+      <Column status="Done" items={items} onDrop={vi.fn()} onReorder={vi.fn()} isTerminal />
     );
     const card = container.querySelector('.card') as HTMLElement;
 

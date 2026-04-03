@@ -11,9 +11,13 @@ interface Props {
   onReorder?: (itemId: string, newIndex: number, columnItems: ItemWithRow[]) => void;
   onMoveStatus?: (itemId: string, newStatus: ItemStatus) => void;
   compact?: boolean;
-  /** Total count of all Done items (for "View all N completed" link). */
+  /** Column header color (from BoardStatus). */
+  color?: string;
+  /** Whether this is the terminal (completion) column. */
+  isTerminal?: boolean;
+  /** Total count of all terminal-column items (for "View all N completed" link). */
   allDoneCount?: number;
-  /** Whether archived (older than 7 days) Done items exist. */
+  /** Whether archived (older than 7 days) terminal items exist. */
   hasArchived?: boolean;
   /** Ref callback for the archive trigger button (for focus return). */
   archiveTriggerRef?: (el: HTMLButtonElement | null) => void;
@@ -41,13 +45,7 @@ const SORT_OVERLAY_TEXT: Record<SortMode, string> = {
   created: 'Will be sorted by creation date',
 };
 
-const STATUS_COLORS: Record<ItemStatus, string> = {
-  'To Do': 'var(--color-todo)',
-  'In Progress': 'var(--color-inprogress)',
-  'Done': 'var(--color-done)',
-};
-
-export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact, allDoneCount, hasArchived, archiveTriggerRef, onOpenArchive, sortMode, onSortChange, onAddItem, onDeleteItem }: Props) {
+export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact, color, isTerminal, allDoneCount, hasArchived, archiveTriggerRef, onOpenArchive, sortMode, onSortChange, onAddItem, onDeleteItem }: Props) {
   // Track the insertion indicator position for within-column reorder
   const [dropIndicator, setDropIndicator] = useState<{ index: number; position: 'above' | 'below' } | null>(null);
   // aria-live announcement text
@@ -56,8 +54,8 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
   const [showDateSortOverlay, setShowDateSortOverlay] = useState(false);
 
   const isDateSorted = sortMode && sortMode !== 'custom';
-  // Done column is always sorted by completion date
-  const isDateSortedDestination = isDateSorted || status === 'Done';
+  // Terminal column is always sorted by completion date
+  const isDateSortedDestination = isDateSorted || !!isTerminal;
 
   const handleDragOver = (e: DragEvent) => {
     e.preventDefault();
@@ -302,7 +300,7 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
 
   // Determine the overlay text for date-sorted cross-column drag
   const getOverlayText = (): string => {
-    if (status === 'Done') return 'Will be sorted by completion date';
+    if (isTerminal) return 'Will be sorted by completion date';
     if (sortMode === 'due_date') return SORT_OVERLAY_TEXT.due_date;
     if (sortMode === 'created') return SORT_OVERLAY_TEXT.created;
     return '';
@@ -316,7 +314,7 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      style={{ '--column-color': STATUS_COLORS[status] } as any}
+      style={{ '--column-color': color || 'var(--color-todo)' } as any}
     >
       {/* aria-live region for sort change and cross-column keyboard move announcements */}
       <div class="sr-only" aria-live="polite" aria-atomic="true">
@@ -334,17 +332,17 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
             >+</button>
           )}
           {/* Sort selector only in board view (not compact/swimlane) */}
-          {!compact && status === 'Done' && (
+          {!compact && isTerminal && (
             <select
               class="column-sort-select"
               disabled
-              title="Done items are always sorted by completion date"
-              aria-label="Sort Done column"
+              title={`${status} items are always sorted by completion date`}
+              aria-label={`Sort ${status} column`}
             >
               <option>Completion date</option>
             </select>
           )}
-          {!compact && status !== 'Done' && sortMode !== undefined && (
+          {!compact && !isTerminal && sortMode !== undefined && (
             <select
               class={`column-sort-select${isDateSorted ? ' column-sort-active' : ''}`}
               value={sortMode}
@@ -357,7 +355,7 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
             </select>
           )}
         </div>
-        {status === 'Done' && hasArchived && onOpenArchive && (
+        {isTerminal && hasArchived && onOpenArchive && (
           <button
             class="column-archive-link"
             ref={archiveTriggerRef}
