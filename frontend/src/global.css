@@ -1967,6 +1967,27 @@ body {
   color: var(--color-text-secondary);
 }
 
+/* #207: Date field row — inline date input + clear button */
+.date-field-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.date-field-row input[type="date"] {
+  flex: 1;
+}
+
+.date-clear-btn {
+  flex-shrink: 0;
+  font-size: 16px;
+  color: var(--color-text-secondary);
+}
+
+.date-clear-btn:hover {
+  color: var(--color-text);
+}
+
 .detail-field input,
 .detail-field select,
 .detail-field textarea {
@@ -3484,6 +3505,12 @@ body {
 
   .detail-panel {
     width: 100vw;
+  }
+
+  /* #207: Touch-friendly clear date button on mobile */
+  .date-clear-btn {
+    min-width: 44px;
+    min-height: 44px;
   }
 
   .filter-group {
