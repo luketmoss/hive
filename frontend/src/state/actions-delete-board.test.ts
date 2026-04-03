@@ -65,6 +65,12 @@ vi.mock('../api/sheets', () => ({
   deleteBoardRow: (...args: any[]) => mockDeleteBoardRow(...args),
   deleteAllBoardPermissions: (...args: any[]) => mockDeleteAllBoardPermissions(...args),
   updateItemBoardId: (...args: any[]) => mockUpdateItemBoardId(...args),
+  fetchStatuses: vi.fn().mockResolvedValue([]),
+  createStatusRow: vi.fn().mockResolvedValue(undefined),
+  updateStatusRow: vi.fn().mockResolvedValue(undefined),
+  deleteStatusRow: vi.fn().mockResolvedValue(undefined),
+  fetchStatusesWithRows: vi.fn().mockResolvedValue([]),
+  cascadeStatusRename: vi.fn().mockResolvedValue(undefined),
   SheetsApiError: class extends Error { status: number; constructor(s: number, m: string) { super(m); this.status = s; } },
 }));
 
@@ -93,6 +99,12 @@ vi.mock('../demo/mock-api', () => ({
   deleteBoardRow: vi.fn(),
   deleteAllBoardPermissions: vi.fn(),
   updateItemBoardId: vi.fn(),
+  fetchStatuses: vi.fn().mockResolvedValue([]),
+  createStatusRow: vi.fn().mockResolvedValue(undefined),
+  updateStatusRow: vi.fn().mockResolvedValue(undefined),
+  deleteStatusRow: vi.fn().mockResolvedValue(undefined),
+  fetchStatusesWithRows: vi.fn().mockResolvedValue([]),
+  cascadeStatusRename: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock('../demo/is-demo-mode', () => ({ isDemoMode: () => false }));
 vi.mock('../auth/reauth', () => ({ ReauthFailedError: class extends Error {} }));

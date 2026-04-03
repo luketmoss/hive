@@ -1,5 +1,5 @@
 import { signal, computed } from '@preact/signals';
-import type { ItemWithRow, Owner, Label, ItemStatus, Board, BoardPermission, PermissionRole } from '../api/types';
+import type { ItemWithRow, Owner, Label, ItemStatus, Board, BoardPermission, PermissionRole, BoardStatus } from '../api/types';
 
 // --- Core data ---
 export const items = signal<ItemWithRow[]>([]);
@@ -7,6 +7,7 @@ export const owners = signal<Owner[]>([]);
 export const labels = signal<Label[]>([]);
 export const boards = signal<Board[]>([]);
 export const permissions = signal<BoardPermission[]>([]);
+export const statuses = signal<BoardStatus[]>([]);
 export const activeBoardId = signal<string>('');
 export const loading = signal(true);
 export const currentUserEmail = signal<string>('');
@@ -54,6 +55,41 @@ export const boardLabels = computed(() => {
   if (!bid) return labels.value;
   return labels.value.filter(l => l.board_id === bid);
 });
+
+/** Statuses (columns) for the active board, sorted by sort_order. */
+export const boardStatuses = computed(() => {
+  const bid = activeBoardId.value;
+  return statuses.value
+    .filter(s => s.board_id === bid)
+    .sort((a, b) => a.sort_order - b.sort_order);
+});
+
+/** Check if a status name is a terminal (done) status for the active board.
+ * Falls back to checking if name is 'Done' when no statuses are loaded (backward compat). */
+export function isTerminalStatus(statusName: string): boolean {
+  if (boardStatuses.value.length === 0) return statusName === 'Done';
+  return boardStatuses.value.some(s => s.name === statusName && s.is_terminal);
+}
+
+/** Check if a status name is terminal for a specific board (cross-board lookups).
+ * Falls back to checking if name is 'Done' when no statuses are loaded. */
+export function isTerminalStatusForBoard(statusName: string, boardId: string): boolean {
+  const boardStats = statuses.value.filter(s => s.board_id === boardId);
+  if (boardStats.length === 0) return statusName === 'Done';
+  return boardStats.some(s => s.name === statusName && s.is_terminal);
+}
+
+/** Get the first (default) status name for the active board. Falls back to 'To Do'. */
+export function defaultStatusName(): string {
+  const first = boardStatuses.value[0];
+  return first ? first.name : 'To Do';
+}
+
+/** Get the terminal status name for the active board. Falls back to 'Done'. */
+export function terminalStatusName(): string {
+  const terminal = boardStatuses.value.find(s => s.is_terminal);
+  return terminal ? terminal.name : 'Done';
+}
 
 /** Items scoped to the active board (plus their children). */
 export const boardItems = computed(() => {
@@ -138,8 +174,8 @@ export const selectedItemId = signal<string | null>(null);
 /** When true, CardDetail opens with the title EditableField in edit mode. */
 export const openDetailWithTitleEdit = signal(false);
 export const showCreateModal = signal(false);
-/** When set, the Create Item modal will pre-fill this status instead of defaulting to 'To Do'. */
-export const createModalInitialStatus = signal<ItemStatus | null>(null);
+/** When set, the Create Item modal will pre-fill this status instead of the board's first column. */
+export const createModalInitialStatus = signal<string | null>(null);
 export const toastMessage = signal<{ text: string; type: 'success' | 'error'; action?: { label: string; fn: () => void }; duration?: number } | null>(null);
 
 // --- View mode (mobile list vs board) ---
@@ -296,12 +332,12 @@ const byCompletedAtDesc = (a: ItemWithRow, b: ItemWithRow) => {
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** All root Done items (unfiltered by date). */
+/** All root items in terminal (done) columns (unfiltered by date). */
 export const allDoneItems = computed(() =>
-  rootItems.value.filter(i => i.status === 'Done')
+  rootItems.value.filter(i => isTerminalStatus(i.status))
 );
 
-/** Root Done items completed within the last 7 days. */
+/** Root terminal-column items completed within the last 7 days. */
 export const recentDoneItems = computed(() => {
   const cutoff = Date.now() - SEVEN_DAYS_MS;
   return allDoneItems.value
@@ -309,12 +345,12 @@ export const recentDoneItems = computed(() => {
     .sort(bySortOrder);
 });
 
-/** True when there are Done items older than 7 days (archived). */
+/** True when there are terminal items older than 7 days (archived). */
 export const hasArchivedItems = computed(() =>
   allDoneItems.value.length > recentDoneItems.value.length
 );
 
-/** All Done items sorted by completed_at descending, for the archive dialog. */
+/** All terminal items sorted by completed_at descending, for the archive dialog. */
 export const allDoneItemsSorted = computed(() =>
   allDoneItems.value.slice().sort(byCompletedAtDesc)
 );
@@ -382,31 +418,43 @@ export function initActiveBoardFromUrl() {
 }
 
 // --- Column announcements (for aria-live cross-column keyboard move) ---
-export const columnAnnouncement = signal<{ status: ItemStatus; text: string } | null>(null);
+export const columnAnnouncement = signal<{ status: string; text: string } | null>(null);
 
 // --- Column sort ---
 export type SortMode = 'custom' | 'due_date' | 'created';
 
-function sortKey(status: ItemStatus): string {
+function sortKey(status: string): string {
   return `hive-sort-${status.toLowerCase().replace(/ /g, '-')}`;
 }
 
-export function loadColumnSortModes(): Record<ItemStatus, SortMode> {
-  const modes: Record<ItemStatus, SortMode> = { 'To Do': 'custom', 'In Progress': 'custom', 'Done': 'custom' };
+export function loadColumnSortModes(): Record<string, SortMode> {
+  const modes: Record<string, SortMode> = {};
   try {
-    for (const s of ['To Do', 'In Progress', 'Done'] as ItemStatus[]) {
-      const stored = localStorage.getItem(sortKey(s));
+    // Load sort modes for all known statuses
+    for (const s of statuses.value) {
+      const stored = localStorage.getItem(sortKey(s.name));
       if (stored === 'custom' || stored === 'due_date' || stored === 'created') {
-        modes[s] = stored;
+        modes[s.name] = stored;
+      } else {
+        modes[s.name] = 'custom';
+      }
+    }
+    // Fallback: also try loading legacy hardcoded keys
+    for (const name of ['To Do', 'In Progress', 'Done']) {
+      if (!modes[name]) {
+        const stored = localStorage.getItem(sortKey(name));
+        if (stored === 'custom' || stored === 'due_date' || stored === 'created') {
+          modes[name] = stored;
+        }
       }
     }
   } catch { /* localStorage unavailable */ }
   return modes;
 }
 
-export const columnSortModes = signal<Record<ItemStatus, SortMode>>(loadColumnSortModes());
+export const columnSortModes = signal<Record<string, SortMode>>(loadColumnSortModes());
 
-export function setColumnSortMode(status: ItemStatus, mode: SortMode) {
+export function setColumnSortMode(status: string, mode: SortMode) {
   columnSortModes.value = { ...columnSortModes.value, [status]: mode };
   try {
     localStorage.setItem(sortKey(status), mode);
@@ -428,11 +476,21 @@ function sortItems(itemList: ItemWithRow[], mode: SortMode): ItemWithRow[] {
   return itemList.slice().sort(bySortOrder);
 }
 
-export const columns = computed(() => ({
-  'To Do': sortItems(rootItems.value.filter(i => i.status === 'To Do'), columnSortModes.value['To Do']),
-  'In Progress': sortItems(rootItems.value.filter(i => i.status === 'In Progress'), columnSortModes.value['In Progress']),
-  'Done': recentDoneItems.value,
-}));
+export const columns = computed((): Record<string, ItemWithRow[]> => {
+  const result: Record<string, ItemWithRow[]> = {};
+  for (const status of boardStatuses.value) {
+    if (status.is_terminal) {
+      result[status.name] = recentDoneItems.value;
+    } else {
+      const mode = columnSortModes.value[status.name] || 'custom';
+      result[status.name] = sortItems(
+        rootItems.value.filter(i => i.status === status.name),
+        mode
+      );
+    }
+  }
+  return result;
+});
 
 // --- Upcoming view: time-bucketed items ---
 export type UpcomingBucket = 'overdue' | 'this-week' | 'next-week' | 'later';
@@ -487,10 +545,10 @@ export const upcomingBuckets = computed((): UpcomingBucketData[] => {
   const thisSunday = sundayOfWeek(now);
   const [nextMonday, nextSunday] = nextWeekRange(now);
 
-  // Get all non-Done items across all accessible boards
+  // Get all non-terminal items across all accessible boards
   const selectedBoards = upcomingFilterBoards.value;
   const allItems = items.value.filter(i =>
-    i.status !== 'Done' && selectedBoards.has(i.board_id)
+    !isTerminalStatusForBoard(i.status, i.board_id) && selectedBoards.has(i.board_id)
   );
 
   const search = upcomingFilterSearch.value.trim();
@@ -648,7 +706,7 @@ export function dismissToast(): void {
 export function getChildCount(itemId: string): { done: number; total: number } {
   const children = items.value.filter(i => i.parent_id === itemId);
   return {
-    done: children.filter(i => i.status === 'Done').length,
+    done: children.filter(i => isTerminalStatus(i.status)).length,
     total: children.length,
   };
 }

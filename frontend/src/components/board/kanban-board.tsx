@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, createModalInitialStatus, selectedItem, groupBy, rootItems, items, owners, boardLabels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement, showToast, activeView, switchToUpcoming, switchToBoard } from '../../state/board-store';
+import { columns, showCreateModal, createModalInitialStatus, selectedItem, groupBy, rootItems, items, owners, boardLabels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement, showToast, activeView, switchToUpcoming, switchToBoard, boardStatuses, isTerminalStatus } from '../../state/board-store';
 import type { SortMode } from '../../state/board-store';
 import { moveItem, reorderItem, createItem, deleteItem } from '../../state/actions';
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts';
@@ -26,7 +26,7 @@ export function KanbanBoard() {
   const { user, logout, token, updateUserName } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
-  const statuses: ItemStatus[] = ['To Do', 'In Progress', 'Done'];
+  const statuses = boardStatuses.value;
 
   // AC5: Listen for OS prefers-color-scheme changes while System is selected
   useEffect(() => {
@@ -145,9 +145,9 @@ export function KanbanBoard() {
     if (token) {
       // AC6: Announce placement when keyboard-moving into a date-sorted destination
       const destSortMode = columnSortModes.value[newStatus];
-      const isDestDateSorted = (destSortMode && destSortMode !== 'custom') || newStatus === 'Done';
+      const isDestDateSorted = (destSortMode && destSortMode !== 'custom') || isTerminalStatus(newStatus);
       if (isDestDateSorted) {
-        const sortLabel = newStatus === 'Done' ? 'completion date'
+        const sortLabel = isTerminalStatus(newStatus) ? 'completion date'
           : destSortMode === 'due_date' ? 'due date'
           : 'creation date';
         columnAnnouncement.value = {
@@ -216,17 +216,19 @@ export function KanbanBoard() {
         <div class="board-columns">
           {statuses.map(status => (
             <Column
-              key={status}
-              status={status}
-              items={columns.value[status]}
+              key={status.name}
+              status={status.name}
+              color={status.color}
+              isTerminal={status.is_terminal}
+              items={columns.value[status.name] || []}
               onDrop={handleDrop}
               onReorder={handleReorder}
               onMoveStatus={handleMoveStatus}
-              sortMode={columnSortModes.value[status]}
-              onSortChange={(mode: SortMode) => setColumnSortMode(status, mode)}
-              onAddItem={() => handleAddItemToColumn(status)}
+              sortMode={columnSortModes.value[status.name]}
+              onSortChange={(mode: SortMode) => setColumnSortMode(status.name, mode)}
+              onAddItem={() => handleAddItemToColumn(status.name)}
               onDeleteItem={handleDeleteItem}
-              {...(status === 'Done' ? {
+              {...(status.is_terminal ? {
                 allDoneCount: allDoneItems.value.length,
                 hasArchived: hasArchivedItems.value,
                 onOpenArchive: handleOpenArchive,
@@ -259,9 +261,11 @@ export function KanbanBoard() {
               <div class="board-columns">
                 {statuses.map(status => (
                   <Column
-                    key={`${groupValue}-${status}`}
-                    status={status}
-                    items={swimlaneItems.filter(i => i.status === status)}
+                    key={`${groupValue}-${status.name}`}
+                    status={status.name}
+                    color={status.color}
+                    isTerminal={status.is_terminal}
+                    items={swimlaneItems.filter(i => i.status === status.name)}
                     onDrop={handleDrop}
                     onReorder={handleReorder}
                     onMoveStatus={handleMoveStatus}

@@ -26,6 +26,11 @@ vi.mock('../../state/board-store', () => ({
   accessibleBoards: { get value() { return mockBoards.current; } },
   showDeleteBoardModal: { value: false },
   openDetailWithTitleEdit: { value: false },
+  boardStatuses: { value: [
+    { id: 's1', board_id: 'board-1', name: 'To Do', sort_order: 1, color: '#e3f2fd', is_terminal: false, created_at: '' },
+    { id: 's2', board_id: 'board-1', name: 'In Progress', sort_order: 2, color: '#fff3e0', is_terminal: false, created_at: '' },
+    { id: 's3', board_id: 'board-1', name: 'Done', sort_order: 3, color: '#e8f5e9', is_terminal: true, created_at: '' },
+  ] },
 }));
 
 const mockShareBoard = vi.fn().mockResolvedValue(true);
@@ -48,6 +53,10 @@ vi.mock('../settings/label-settings', () => ({
   LabelSettings: () => <div data-testid="label-settings-mock" />,
 }));
 
+vi.mock('../settings/column-settings', () => ({
+  ColumnSettings: () => <div data-testid="column-settings-mock" />,
+}));
+
 const mockAuth: AuthState = {
   token: 'test-token',
   user: { email: 'owner@family.com', name: 'Owner', picture: '' },
@@ -63,6 +72,14 @@ function renderModal(auth = mockAuth) {
       <ShareModal />
     </AuthContext.Provider>
   );
+}
+
+/** Render the modal and navigate to the Sharing tab. */
+function renderSharingTab(auth = mockAuth) {
+  const result = renderModal(auth);
+  const sharingTab = result.getByTestId('settings-tab-sharing');
+  fireEvent.click(sharingTab);
+  return result;
 }
 
 beforeEach(() => {
@@ -221,7 +238,7 @@ describe('ShareModal renamed to Board Settings (Issue #138)', () => {
 describe('ShareModal sharing behavior (Issue #42, preserved in #138)', () => {
   describe('AC2: Owner can share a board with another user', () => {
     it('validates email against Owners sheet — rejects non-owner', async () => {
-      const { getByLabelText, getByRole } = renderModal();
+      const { getByLabelText, getByRole } = renderSharingTab();
       const input = getByLabelText('Add a person');
       const form = input.closest('form')!;
 
@@ -235,7 +252,7 @@ describe('ShareModal sharing behavior (Issue #42, preserved in #138)', () => {
     });
 
     it('validates email against Owners sheet — accepts existing owner', async () => {
-      const { getByLabelText } = renderModal();
+      const { getByLabelText } = renderSharingTab();
       const input = getByLabelText('Add a person');
       const form = input.closest('form')!;
 
@@ -250,7 +267,7 @@ describe('ShareModal sharing behavior (Issue #42, preserved in #138)', () => {
     });
 
     it('shows error for already-shared email', async () => {
-      const { getByLabelText, getAllByRole } = renderModal();
+      const { getByLabelText, getAllByRole } = renderSharingTab();
       const input = getByLabelText('Add a person');
       const form = input.closest('form')!;
 
@@ -267,13 +284,13 @@ describe('ShareModal sharing behavior (Issue #42, preserved in #138)', () => {
 
   describe('AC4: Owner can remove a member from a board', () => {
     it('renders remove buttons with aria-label containing email', () => {
-      const { getByLabelText } = renderModal();
+      const { getByLabelText } = renderSharingTab();
       const removeBtn = getByLabelText('Remove member@family.com');
       expect(removeBtn).toBeTruthy();
     });
 
     it('shows confirmation before removing a member', async () => {
-      const { getByLabelText, getByText } = renderModal();
+      const { getByLabelText, getByText } = renderSharingTab();
       const removeBtn = getByLabelText('Remove member@family.com');
 
       fireEvent.click(removeBtn);
@@ -285,7 +302,7 @@ describe('ShareModal sharing behavior (Issue #42, preserved in #138)', () => {
     });
 
     it('calls unshareBoard after confirming removal', async () => {
-      const { getByLabelText, getByText } = renderModal();
+      const { getByLabelText, getByText } = renderSharingTab();
       const removeBtn = getByLabelText('Remove member@family.com');
 
       fireEvent.click(removeBtn);
@@ -305,14 +322,14 @@ describe('ShareModal sharing behavior (Issue #42, preserved in #138)', () => {
     });
 
     it('does not show remove button for owner role', () => {
-      const { queryByLabelText } = renderModal();
+      const { queryByLabelText } = renderSharingTab();
       expect(queryByLabelText('Remove owner@family.com')).toBeNull();
     });
   });
 
   describe('AC5: "Share with all owners" toggle', () => {
     it('renders toggle unchecked when no wildcard entry exists', () => {
-      const { getByTestId } = renderModal();
+      const { getByTestId } = renderSharingTab();
       const toggle = getByTestId('share-all-toggle') as HTMLInputElement;
       expect(toggle.checked).toBe(false);
     });
@@ -322,18 +339,18 @@ describe('ShareModal sharing behavior (Issue #42, preserved in #138)', () => {
         ...mockPerms.current,
         { board_id: 'board-1', user_email: '*', role: 'member' },
       ];
-      const { getByTestId } = renderModal();
+      const { getByTestId } = renderSharingTab();
       const toggle = getByTestId('share-all-toggle') as HTMLInputElement;
       expect(toggle.checked).toBe(true);
     });
 
     it('shows helper text about family sharing', () => {
-      const { getByText } = renderModal();
+      const { getByText } = renderSharingTab();
       expect(getByText('Everyone in the family can see this board')).toBeTruthy();
     });
 
     it('calls shareBoard with wildcard when toggling on', async () => {
-      const { getByTestId } = renderModal();
+      const { getByTestId } = renderSharingTab();
       const toggle = getByTestId('share-all-toggle');
 
       fireEvent.click(toggle);
@@ -348,7 +365,7 @@ describe('ShareModal sharing behavior (Issue #42, preserved in #138)', () => {
 
   describe('AC2: Error handling', () => {
     it('shows error for empty email', async () => {
-      const { getByLabelText, getAllByRole } = renderModal();
+      const { getByLabelText, getAllByRole } = renderSharingTab();
       const input = getByLabelText('Add a person');
       const form = input.closest('form')!;
 
@@ -363,7 +380,7 @@ describe('ShareModal sharing behavior (Issue #42, preserved in #138)', () => {
     });
 
     it('shows error for invalid email format', async () => {
-      const { getByLabelText, getAllByRole } = renderModal();
+      const { getByLabelText, getAllByRole } = renderSharingTab();
       const input = getByLabelText('Add a person');
       const form = input.closest('form')!;
 
@@ -380,20 +397,20 @@ describe('ShareModal sharing behavior (Issue #42, preserved in #138)', () => {
 
   describe('AC1: Owner badge in member list', () => {
     it('shows "(Owner)" badge next to the owner entry', () => {
-      const { container } = renderModal();
+      const { container } = renderSharingTab();
       const badge = container.querySelector('.share-owner-badge');
       expect(badge).not.toBeNull();
       expect(badge!.textContent).toBe('(Owner)');
     });
 
     it('owner badge has aria-label="Board owner"', () => {
-      const { container } = renderModal();
+      const { container } = renderSharingTab();
       const badge = container.querySelector('.share-owner-badge');
       expect(badge!.getAttribute('aria-label')).toBe('Board owner');
     });
 
     it('does not show owner badge on member entries', () => {
-      const { container } = renderModal();
+      const { container } = renderSharingTab();
       const badges = container.querySelectorAll('.share-owner-badge');
       expect(badges.length).toBe(1);
     });
@@ -401,13 +418,13 @@ describe('ShareModal sharing behavior (Issue #42, preserved in #138)', () => {
 
   describe('Accessibility', () => {
     it('has role="dialog" and aria-modal="true"', () => {
-      const { getByRole } = renderModal();
+      const { getByRole } = renderSharingTab();
       const dialog = getByRole('dialog');
       expect(dialog.getAttribute('aria-modal')).toBe('true');
     });
 
     it('email input has aria-invalid and aria-describedby on error', async () => {
-      const { getByLabelText } = renderModal();
+      const { getByLabelText } = renderSharingTab();
       const input = getByLabelText('Add a person');
       const form = input.closest('form')!;
 
@@ -421,7 +438,7 @@ describe('ShareModal sharing behavior (Issue #42, preserved in #138)', () => {
     });
 
     it('member list has role="list" with aria-label', () => {
-      const { getByRole } = renderModal();
+      const { getByRole } = renderSharingTab();
       const list = getByRole('list');
       expect(list.getAttribute('aria-label')).toBe('Board members');
     });

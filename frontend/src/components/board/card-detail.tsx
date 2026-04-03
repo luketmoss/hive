@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels as labelsStore, showToast, openDetailWithTitleEdit, accessibleBoards, activeBoardId, showMoveToBoardModal } from '../../state/board-store';
+import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels as labelsStore, showToast, openDetailWithTitleEdit, accessibleBoards, activeBoardId, showMoveToBoardModal, boardStatuses, isTerminalStatus, defaultStatusName, terminalStatusName } from '../../state/board-store';
 import { updateItem, deleteItem, deleteSubtask, createItem, moveItem, reorderSubtasks } from '../../state/actions';
 import { LabelBadge } from '../shared/label-badge';
 import { LabelPickerManager } from '../labels/label-picker-manager';
@@ -18,13 +18,13 @@ export function CardDetail() {
   const children = childrenOfSelected.value;
 
   // #204: Collapse completed sub-items
-  const allChildrenDone = children.length > 0 && children.every(c => c.status === 'Done');
+  const allChildrenDone = children.length > 0 && children.every(c => isTerminalStatus(c.status));
   const [showCompleted, setShowCompleted] = useState(allChildrenDone);
   const prevItemId = useRef(item.id);
   useEffect(() => {
     if (prevItemId.current !== item.id) {
       prevItemId.current = item.id;
-      const allDone = children.length > 0 && children.every(c => c.status === 'Done');
+      const allDone = children.length > 0 && children.every(c => isTerminalStatus(c.status));
       setShowCompleted(allDone);
     }
   }, [item.id, children]);
@@ -33,8 +33,8 @@ export function CardDetail() {
     if (allChildrenDone) setShowCompleted(true);
   }, [allChildrenDone]);
 
-  const incompleteChildren = children.filter(c => c.status !== 'Done');
-  const doneChildren = children.filter(c => c.status === 'Done');
+  const incompleteChildren = children.filter(c => !isTerminalStatus(c.status));
+  const doneChildren = children.filter(c => isTerminalStatus(c.status));
   // When collapsed, only show incomplete; when expanded, show all
   const visibleChildren = showCompleted ? children : incompleteChildren;
 
@@ -309,7 +309,7 @@ export function CardDetail() {
 
   const toggleChildStatus = (childId: string, currentStatus: ItemStatus) => {
     if (!token) return;
-    const newStatus: ItemStatus = currentStatus === 'Done' ? 'To Do' : 'Done';
+    const newStatus: ItemStatus = isTerminalStatus(currentStatus) ? defaultStatusName() : terminalStatusName();
     moveItem(childId, newStatus, actor, token);
   };
 
@@ -372,9 +372,9 @@ export function CardDetail() {
                   if (!ok) (e.target as HTMLSelectElement).value = prev;
                 }}
               >
-                <option value="To Do">To Do</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Done">Done</option>
+                {boardStatuses.value.map(s => (
+                  <option key={s.id} value={s.name}>{s.name}</option>
+                ))}
               </select>
             )}
           </SaveFeedbackField>
@@ -464,7 +464,7 @@ export function CardDetail() {
             {visibleChildren.length > 0 && (
               <ul class="subtask-list">
                 {visibleChildren.map((child, idx) => (
-                  <li key={child.id} class={`subtask-item ${child.status === 'Done' ? 'subtask-done' : ''}`}>
+                  <li key={child.id} class={`subtask-item ${isTerminalStatus(child.status) ? 'subtask-done' : ''}`}>
                     {/* #88 AC5: Drag handle for touch reorder (visible on mobile only via CSS) */}
                     {visibleChildren.length > 1 && (
                       <span
@@ -479,7 +479,7 @@ export function CardDetail() {
                     )}
                     <input
                       type="checkbox"
-                      checked={child.status === 'Done'}
+                      checked={isTerminalStatus(child.status)}
                       aria-label={child.title}
                       onChange={() => toggleChildStatus(child.id, child.status)}
                     />
@@ -810,7 +810,7 @@ function formatCompactDate(dateStr: string): string {
 }
 
 function isOverdue(dateStr: string, status: string): boolean {
-  if (!dateStr || status === 'Done') return false;
+  if (!dateStr || isTerminalStatus(status)) return false;
   return parseLocalDate(dateStr) < new Date(new Date().toDateString());
 }
 

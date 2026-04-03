@@ -55,16 +55,29 @@ describe('Done column 7-day filter (AC1)', () => {
   });
 
   it('columns.Done uses recentDoneItems, not all Done items', async () => {
-    const { items, columns } = await import('./board-store');
+    const { items, columns, statuses, activeBoardId } = await import('./board-store');
+
+    const bid = 'test-board';
+    activeBoardId.value = bid;
+    statuses.value = [
+      { id: 's1', board_id: bid, name: 'To Do', sort_order: 1, color: '#e3f2fd', is_terminal: false, created_at: '' },
+      { id: 's2', board_id: bid, name: 'In Progress', sort_order: 2, color: '#fff3e0', is_terminal: false, created_at: '' },
+      { id: 's3', board_id: bid, name: 'Done', sort_order: 3, color: '#e8f5e9', is_terminal: true, created_at: '' },
+    ];
 
     items.value = [
-      makeItem({ id: 'recent', completed_at: daysAgoISO(3), sort_order: 1 }),
-      makeItem({ id: 'old', completed_at: daysAgoISO(14), sort_order: 2 }),
-      makeItem({ id: 'todo', status: 'To Do', completed_at: '', sort_order: 1 }),
+      makeItem({ id: 'recent', completed_at: daysAgoISO(3), sort_order: 1, board_id: bid }),
+      makeItem({ id: 'old', completed_at: daysAgoISO(14), sort_order: 2, board_id: bid }),
+      makeItem({ id: 'todo', status: 'To Do', completed_at: '', sort_order: 1, board_id: bid }),
     ];
 
     expect(columns.value['Done'].map(i => i.id)).toEqual(['recent']);
     expect(columns.value['To Do'].map(i => i.id)).toEqual(['todo']);
+
+    // Clean up to avoid leaking into subsequent tests
+    activeBoardId.value = '';
+    statuses.value = [];
+    items.value = [];
   });
 
   it('excludes subtasks (items with parent_id) from Done column', async () => {

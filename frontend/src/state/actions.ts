@@ -1,4 +1,4 @@
-import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl, initActiveViewFromUrl, initUpcomingBoardFilter, permissions, currentUserEmail, selectedItemId, boardItems as boardItemsComputed } from './board-store';
+import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl, initActiveViewFromUrl, initUpcomingBoardFilter, permissions, currentUserEmail, selectedItemId, boardItems as boardItemsComputed, statuses, isTerminalStatus, defaultStatusName, boardStatuses } from './board-store';
 import { validateStatusTransition, applyStatusSideEffects } from './rules';
 import {
   fetchAllItems as sheetsFetchAllItems,
@@ -25,6 +25,12 @@ import {
   deleteBoardRow as sheetsDeleteBoardRow,
   deleteAllBoardPermissions as sheetsDeleteAllBoardPermissions,
   updateItemBoardId as sheetsUpdateItemBoardId,
+  fetchStatuses as sheetsFetchStatuses,
+  createStatusRow as sheetsCreateStatusRow,
+  updateStatusRow as sheetsUpdateStatusRow,
+  deleteStatusRow as sheetsDeleteStatusRow,
+  fetchStatusesWithRows as sheetsFetchStatusesWithRows,
+  cascadeStatusRename as sheetsCascadeStatusRename,
 } from '../api/sheets';
 import {
   fetchAllItems as mockFetchAllItems,
@@ -51,11 +57,17 @@ import {
   deleteBoardRow as mockDeleteBoardRow,
   deleteAllBoardPermissions as mockDeleteAllBoardPermissions,
   updateItemBoardId as mockUpdateItemBoardId,
+  fetchStatuses as mockFetchStatuses,
+  createStatusRow as mockCreateStatusRow,
+  updateStatusRow as mockUpdateStatusRow,
+  deleteStatusRow as mockDeleteStatusRow,
+  fetchStatusesWithRows as mockFetchStatusesWithRows,
+  cascadeStatusRename as mockCascadeStatusRename,
 } from '../demo/mock-api';
 import { isDemoMode } from '../demo/is-demo-mode';
 import { ReauthFailedError } from '../auth/reauth';
 import { owners, labels, loading } from './board-store';
-import type { Item, ItemStatus, ItemWithRow, UserInfo } from '../api/types';
+import type { Item, ItemStatus, ItemWithRow, UserInfo, BoardStatus } from '../api/types';
 
 /**
  * Check if an error is from a failed silent re-auth attempt.
@@ -96,6 +108,12 @@ function api() {
       deleteBoardRow: mockDeleteBoardRow,
       deleteAllBoardPermissions: mockDeleteAllBoardPermissions,
       updateItemBoardId: mockUpdateItemBoardId,
+      fetchStatuses: mockFetchStatuses,
+      createStatusRow: mockCreateStatusRow,
+      updateStatusRow: mockUpdateStatusRow,
+      deleteStatusRow: mockDeleteStatusRow,
+      fetchStatusesWithRows: mockFetchStatusesWithRows,
+      cascadeStatusRename: mockCascadeStatusRename,
     };
   }
   return {
@@ -123,6 +141,12 @@ function api() {
     deleteBoardRow: sheetsDeleteBoardRow,
     deleteAllBoardPermissions: sheetsDeleteAllBoardPermissions,
     updateItemBoardId: sheetsUpdateItemBoardId,
+    fetchStatuses: sheetsFetchStatuses,
+    createStatusRow: sheetsCreateStatusRow,
+    updateStatusRow: sheetsUpdateStatusRow,
+    deleteStatusRow: sheetsDeleteStatusRow,
+    fetchStatusesWithRows: sheetsFetchStatusesWithRows,
+    cascadeStatusRename: sheetsCascadeStatusRename,
   };
 }
 
@@ -150,6 +174,12 @@ const deletePermissionRowApi = (...args: Parameters<typeof sheetsDeletePermissio
 const deleteBoardRowApi = (...args: Parameters<typeof sheetsDeleteBoardRow>) => api().deleteBoardRow(...args);
 const deleteAllBoardPermissionsApi = (...args: Parameters<typeof sheetsDeleteAllBoardPermissions>) => api().deleteAllBoardPermissions(...args);
 const updateItemBoardIdApi = (...args: Parameters<typeof sheetsUpdateItemBoardId>) => api().updateItemBoardId(...args);
+const fetchStatusesApi = (...args: Parameters<typeof sheetsFetchStatuses>) => api().fetchStatuses(...args);
+const createStatusRowApi = (...args: Parameters<typeof sheetsCreateStatusRow>) => api().createStatusRow(...args);
+const updateStatusRowApi = (...args: Parameters<typeof sheetsUpdateStatusRow>) => api().updateStatusRow(...args);
+const deleteStatusRowApi = (...args: Parameters<typeof sheetsDeleteStatusRow>) => api().deleteStatusRow(...args);
+const fetchStatusesWithRowsApi = (...args: Parameters<typeof sheetsFetchStatusesWithRows>) => api().fetchStatusesWithRows(...args);
+const cascadeStatusRenameApi = (...args: Parameters<typeof sheetsCascadeStatusRename>) => api().cascadeStatusRename(...args);
 
 function generateUUID(): string {
   return crypto.randomUUID();
@@ -166,16 +196,18 @@ export class NotAllowedError extends Error {
 export async function loadBoard(token: string, user?: UserInfo | null) {
   loading.value = true;
   try {
-    const [itemsData, ownersData, labelsData, boardsData, permsData] = await Promise.all([
+    const [itemsData, ownersData, labelsData, boardsData, permsData, statusesData] = await Promise.all([
       fetchAllItems(token),
       fetchOwners(token),
       fetchLabels(token),
       fetchBoardsApi(token),
       fetchPermissionsApi(token),
+      fetchStatusesApi(token).catch(() => [] as import('../api/types').BoardStatus[]),
     ]);
     items.value = itemsData;
     owners.value = ownersData;
     boards.value = boardsData;
+    statuses.value = statusesData;
 
     // AC4: One-time migration — assign board_id to orphaned labels
     const orphanedLabels = labelsData.filter(l => !l.board_id);
@@ -298,11 +330,7 @@ export async function createItem(
     return;
   }
 
-  const status: ItemStatus = data.status ?? 'To Do';
-  if (status === 'In Progress' && !data.owner) {
-    showToast('Owner required for In Progress items', 'error');
-    return;
-  }
+  const status: ItemStatus = data.status ?? defaultStatusName();
 
   const now = new Date().toISOString();
   const maxOrder = items.value
@@ -320,7 +348,7 @@ export async function createItem(
     parent_id: data.parent_id || '',
     created_at: now,
     updated_at: now,
-    completed_at: status === 'Done' ? now : '',
+    completed_at: isTerminalStatus(status) ? now : '',
     sort_order: maxOrder + 1,
     created_by: data.created_by || '',
     board_id: data.board_id || activeBoardId.value,
@@ -361,11 +389,7 @@ export async function createItemWithSubtasks(
     return;
   }
 
-  const status: ItemStatus = data.status ?? 'To Do';
-  if (status === 'In Progress' && !data.owner) {
-    showToast('Owner required for In Progress items', 'error');
-    return;
-  }
+  const status: ItemStatus = data.status ?? defaultStatusName();
 
   const now = new Date().toISOString();
   const maxOrder = items.value
@@ -384,7 +408,7 @@ export async function createItemWithSubtasks(
     parent_id: data.parent_id || '',
     created_at: now,
     updated_at: now,
-    completed_at: status === 'Done' ? now : '',
+    completed_at: isTerminalStatus(status) ? now : '',
     sort_order: maxOrder + 1,
     created_by: data.created_by || '',
     board_id: data.board_id || activeBoardId.value,
@@ -392,11 +416,12 @@ export async function createItemWithSubtasks(
 
   // Filter out blank subtasks and build child items
   const validSubtasks = subtasks.filter(s => s.title.trim());
+  const firstStatus = defaultStatusName();
   const children: Item[] = validSubtasks.map((s, i) => ({
     id: generateUUID(),
     title: s.title.trim(),
     description: '',
-    status: 'To Do' as ItemStatus,
+    status: firstStatus as ItemStatus,
     owner: s.owner || '',
     due_date: '',
     labels: '',
@@ -455,6 +480,7 @@ export async function moveItem(
 
   const oldItem = { ...item };
   const oldItems = [...items.value];
+  const terminal = isTerminalStatus(newStatus);
 
   // Get destination column items (root items only, sorted by sort_order)
   const destColumnItems = items.value
@@ -470,7 +496,7 @@ export async function moveItem(
   if (targetIndex !== undefined) {
     // AC2: Insert at specific position and renumber the destination column
     const movedItem: ItemWithRow = {
-      ...applyStatusSideEffects(item, newStatus),
+      ...applyStatusSideEffects(item, newStatus, terminal),
       sheetRow: item.sheetRow,
     };
 
@@ -488,7 +514,7 @@ export async function moveItem(
 
     // #162: Apply cascade to children optimistically
     const cascadedChildren: ItemWithRow[] = childrenToUpdate.map(c => ({
-      ...applyStatusSideEffects(c, newStatus),
+      ...applyStatusSideEffects(c, newStatus, terminal),
       sheetRow: c.sheetRow,
     }));
 
@@ -536,14 +562,14 @@ export async function moveItem(
   const maxSortOrder = destColumnItems.reduce((max, i) => Math.max(max, i.sort_order), 0);
 
   const updated = {
-    ...applyStatusSideEffects(item, newStatus),
+    ...applyStatusSideEffects(item, newStatus, terminal),
     sort_order: maxSortOrder + 1,
     sheetRow: item.sheetRow,
   };
 
   // #162: Apply cascade to children optimistically
   const cascadedChildren: ItemWithRow[] = childrenToUpdate.map(c => ({
-    ...applyStatusSideEffects(c, newStatus),
+    ...applyStatusSideEffects(c, newStatus, terminal),
     sheetRow: c.sheetRow,
   }));
 
@@ -1009,9 +1035,22 @@ export async function createBoard(
   const ownerPerm = { board_id: board.id, user_email: actor, role: 'owner' as const };
   permissions.value = [...permissions.value, ownerPerm];
 
+  // Seed default statuses for the new board
+  const defaultStatuses: import('../api/types').BoardStatus[] = [
+    { id: generateUUID(), board_id: board.id, name: 'To Do', sort_order: 1, color: '#e3f2fd', is_terminal: false, created_at: board.created_at },
+    { id: generateUUID(), board_id: board.id, name: 'In Progress', sort_order: 2, color: '#fff3e0', is_terminal: false, created_at: board.created_at },
+    { id: generateUUID(), board_id: board.id, name: 'Done', sort_order: 3, color: '#e8f5e9', is_terminal: true, created_at: board.created_at },
+  ];
+  statuses.value = [...statuses.value, ...defaultStatuses];
+
   try {
     await createBoardRowApi(board, token);
     await createPermissionRowApi(ownerPerm, token);
+
+    // Create default statuses in sheet
+    for (const s of defaultStatuses) {
+      await createStatusRowApi(s, token);
+    }
 
     // Persist board_id for orphaned items
     for (const item of orphanedItems) {
@@ -1027,6 +1066,7 @@ export async function createBoard(
     // Rollback
     boards.value = boards.value.filter(b => b.id !== board.id);
     permissions.value = permissions.value.filter(p => p.board_id !== board.id);
+    statuses.value = statuses.value.filter(s => s.board_id !== board.id);
     if (orphanedItems.length > 0) {
       items.value = items.value.map(i =>
         orphanedItems.some(o => o.id === i.id) ? { ...i, board_id: '' } : i
@@ -1335,5 +1375,199 @@ export async function deleteBoard(
       showToast('Failed to delete board: ' + err.message, 'error');
     }
     return false;
+  }
+}
+
+// ──────────────────────────────────────────
+// Status (Column) CRUD
+// ──────────────────────────────────────────
+
+export async function createStatus(
+  name: string,
+  color: string,
+  isTerminal: boolean,
+  token: string,
+): Promise<boolean> {
+  const bid = activeBoardId.value;
+  if (!bid) return false;
+
+  const maxOrder = boardStatuses.value.reduce((max, s) => Math.max(max, s.sort_order), 0);
+  const newStatus: BoardStatus = {
+    id: generateUUID(),
+    board_id: bid,
+    name,
+    sort_order: maxOrder + 1,
+    color,
+    is_terminal: isTerminal,
+    created_at: new Date().toISOString(),
+  };
+
+  // Optimistic
+  statuses.value = [...statuses.value, newStatus];
+
+  try {
+    await createStatusRowApi(newStatus, token);
+    showToast(`Column "${name}" added`);
+    return true;
+  } catch (err: any) {
+    statuses.value = statuses.value.filter(s => s.id !== newStatus.id);
+    if (!isReauthFailure(err)) {
+      showToast('Failed to add column: ' + err.message, 'error');
+    }
+    return false;
+  }
+}
+
+export async function updateStatus(
+  statusId: string,
+  changes: Partial<Pick<BoardStatus, 'name' | 'color' | 'sort_order' | 'is_terminal'>>,
+  token: string,
+): Promise<boolean> {
+  const oldStatuses = [...statuses.value];
+  const statusWithRow = await getStatusSheetRow(statusId, token);
+  if (!statusWithRow) return false;
+
+  // If renaming, cascade to items
+  const oldStatus = statuses.value.find(s => s.id === statusId);
+  const isRename = changes.name && oldStatus && changes.name !== oldStatus.name;
+
+  // Optimistic
+  statuses.value = statuses.value.map(s =>
+    s.id === statusId ? { ...s, ...changes } : s
+  );
+
+  try {
+    const updated = statuses.value.find(s => s.id === statusId)!;
+    await updateStatusRowApi(statusWithRow.sheetRow, updated, token);
+
+    if (isRename && oldStatus) {
+      await cascadeStatusRenameApi(oldStatus.board_id, oldStatus.name, changes.name!, token);
+      // Update items in local state
+      items.value = items.value.map(i =>
+        i.status === oldStatus.name && i.board_id === oldStatus.board_id
+          ? { ...i, status: changes.name! }
+          : i
+      );
+    }
+
+    showToast(`Column updated`);
+    return true;
+  } catch (err: any) {
+    statuses.value = oldStatuses;
+    if (!isReauthFailure(err)) {
+      showToast('Failed to update column: ' + err.message, 'error');
+    }
+    return false;
+  }
+}
+
+export async function reorderStatuses(
+  statusIds: string[],
+  token: string,
+): Promise<boolean> {
+  const oldStatuses = [...statuses.value];
+
+  // Optimistic: assign new sort_order based on position
+  statuses.value = statuses.value.map(s => {
+    const idx = statusIds.indexOf(s.id);
+    return idx >= 0 ? { ...s, sort_order: idx + 1 } : s;
+  });
+
+  try {
+    // Persist each changed status
+    for (let i = 0; i < statusIds.length; i++) {
+      const statusWithRow = await getStatusSheetRow(statusIds[i], token);
+      if (statusWithRow) {
+        const updated = statuses.value.find(s => s.id === statusIds[i])!;
+        await updateStatusRowApi(statusWithRow.sheetRow, updated, token);
+      }
+    }
+    return true;
+  } catch (err: any) {
+    statuses.value = oldStatuses;
+    if (!isReauthFailure(err)) {
+      showToast('Failed to reorder columns: ' + err.message, 'error');
+    }
+    return false;
+  }
+}
+
+export async function deleteStatusWithMigration(
+  statusId: string,
+  targetStatusName: string | null,
+  token: string,
+): Promise<boolean> {
+  const bid = activeBoardId.value;
+  const statusToDelete = statuses.value.find(s => s.id === statusId);
+  if (!statusToDelete || !bid) return false;
+
+  const oldStatuses = [...statuses.value];
+  const oldItems = [...items.value];
+
+  // Migrate items if target provided
+  if (targetStatusName) {
+    const targetIsTerminal = statuses.value.some(
+      s => s.board_id === bid && s.name === targetStatusName && s.is_terminal
+    );
+    items.value = items.value.map(i => {
+      if (i.board_id === bid && i.status === statusToDelete.name) {
+        const now = new Date().toISOString();
+        return {
+          ...i,
+          status: targetStatusName,
+          updated_at: now,
+          completed_at: targetIsTerminal ? now : (i.completed_at && !targetIsTerminal ? '' : i.completed_at),
+        };
+      }
+      return i;
+    });
+  }
+
+  // Remove status optimistically
+  statuses.value = statuses.value.filter(s => s.id !== statusId);
+
+  try {
+    // Persist item migrations
+    if (targetStatusName) {
+      const migratedItems = items.value.filter(
+        i => i.board_id === bid && i.status === targetStatusName
+      );
+      for (const item of migratedItems) {
+        if (oldItems.find(o => o.id === item.id)?.status === statusToDelete.name) {
+          await updateItemRow(item.sheetRow, item, token);
+        }
+      }
+    }
+
+    // Delete status row
+    const statusWithRow = await getStatusSheetRow(statusId, token, oldStatuses);
+    if (statusWithRow) {
+      await deleteStatusRowApi(statusWithRow.sheetRow, token);
+    }
+
+    showToast(`Column "${statusToDelete.name}" deleted`);
+    return true;
+  } catch (err: any) {
+    statuses.value = oldStatuses;
+    items.value = oldItems;
+    if (!isReauthFailure(err)) {
+      showToast('Failed to delete column: ' + err.message, 'error');
+    }
+    return false;
+  }
+}
+
+/** Helper to get the sheet row for a status (requires fetching with rows). */
+async function getStatusSheetRow(
+  statusId: string,
+  token: string,
+  statusList?: BoardStatus[],
+): Promise<{ sheetRow: number } | null> {
+  try {
+    const withRows = await fetchStatusesWithRowsApi(token);
+    const match = withRows.find(s => s.id === statusId);
+    return match ? { sheetRow: match.sheetRow } : null;
+  } catch {
+    return null;
   }
 }

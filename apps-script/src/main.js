@@ -74,6 +74,14 @@ function doGet(e) {
         result = { success: true, data: getBoards() };
         break;
 
+      case 'getStatuses':
+        if (!e.parameter.board_id) {
+          result = { success: false, error: 'board_id parameter required' };
+          break;
+        }
+        result = { success: true, data: getStatuses(e.parameter.board_id) };
+        break;
+
       // --- Write operations (data in payload param) ---
       case 'createItem':
         if (!payload.data) {
@@ -110,6 +118,35 @@ function doGet(e) {
           break;
         }
         result = { success: true, data: createLabel(payload) };
+        break;
+
+      case 'createStatus':
+        if (!payload.data) {
+          result = { success: false, error: 'payload.data field required' };
+          break;
+        }
+        result = { success: true, data: createStatus(payload.data) };
+        break;
+
+      case 'updateStatus':
+        if (!payload.id) {
+          result = { success: false, error: 'payload.id field required' };
+          break;
+        }
+        if (!payload.changes) {
+          result = { success: false, error: 'payload.changes field required' };
+          break;
+        }
+        result = { success: true, data: updateStatus(payload.id, payload.changes) };
+        break;
+
+      case 'deleteStatus':
+        if (!payload.id) {
+          result = { success: false, error: 'payload.id field required' };
+          break;
+        }
+        deleteStatus(payload.id);
+        result = { success: true };
         break;
 
       default:

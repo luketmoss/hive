@@ -3,8 +3,8 @@
 // entirely in-memory using @preact/signals. No HTTP requests are made.
 
 import { signal } from '@preact/signals';
-import type { Item, ItemWithRow, Owner, Label, Board, BoardPermission } from '../api/types';
-import { MOCK_ITEMS, MOCK_OWNERS, MOCK_LABELS, MOCK_BOARDS, MOCK_PERMISSIONS } from './mock-data';
+import type { Item, ItemWithRow, Owner, Label, Board, BoardPermission, BoardStatus } from '../api/types';
+import { MOCK_ITEMS, MOCK_OWNERS, MOCK_LABELS, MOCK_BOARDS, MOCK_PERMISSIONS, MOCK_STATUSES } from './mock-data';
 
 // In-memory state — deep-clone from static data so writes don't mutate the originals.
 const mockItemsState = signal<ItemWithRow[]>(structuredClone(MOCK_ITEMS));
@@ -13,6 +13,9 @@ const mockLabelsState = signal<Array<Label & { sheetRow: number }>>(
 );
 const mockBoardsState = signal<Board[]>(structuredClone(MOCK_BOARDS));
 const mockPermissionsState = signal<BoardPermission[]>(structuredClone(MOCK_PERMISSIONS));
+const mockStatusesState = signal<Array<BoardStatus & { sheetRow: number }>>(
+  structuredClone(MOCK_STATUSES).map((s, i) => ({ ...s, sheetRow: i + 2 }))
+);
 
 /** Reset in-memory state back to the original mock data (for page refresh behavior). */
 export function resetMockState(): void {
@@ -20,6 +23,7 @@ export function resetMockState(): void {
   mockLabelsState.value = structuredClone(MOCK_LABELS).map((l, i) => ({ ...l, sheetRow: i + 2 }));
   mockBoardsState.value = structuredClone(MOCK_BOARDS);
   mockPermissionsState.value = structuredClone(MOCK_PERMISSIONS);
+  mockStatusesState.value = structuredClone(MOCK_STATUSES).map((s, i) => ({ ...s, sheetRow: i + 2 }));
 }
 
 // --- Read operations ---
@@ -180,5 +184,41 @@ export async function deleteAllBoardPermissions(boardId: string, _token: string)
 export async function updateItemBoardId(sheetRow: number, newBoardId: string, _token: string): Promise<void> {
   mockItemsState.value = mockItemsState.value.map(i =>
     i.sheetRow === sheetRow ? { ...i, board_id: newBoardId } : i
+  );
+}
+
+// --- Status operations (in-memory) ---
+
+export async function fetchStatuses(_token: string): Promise<BoardStatus[]> {
+  return mockStatusesState.value.map(({ sheetRow, ...s }) => s);
+}
+
+export async function createStatusRow(status: BoardStatus, _token: string): Promise<void> {
+  const maxRow = mockStatusesState.value.reduce((max, s) => Math.max(max, s.sheetRow), 1);
+  mockStatusesState.value = [...mockStatusesState.value, { ...status, sheetRow: maxRow + 1 }];
+}
+
+export async function updateStatusRow(sheetRow: number, status: BoardStatus, _token: string): Promise<void> {
+  mockStatusesState.value = mockStatusesState.value.map(s =>
+    s.sheetRow === sheetRow ? { ...status, sheetRow } : s
+  );
+}
+
+export async function deleteStatusRow(sheetRow: number, _token: string): Promise<void> {
+  mockStatusesState.value = mockStatusesState.value.filter(s => s.sheetRow !== sheetRow);
+}
+
+export async function fetchStatusesWithRows(_token: string): Promise<Array<BoardStatus & { sheetRow: number }>> {
+  return mockStatusesState.value;
+}
+
+export async function cascadeStatusRename(
+  boardId: string,
+  oldName: string,
+  newName: string,
+  _token: string
+): Promise<void> {
+  mockItemsState.value = mockItemsState.value.map(i =>
+    i.board_id === boardId && i.status === oldName ? { ...i, status: newName } : i
   );
 }

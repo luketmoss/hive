@@ -1,34 +1,20 @@
 // Business rule enforcement for status transitions and side effects.
 // IMPORTANT: This logic is duplicated in frontend/src/state/rules.ts. Keep in sync.
 
+// Status-specific business rules removed in #218. All validation is now dynamic per board.
+// These functions are kept for backward compatibility but return permissive defaults.
+
 function validateStatusTransition(item, newStatus, allItems) {
-  if (item.status === newStatus) {
-    return { valid: true };
-  }
-
-  // To Do → In Progress: owner must be set
-  if (item.status === 'To Do' && newStatus === 'In Progress') {
-    if (!item.owner) {
-      return { valid: false, error: 'Cannot move to In Progress: owner must be assigned' };
-    }
-  }
-
-  // Note: the "all children must be Done" check was removed in #162.
-  // Moving a parent to Done now cascades the status to all children automatically.
-
-  // Done → To Do or In Progress: always allowed (reopening)
+  // All transitions allowed — per-column rules now managed via board settings
   return { valid: true };
 }
 
 function validateOwnerChange(item, newOwner) {
-  // Cannot remove owner from an "In Progress" item
-  if (item.status === 'In Progress' && !newOwner) {
-    return { valid: false, error: 'Cannot remove owner from In Progress items' };
-  }
+  // All owner changes allowed — per-column requirements now managed via board settings
   return { valid: true };
 }
 
-function applyStatusSideEffects(item, newStatus) {
+function applyStatusSideEffects(item, newStatus, isTerminal) {
   var updated = {};
   for (var key in item) {
     updated[key] = item[key];
@@ -36,9 +22,11 @@ function applyStatusSideEffects(item, newStatus) {
   updated.status = newStatus;
   updated.updated_at = isoNow();
 
-  if (newStatus === 'Done') {
+  // isTerminal parameter: set completed_at if moving to a terminal column
+  if (isTerminal) {
     updated.completed_at = isoNow();
-  } else if (item.status === 'Done' && newStatus !== 'Done') {
+  } else if (item.completed_at) {
+    // Clearing completed_at when moving away from a terminal status
     updated.completed_at = '';
   }
 

@@ -2,7 +2,7 @@
 // Covers all board features: multiple statuses, owners, labels,
 // subtasks, overdue dates, long titles, unassigned items.
 
-import type { ItemWithRow, Owner, Label, Board, BoardPermission } from '../api/types';
+import type { ItemWithRow, Owner, Label, Board, BoardPermission, BoardStatus } from '../api/types';
 
 // Helper to produce ISO date strings relative to "now" at module load time.
 // Using a fixed reference keeps data deterministic within a single page load.
@@ -52,6 +52,20 @@ export const MOCK_PERMISSIONS: BoardPermission[] = [
   { board_id: 'board-work', user_email: 'dad@family.com', role: 'owner' },
   { board_id: 'board-work', user_email: 'mom@family.com', role: 'member' },
   { board_id: 'board-work', user_email: 'demo@hive.local', role: 'member' },
+];
+
+// --- Statuses (Columns) ---
+// Each board has its own columns. Default: To Do, In Progress, Done.
+// Only "Done" column is terminal (sets completed_at, shows archive, sorts by completion).
+export const MOCK_STATUSES: BoardStatus[] = [
+  // Family Board
+  { id: 'status-fam-1', board_id: 'board-family', name: 'To Do', sort_order: 1, color: '#e3f2fd', is_terminal: false, created_at: daysAgo(30) },
+  { id: 'status-fam-2', board_id: 'board-family', name: 'In Progress', sort_order: 2, color: '#fff3e0', is_terminal: false, created_at: daysAgo(30) },
+  { id: 'status-fam-3', board_id: 'board-family', name: 'Done', sort_order: 3, color: '#e8f5e9', is_terminal: true, created_at: daysAgo(30) },
+  // Work Board
+  { id: 'status-work-1', board_id: 'board-work', name: 'To Do', sort_order: 1, color: '#e3f2fd', is_terminal: false, created_at: daysAgo(14) },
+  { id: 'status-work-2', board_id: 'board-work', name: 'In Progress', sort_order: 2, color: '#fff3e0', is_terminal: false, created_at: daysAgo(14) },
+  { id: 'status-work-3', board_id: 'board-work', name: 'Done', sort_order: 3, color: '#e8f5e9', is_terminal: true, created_at: daysAgo(14) },
 ];
 
 // --- Items ---

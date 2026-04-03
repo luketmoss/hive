@@ -58,11 +58,31 @@ function createItem(data, actor) {
   }
 
   var allItems = getItems();
-  var status = (data.status && VALID_STATUSES.indexOf(data.status) !== -1)
+
+  // Validate status against board's defined statuses, or fall back to hardcoded list
+  var validStatuses = [];
+  if (data.board_id) {
+    var boardStatuses = getStatuses(data.board_id);
+    validStatuses = boardStatuses.map(function(s) { return s.name; });
+  }
+  if (validStatuses.length === 0) {
+    validStatuses = VALID_STATUSES; // Fallback to hardcoded for boards without statuses
+  }
+
+  var status = (data.status && validStatuses.indexOf(data.status) !== -1)
     ? data.status
-    : 'To Do';
+    : validStatuses[0]; // Default to first valid status
 
   var now = isoNow();
+
+  // Determine if this status is terminal (completed)
+  var isTerminalStatus = false;
+  if (data.board_id) {
+    var boardStatuses = getStatuses(data.board_id);
+    var statusObj = boardStatuses.find(function(s) { return s.name === status; });
+    isTerminalStatus = statusObj ? statusObj.is_terminal : false;
+  }
+
   var item = {
     id: generateUUID(),
     title: data.title,
@@ -74,15 +94,11 @@ function createItem(data, actor) {
     parent_id: data.parent_id || '',
     created_at: now,
     updated_at: now,
-    completed_at: status === 'Done' ? now : '',
+    completed_at: isTerminalStatus ? now : '',
     sort_order: data.sort_order != null ? data.sort_order : getNextSortOrder(allItems, status),
     created_by: data.created_by || actor,
     board_id: data.board_id || '',
   };
-
-  if (item.status === 'In Progress' && !item.owner) {
-    throw new Error('Cannot create item in In Progress status without an owner');
-  }
 
   var sheet = getSheet('Items');
   sheet.appendRow(itemToRow(item));
@@ -109,7 +125,18 @@ function updateItem(id, changes, actor) {
   // Handle status change with business rules
   if (changes.status && changes.status !== item.status) {
     var newStatus = changes.status;
-    if (VALID_STATUSES.indexOf(newStatus) === -1) {
+
+    // Validate status against board's defined statuses, or fall back to hardcoded list
+    var validStatuses = [];
+    if (item.board_id) {
+      var boardStatuses = getStatuses(item.board_id);
+      validStatuses = boardStatuses.map(function(s) { return s.name; });
+    }
+    if (validStatuses.length === 0) {
+      validStatuses = VALID_STATUSES; // Fallback for boards without statuses
+    }
+
+    if (validStatuses.indexOf(newStatus) === -1) {
       throw new Error('Invalid status: "' + changes.status + '"');
     }
 
@@ -122,8 +149,16 @@ function updateItem(id, changes, actor) {
       throw new Error(validation.error);
     }
 
+    // Determine if target status is terminal
+    var isTerminal = false;
+    if (item.board_id) {
+      var boardStatuses = getStatuses(item.board_id);
+      var targetStatus = boardStatuses.find(function(s) { return s.name === newStatus; });
+      isTerminal = targetStatus ? targetStatus.is_terminal : false;
+    }
+
     var oldStatus = item.status;
-    item = applyStatusSideEffects(item, newStatus);
+    item = applyStatusSideEffects(item, newStatus, isTerminal);
     writeAuditEntry(id, 'status_changed', 'status', oldStatus, newStatus, actor);
   }
 
@@ -157,7 +192,13 @@ function updateItem(id, changes, actor) {
       var child = childItems[c];
       if (child.status !== changes.status) {
         var childOldStatus = child.status;
-        var updatedChild = applyStatusSideEffects(child, changes.status);
+        var childIsTerminal = false;
+        if (item.board_id) {
+          var childBoardStatuses = getStatuses(item.board_id);
+          var childTargetStatus = childBoardStatuses.find(function(s) { return s.name === changes.status; });
+          childIsTerminal = childTargetStatus ? childTargetStatus.is_terminal : false;
+        }
+        var updatedChild = applyStatusSideEffects(child, changes.status, childIsTerminal);
         updatedChild.updated_at = isoNow();
         var childRowNum = findRowByItemId(sheet, child.id);
         if (childRowNum !== -1) {

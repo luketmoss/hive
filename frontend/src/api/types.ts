@@ -1,7 +1,17 @@
 // Hive data types — mirrors Google Sheet column structure.
 // IMPORTANT: Keep in sync with apps-script/src/types.js
 
-export type ItemStatus = 'To Do' | 'In Progress' | 'Done';
+export type ItemStatus = string;
+
+export interface BoardStatus {
+  id: string;
+  board_id: string;
+  name: string;
+  sort_order: number;
+  color: string;
+  is_terminal: boolean;
+  created_at: string;
+}
 
 export interface Item {
   id: string;
