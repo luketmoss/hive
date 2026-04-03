@@ -230,9 +230,9 @@ describe('CardDetail keyboard accessibility (Issue #6)', () => {
 
     it('focuses the first focusable element when opened', () => {
       const { container } = renderCardDetail();
-      // The close button in the header should be the first focusable element
-      const closeBtn = container.querySelector('.detail-header .btn-ghost') as HTMLElement;
-      expect(document.activeElement).toBe(closeBtn);
+      // The expand button is first in DOM (hidden on mobile via CSS, but jsdom ignores CSS)
+      const firstBtn = container.querySelector('.detail-header button') as HTMLElement;
+      expect(document.activeElement).toBe(firstBtn);
     });
 
     it('wraps focus from last to first element on Tab', () => {
@@ -311,7 +311,7 @@ describe('CardDetail keyboard accessibility (Issue #6)', () => {
 
     it('close button triggers panel close', () => {
       renderCardDetail();
-      const closeBtn = document.querySelector('.detail-header .btn-ghost') as HTMLElement;
+      const closeBtn = document.querySelector('.detail-header [aria-label="Close"]') as HTMLElement;
       expect(closeBtn).not.toBeNull();
 
       fireEvent.click(closeBtn);
@@ -1729,5 +1729,82 @@ describe('CardDetail — subtask owner defaults to current user (Issue #112)', (
       const ownerSelect = container.querySelector('.subtask-add-owner') as HTMLSelectElement;
       expect(ownerSelect.value).toBe('');
     });
+  });
+});
+
+describe('CardDetail expand panel (Issue #206)', () => {
+  beforeEach(() => {
+    mockSelectedItemId = 'detail-test-1';
+    mockChildren = [];
+    mockItems = [];
+  });
+
+  // AC1: Expand button visible with correct aria-label
+  it('AC1: renders expand button with aria-label "Expand panel"', () => {
+    const { container } = renderCardDetail();
+    const expandBtn = container.querySelector('[aria-label="Expand panel"]');
+    expect(expandBtn).not.toBeNull();
+  });
+
+  it('AC1: expand button is to the left of close button in header', () => {
+    const { container } = renderCardDetail();
+    const header = container.querySelector('.detail-header');
+    const buttons = header!.querySelectorAll('button');
+    const expandBtn = Array.from(buttons).find(b => b.getAttribute('aria-label') === 'Expand panel');
+    const closeBtn = Array.from(buttons).find(b => b.getAttribute('aria-label') === 'Close');
+    expect(expandBtn).not.toBeNull();
+    expect(closeBtn).not.toBeNull();
+    // Expand should come before close in DOM order
+    const expandIdx = Array.from(buttons).indexOf(expandBtn!);
+    const closeIdx = Array.from(buttons).indexOf(closeBtn!);
+    expect(expandIdx).toBeLessThan(closeIdx);
+  });
+
+  // AC2: Clicking expand changes to collapse
+  it('AC2: clicking expand button changes aria-label to "Collapse panel" and adds expanded class', () => {
+    const { container } = renderCardDetail();
+    const expandBtn = container.querySelector('[aria-label="Expand panel"]') as HTMLElement;
+    fireEvent.click(expandBtn);
+
+    expect(container.querySelector('[aria-label="Collapse panel"]')).not.toBeNull();
+    expect(container.querySelector('.detail-panel-expanded')).not.toBeNull();
+  });
+
+  // AC3: Clicking collapse restores default
+  it('AC3: clicking collapse button restores expand button and removes expanded class', () => {
+    const { container } = renderCardDetail();
+    const expandBtn = container.querySelector('[aria-label="Expand panel"]') as HTMLElement;
+    fireEvent.click(expandBtn);
+
+    const collapseBtn = container.querySelector('[aria-label="Collapse panel"]') as HTMLElement;
+    fireEvent.click(collapseBtn);
+
+    expect(container.querySelector('[aria-label="Expand panel"]')).not.toBeNull();
+    expect(container.querySelector('.detail-panel-expanded')).toBeNull();
+  });
+
+  // AC4: Expanded state resets when item changes
+  it('AC4: expanded state resets when panel reopens with a different item', () => {
+    const { container, rerender } = renderCardDetail();
+    const expandBtn = container.querySelector('[aria-label="Expand panel"]') as HTMLElement;
+    fireEvent.click(expandBtn);
+    expect(container.querySelector('.detail-panel-expanded')).not.toBeNull();
+
+    // Simulate close + reopen
+    mockSelectedItemId = null;
+    rerender(
+      <AuthContext.Provider value={mockAuth}>
+        <CardDetail />
+      </AuthContext.Provider>
+    );
+    mockSelectedItemId = 'detail-test-2';
+    rerender(
+      <AuthContext.Provider value={mockAuth}>
+        <CardDetail />
+      </AuthContext.Provider>
+    );
+
+    expect(container.querySelector('.detail-panel-expanded')).toBeNull();
+    expect(container.querySelector('[aria-label="Expand panel"]')).not.toBeNull();
   });
 });

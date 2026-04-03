@@ -1913,6 +1913,22 @@ body {
   flex-direction: column;
   box-shadow: -4px 0 12px var(--overlay-3xl);
   overflow-y: auto;
+  transition: width 200ms ease;
+}
+
+.detail-panel-expanded {
+  width: min(800px, 70vw);
+}
+
+/* #206: Expand button hidden by default, shown on desktop only */
+.detail-expand-btn {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  .detail-expand-btn {
+    display: inline-flex;
+  }
 }
 
 .detail-header {

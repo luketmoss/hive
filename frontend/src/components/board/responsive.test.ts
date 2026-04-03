@@ -106,4 +106,26 @@ describe('Responsive CSS (Issue #10)', () => {
       expect(gapValue).toBeGreaterThanOrEqual(10);
     });
   });
+
+  // #206: Expand detail panel
+  describe('#206: Expand detail panel responsive CSS', () => {
+    it('AC5: expand button is hidden by default and shown only at min-width 769px', () => {
+      // Button should be display: none by default
+      expect(css).toMatch(/\.detail-expand-btn\s*\{[^}]*display:\s*none/);
+      // Shown via min-width: 769px media query
+      expect(css).toMatch(/@media\s*\(\s*min-width:\s*769px\s*\)/);
+      // Inside that query, the button is displayed
+      const desktopMatch = css.match(/@media\s*\(\s*min-width:\s*769px\s*\)\s*\{([\s\S]*?\})\s*\}/);
+      expect(desktopMatch).not.toBeNull();
+      expect(desktopMatch![1]).toContain('.detail-expand-btn');
+    });
+
+    it('expanded panel uses min(800px, 70vw) width', () => {
+      expect(css).toMatch(/\.detail-panel-expanded\s*\{[^}]*width:\s*min\(800px,\s*70vw\)/);
+    });
+
+    it('detail panel has width transition', () => {
+      expect(css).toMatch(/\.detail-panel\s*\{[^}]*transition:[^}]*width\s+200ms/);
+    });
+  });
 });

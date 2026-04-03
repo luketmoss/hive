@@ -119,7 +119,7 @@ describe('CardDetail ARIA labels (Issue #7)', () => {
   describe('AC3: Close button has accessible label', () => {
     it('close button has aria-label="Close"', () => {
       const { container } = renderCardDetail();
-      const closeBtn = container.querySelector('.detail-header .btn-ghost') as HTMLElement;
+      const closeBtn = container.querySelector('.detail-header [aria-label="Close"]') as HTMLElement;
       expect(closeBtn).not.toBeNull();
       expect(closeBtn.getAttribute('aria-label')).toBe('Close');
     });
