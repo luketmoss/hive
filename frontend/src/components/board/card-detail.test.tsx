@@ -490,8 +490,9 @@ describe('CardDetail inline dialogs (Issue #9)', () => {
         'test-token'
       );
 
-      // Input should close
-      expect(container.querySelector('.subtask-add-input')).toBeNull();
+      // #208: Input should stay open (Enter keeps row open for next subtask)
+      expect(container.querySelector('.subtask-add-input')).not.toBeNull();
+      expect((container.querySelector('.subtask-add-input') as HTMLInputElement).value).toBe('');
     });
 
     it('does not create subtask if input is empty on Enter', () => {
@@ -655,9 +656,7 @@ describe('CardDetail subtask double-submit fix (Issue #54)', () => {
     fireEvent.input(input, { target: { value: 'First task' } });
     fireEvent.keyDown(input, { key: 'Enter' });
 
-    // Second sub-task
-    const addBtn2 = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
-    fireEvent.click(addBtn2);
+    // #208: Enter keeps add row open, so just type and Enter again
     input = container.querySelector('.subtask-add-input') as HTMLInputElement;
     fireEvent.input(input, { target: { value: 'Second task' } });
     fireEvent.keyDown(input, { key: 'Enter' });
@@ -1089,7 +1088,7 @@ describe('CardDetail keyboard hint (Issue #60)', () => {
 
     const hint = container.querySelector('#subtask-add-hint');
     expect(hint).not.toBeNull();
-    expect(hint!.textContent).toBe('Enter to add · Esc to cancel');
+    expect(hint!.textContent).toBe('Enter to add another · Esc to cancel');
   });
 
   // AC2: Hint styled as secondary text
@@ -1103,8 +1102,8 @@ describe('CardDetail keyboard hint (Issue #60)', () => {
     expect(hint).not.toBeNull();
   });
 
-  // AC3: Hint disappears when creation row closes
-  it('AC3: hint disappears after Enter submits', () => {
+  // AC3: Hint stays visible after Enter (row stays open per #208)
+  it('AC3: hint stays after Enter submits (row stays open)', () => {
     const { container } = renderCardDetail();
 
     const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
@@ -1115,7 +1114,8 @@ describe('CardDetail keyboard hint (Issue #60)', () => {
     fireEvent.input(input, { target: { value: 'Test' } });
     fireEvent.keyDown(input, { key: 'Enter' });
 
-    expect(container.querySelector('#subtask-add-hint')).toBeNull();
+    // #208: Row stays open, hint remains
+    expect(container.querySelector('#subtask-add-hint')).not.toBeNull();
   });
 
   it('AC3: hint disappears after Escape cancels', () => {
@@ -1858,5 +1858,89 @@ describe('CardDetail clear date button (Issue #207)', () => {
     const clearBtn = row!.querySelector('[aria-label="Clear due date"]');
     expect(dateInput).not.toBeNull();
     expect(clearBtn).not.toBeNull();
+  });
+});
+
+describe('CardDetail quick-add sub-tasks (Issue #208)', () => {
+  beforeEach(() => {
+    mockSelectedItemId = 'detail-test-1';
+    mockChildren = [];
+    mockItems = [];
+    mockItemOverrides = {};
+    (createItem as any).mockReset?.() || vi.mocked(createItem).mockReset();
+  });
+
+  // AC1: Enter creates sub-task and keeps input open
+  it('AC1: pressing Enter creates sub-task and keeps add row open', async () => {
+    const { container } = renderCardDetail();
+    // Open add row
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    expect(input).not.toBeNull();
+
+    // Type and press Enter
+    fireEvent.input(input, { target: { value: 'New subtask' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    // createItem should have been called
+    expect(createItem).toHaveBeenCalledTimes(1);
+    // Add row should still be open
+    expect(container.querySelector('.subtask-add-input')).not.toBeNull();
+    // Input should be cleared
+    expect((container.querySelector('.subtask-add-input') as HTMLInputElement).value).toBe('');
+  });
+
+  // AC2: Empty title Enter does nothing
+  it('AC2: pressing Enter with empty title does nothing', () => {
+    const { container } = renderCardDetail();
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(createItem).not.toHaveBeenCalled();
+    expect(container.querySelector('.subtask-add-input')).not.toBeNull();
+  });
+
+  // AC3: Escape still cancels
+  it('AC3: pressing Escape closes the add row', () => {
+    const { container } = renderCardDetail();
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    fireEvent.keyDown(input, { key: 'Escape' });
+
+    expect(container.querySelector('.subtask-add-input')).toBeNull();
+  });
+
+  // AC5: Confirm button still closes
+  it('AC5: clicking confirm button creates and closes add row', () => {
+    const { container } = renderCardDetail();
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
+    fireEvent.input(input, { target: { value: 'Confirmed subtask' } });
+
+    const confirmBtn = container.querySelector('.subtask-add-confirm') as HTMLElement;
+    fireEvent.click(confirmBtn);
+
+    expect(createItem).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('.subtask-add-input')).toBeNull();
+  });
+
+  // AC6: Hint text updated
+  it('AC6: hint text reads "Enter to add another · Esc to cancel"', () => {
+    const { container } = renderCardDetail();
+    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    fireEvent.click(addBtn);
+
+    const hint = container.querySelector('#subtask-add-hint');
+    expect(hint).not.toBeNull();
+    expect(hint!.textContent).toBe('Enter to add another · Esc to cancel');
   });
 });
