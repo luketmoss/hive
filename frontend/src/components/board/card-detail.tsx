@@ -39,6 +39,13 @@ export function CardDetail() {
   // When collapsed, only show incomplete; when expanded, show all
   const visibleChildren = showCompleted ? children : incompleteChildren;
 
+  // #206: Expand/collapse panel state
+  const [expanded, setExpanded] = useState(false);
+  // Reset expanded state when item changes (AC4)
+  useEffect(() => {
+    setExpanded(false);
+  }, [item.id]);
+
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [addingSubtask, setAddingSubtask] = useState(false);
   const [subtaskTitle, setSubtaskTitle] = useState('');
@@ -322,9 +329,14 @@ export function CardDetail() {
         if ((e.target as HTMLElement).classList.contains('detail-overlay')) close();
       }}
     >
-      <div class="detail-panel">
+      <div class={`detail-panel${expanded ? ' detail-panel-expanded' : ''}`}>
         <div class="detail-header">
           <h2>Item Details</h2>
+          <button
+            class="btn btn-ghost detail-expand-btn"
+            aria-label={expanded ? 'Collapse panel' : 'Expand panel'}
+            onClick={() => setExpanded(!expanded)}
+          >{expanded ? '\u2B73' : '\u2B72'}</button>
           <button class="btn btn-ghost" aria-label="Close" onClick={close}>✕</button>
         </div>
 
