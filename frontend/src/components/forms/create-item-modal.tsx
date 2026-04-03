@@ -60,7 +60,7 @@ export function CreateItemModal() {
 
   const addSubtask = () => {
     if (!subtaskInput.trim()) return;
-    setSubtasks(prev => [...prev, { title: subtaskInput.trim(), owner: owner }]);
+    setSubtasks(prev => [...prev, { title: subtaskInput.trim(), owner: '' }]);
     setSubtaskInput('');
     subtaskInputRef.current?.focus();
   };
@@ -173,7 +173,6 @@ export function CreateItemModal() {
                   {subtasks.map((s, i) => (
                     <li key={i} class="staged-subtask">
                       <span class="staged-subtask-title">{s.title}</span>
-                      {s.owner && <span class="staged-subtask-owner">{s.owner}</span>}
                       <button
                         type="button"
                         class="btn-icon staged-subtask-remove"
