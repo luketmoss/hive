@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, waitFor, cleanup } from '@testing-library/preact';
-import { labels } from '../../state/board-store';
+import { labels, activeBoardId } from '../../state/board-store';
 import { LabelPickerManager } from './label-picker-manager';
 import type { Label } from '../../api/types';
 
@@ -361,5 +361,66 @@ describe('LabelPickerManager', () => {
     fireEvent.input(input, { target: { value: '   ' } });
     const saveBtn = container.querySelector('[data-testid="label-save-btn"]') as HTMLButtonElement;
     expect(saveBtn.disabled).toBe(true);
+  });
+});
+
+// --- Label filtering bug (Issue #210) ---
+describe('LabelPickerManager — board-scoped filtering (Issue #210)', () => {
+  const BOARD_A_LABELS: Label[] = [
+    { label: 'Errands', color: '#42a5f5', board_id: 'board-a' },
+    { label: 'Home', color: '#66bb6a', board_id: 'board-a' },
+  ];
+  const BOARD_B_LABELS: Label[] = [
+    { label: 'Work', color: '#ab47bc', board_id: 'board-b' },
+    { label: 'Finance', color: '#ef5350', board_id: 'board-b' },
+  ];
+  const ALL_LABELS = [...BOARD_A_LABELS, ...BOARD_B_LABELS];
+
+  beforeEach(() => {
+    labels.value = [...ALL_LABELS];
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    activeBoardId.value = '';
+    cleanup();
+  });
+
+  // AC1: Label picker shows only current board's labels
+  it('AC1: shows only labels belonging to the active board', () => {
+    activeBoardId.value = 'board-a';
+    const { container } = render(
+      <LabelPickerManager currentLabels="" onToggle={() => {}} token="test-token" />
+    );
+    const toggles = container.querySelectorAll('.label-toggle');
+    const labelNames = Array.from(toggles).map(t => t.textContent);
+    expect(labelNames).toContain('Errands');
+    expect(labelNames).toContain('Home');
+    expect(labelNames).not.toContain('Work');
+    expect(labelNames).not.toContain('Finance');
+  });
+
+  // AC2: Cross-board labels do not appear
+  it('AC2: does not show labels from other boards', () => {
+    activeBoardId.value = 'board-b';
+    const { container } = render(
+      <LabelPickerManager currentLabels="" onToggle={() => {}} token="test-token" />
+    );
+    const toggles = container.querySelectorAll('.label-toggle');
+    const labelNames = Array.from(toggles).map(t => t.textContent);
+    expect(labelNames).toContain('Work');
+    expect(labelNames).toContain('Finance');
+    expect(labelNames).not.toContain('Errands');
+    expect(labelNames).not.toContain('Home');
+  });
+
+  // AC4: No regression on single-board setups (no activeBoardId)
+  it('AC4: shows all labels when no board is active', () => {
+    activeBoardId.value = '';
+    const { container } = render(
+      <LabelPickerManager currentLabels="" onToggle={() => {}} token="test-token" />
+    );
+    const toggles = container.querySelectorAll('.label-toggle');
+    expect(toggles.length).toBe(4);
   });
 });
