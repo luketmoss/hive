@@ -179,39 +179,7 @@ describe('CreateItemModal — Inline Sub-tasks (Issue #55)', () => {
     });
   });
 
-  // AC4: Sub-tasks inherit parent owner
-  describe('AC4: Sub-tasks inherit parent owner', () => {
-    it('sub-task inherits current parent owner', () => {
-      const { container } = render(<CreateItemModal />);
-
-      // Set parent owner to Mom
-      const ownerSelect = container.querySelector('#owner') as HTMLSelectElement;
-      fireEvent.change(ownerSelect, { target: { value: 'Mom' } });
-
-      addSubtaskViaEnter(container, 'Buy groceries');
-
-      const staged = getStagedSubtasks(container);
-      const ownerBadge = staged[0].querySelector('.staged-subtask-owner');
-      expect(ownerBadge!.textContent).toBe('Mom');
-    });
-
-    it('changing parent owner does not retroactively change existing sub-tasks', () => {
-      const { container } = render(<CreateItemModal />);
-
-      // Set owner to Mom and add sub-task
-      const ownerSelect = container.querySelector('#owner') as HTMLSelectElement;
-      fireEvent.change(ownerSelect, { target: { value: 'Mom' } });
-      addSubtaskViaEnter(container, 'Task from Mom');
-
-      // Change parent owner to Dad
-      fireEvent.change(ownerSelect, { target: { value: 'Dad' } });
-      addSubtaskViaEnter(container, 'Task from Dad');
-
-      const staged = getStagedSubtasks(container);
-      expect(staged[0].querySelector('.staged-subtask-owner')!.textContent).toBe('Mom');
-      expect(staged[1].querySelector('.staged-subtask-owner')!.textContent).toBe('Dad');
-    });
-  });
+  // AC4: Sub-tasks inherit parent owner — removed (Issue #209 removed subtask owner feature)
 
   // AC5: Saving parent and sub-tasks together
   describe('AC5: Saving parent and sub-tasks', () => {
@@ -418,31 +386,7 @@ describe('CreateItemModal — Auto-assign default owner (Issue #112)', () => {
     });
   });
 
-  // AC4: Staged subtasks inherit the task owner (existing behaviour preserved)
-  describe('AC4: Staged subtasks inherit the task owner', () => {
-    it('subtask inherits the pre-selected owner', () => {
-      const { container } = render(<CreateItemModal />);
-      const input = container.querySelector('#subtask-title') as HTMLInputElement;
-      fireEvent.input(input, { target: { value: 'Sub A' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
-
-      const staged = container.querySelectorAll('.staged-subtask');
-      expect(staged[0].querySelector('.staged-subtask-owner')!.textContent).toBe('Test User');
-    });
-
-    it('subtask inherits after user changes owner', () => {
-      const { container } = render(<CreateItemModal />);
-      const ownerSelect = container.querySelector('#owner') as HTMLSelectElement;
-      fireEvent.change(ownerSelect, { target: { value: 'Dad' } });
-
-      const input = container.querySelector('#subtask-title') as HTMLInputElement;
-      fireEvent.input(input, { target: { value: 'Sub B' } });
-      fireEvent.keyDown(input, { key: 'Enter' });
-
-      const staged = container.querySelectorAll('.staged-subtask');
-      expect(staged[0].querySelector('.staged-subtask-owner')!.textContent).toBe('Dad');
-    });
-  });
+  // AC4: Staged subtasks inherit the task owner — removed (Issue #209 removed subtask owner feature)
 
   // AC5: Graceful fallback when user not in owners list
   describe('AC5: Fallback to Unassigned when user not in owners list', () => {

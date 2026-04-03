@@ -2143,35 +2143,7 @@ body {
   color: var(--color-text-secondary);
 }
 
-.subtask-owner {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
 
-.subtask-owner-select {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  padding: 2px 6px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  cursor: pointer;
-  font-family: inherit;
-  max-width: 120px;
-}
-
-.subtask-owner-select:hover {
-  border-color: var(--color-border);
-  background: var(--overlay-xs);
-}
-
-.subtask-owner-select:focus {
-  border-color: var(--color-primary);
-  outline: none;
-  box-shadow: var(--focus-ring);
-}
 
 /* === Sub-task action buttons (delete, reorder) === */
 .subtask-actions {
@@ -2376,24 +2348,6 @@ body {
   box-shadow: var(--focus-ring);
 }
 
-.subtask-add-owner {
-  flex-shrink: 0;
-  padding: 6px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-family: inherit;
-  color: var(--color-text);
-  background: var(--color-surface);
-  max-width: 130px;
-}
-
-.subtask-add-owner:focus {
-  border-color: var(--color-primary);
-  outline: none;
-  box-shadow: var(--focus-ring);
-}
-
 .detail-meta {
   display: flex;
   flex-direction: column;
@@ -2586,11 +2540,6 @@ body {
   white-space: nowrap;
 }
 
-.staged-subtask-owner {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  flex-shrink: 0;
-}
 
 .staged-subtask-remove {
   flex-shrink: 0;
@@ -3612,16 +3561,6 @@ body {
     flex-wrap: wrap;
   }
 
-  /* #59 AC3: Constrain owner select width on mobile */
-  .subtask-owner-select {
-    max-width: 80px;
-  }
-
-  /* #58 AC6: Constrain creation row owner select on mobile */
-  .subtask-add-owner {
-    max-width: 80px;
-  }
-
   /* Sub-task creation row: 44px min-height for touch targets on mobile */
   .subtask-add-inline {
     min-height: 44px;
@@ -3635,8 +3574,7 @@ body {
   }
 
   /* #88 AC1: Sub-task creation row 44px touch targets */
-  .subtask-add-input,
-  .subtask-add-owner {
+  .subtask-add-input {
     min-height: 44px;
   }
 

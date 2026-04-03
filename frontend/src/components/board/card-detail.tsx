@@ -2,7 +2,6 @@ import { useState, useRef, useCallback, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
 import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels as labelsStore, showToast, openDetailWithTitleEdit, accessibleBoards, activeBoardId, showMoveToBoardModal } from '../../state/board-store';
 import { updateItem, deleteItem, deleteSubtask, createItem, moveItem, reorderSubtasks } from '../../state/actions';
-import { validateOwnerChange } from '../../state/rules';
 import { LabelBadge } from '../shared/label-badge';
 import { LabelPickerManager } from '../labels/label-picker-manager';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
@@ -49,7 +48,6 @@ export function CardDetail() {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [addingSubtask, setAddingSubtask] = useState(false);
   const [subtaskTitle, setSubtaskTitle] = useState('');
-  const [subtaskOwner, setSubtaskOwner] = useState(item.owner);
   const [subtaskDueDate, setSubtaskDueDate] = useState('');
   const subtaskInputRef = useRef<HTMLInputElement>(null);
   const subtaskRowRef = useRef<HTMLDivElement>(null);
@@ -93,14 +91,11 @@ export function CardDetail() {
     setConfirmingDelete(false);
   };
 
-  const currentUserOwnerName = owners.value.find(o => o.google_account.toLowerCase() === user?.email?.toLowerCase())?.name ?? '';
-
   const handleAddSubtask = () => {
     subtaskSubmittedRef.current = false;
     subtaskTitleRef.current = '';
     setAddingSubtask(true);
     setSubtaskTitle('');
-    setSubtaskOwner(currentUserOwnerName);
     setSubtaskDueDate('');
     // Focus the input after render
     requestAnimationFrame(() => {
@@ -112,7 +107,7 @@ export function CardDetail() {
   const doCreateSubtask = (): boolean => {
     const trimmed = subtaskTitleRef.current.trim();
     if (trimmed && token) {
-      const newSubtask: Record<string, string> = { title: trimmed, parent_id: item.id, owner: subtaskOwner, created_by: user?.email || '' };
+      const newSubtask: Record<string, string> = { title: trimmed, parent_id: item.id, owner: '', created_by: user?.email || '' };
       if (subtaskDueDate) newSubtask.due_date = subtaskDueDate;
       createItem(newSubtask, actor, token);
       return true;
@@ -318,21 +313,6 @@ export function CardDetail() {
     moveItem(childId, newStatus, actor, token);
   };
 
-  const handleSubtaskOwnerChange = async (childId: string, newOwner: string, selectEl: HTMLSelectElement) => {
-    if (!token) return;
-    const child = items.value.find(i => i.id === childId);
-    if (!child) return;
-
-    const validation = validateOwnerChange(child, newOwner);
-    if (!validation.valid) {
-      showToast(validation.error!, 'error');
-      selectEl.value = child.owner;
-      return;
-    }
-
-    await updateItem(childId, { owner: newOwner }, actor, token);
-  };
-
   const handleSubtaskDateSave = async (childId: string, field: 'due_date', value: string) => {
     if (!token) return;
     await updateItem(childId, { [field]: value }, actor, token);
@@ -528,17 +508,6 @@ export function CardDetail() {
                       >{child.title}</span>
                     )}
                     <SubtaskDates child={child} onSave={handleSubtaskDateSave} />
-                    <select
-                      class="subtask-owner-select"
-                      value={child.owner}
-                      aria-label={`Owner for ${child.title}`}
-                      onChange={(e) => handleSubtaskOwnerChange(child.id, (e.target as HTMLSelectElement).value, e.target as HTMLSelectElement)}
-                    >
-                      <option value="">Unassigned</option>
-                      {owners.value.map(o => (
-                        <option key={o.name} value={o.name}>{o.name}</option>
-                      ))}
-                    </select>
                     <div class="subtask-actions">
                       {visibleChildren.length > 1 && (
                         <>
@@ -611,21 +580,6 @@ export function CardDetail() {
                       if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }
                     }}
                   />
-                  <select
-                    class="subtask-add-owner"
-                    value={subtaskOwner}
-                    aria-label="Owner for new sub-task"
-                    aria-describedby="subtask-add-hint"
-                    onChange={(e) => setSubtaskOwner((e.target as HTMLSelectElement).value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }
-                    }}
-                  >
-                    <option value="">Unassigned</option>
-                    {owners.value.map(o => (
-                      <option key={o.name} value={o.name}>{o.name}</option>
-                    ))}
-                  </select>
                   <input
                     type="date"
                     class="subtask-add-date"
