@@ -1921,8 +1921,16 @@ body {
 }
 
 /* #206: Expand button hidden by default, shown on desktop only */
+.detail-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .detail-expand-btn {
   display: none;
+  align-items: center;
+  justify-content: center;
 }
 
 @media (min-width: 769px) {
