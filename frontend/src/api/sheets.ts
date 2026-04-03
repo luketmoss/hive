@@ -609,11 +609,18 @@ export async function updateStatusRow(sheetRow: number, status: BoardStatus, tok
 }
 
 export async function deleteStatusRow(sheetRow: number, token: string): Promise<void> {
-  // Statuses sheet ID is hardcoded (similar to other sheets)
-  // In a real impl, would look it up, but for MVP assume it's the standard position
-  return withReauth(token, (t) =>
-    sheetsDeleteRow(0, sheetRow, t)
-  );
+  return withReauth(token, async (t) => {
+    const url = `${BASE}/${SPREADSHEET_ID}?fields=sheets.properties`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${t}` },
+    });
+    const data = await res.json();
+    const statusesSheet = data.sheets?.find(
+      (s: any) => s.properties.title === 'Statuses'
+    );
+    const sheetId = statusesSheet?.properties?.sheetId ?? 0;
+    await sheetsDeleteRow(sheetId, sheetRow, t);
+  });
 }
 
 export async function fetchStatusesWithRows(token: string): Promise<Array<BoardStatus & { sheetRow: number }>> {

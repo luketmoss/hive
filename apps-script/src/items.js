@@ -192,7 +192,13 @@ function updateItem(id, changes, actor) {
       var child = childItems[c];
       if (child.status !== changes.status) {
         var childOldStatus = child.status;
-        var updatedChild = applyStatusSideEffects(child, changes.status);
+        var childIsTerminal = false;
+        if (item.board_id) {
+          var childBoardStatuses = getStatuses(item.board_id);
+          var childTargetStatus = childBoardStatuses.find(function(s) { return s.name === changes.status; });
+          childIsTerminal = childTargetStatus ? childTargetStatus.is_terminal : false;
+        }
+        var updatedChild = applyStatusSideEffects(child, changes.status, childIsTerminal);
         updatedChild.updated_at = isoNow();
         var childRowNum = findRowByItemId(sheet, child.id);
         if (childRowNum !== -1) {
