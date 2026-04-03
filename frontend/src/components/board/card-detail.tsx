@@ -108,18 +108,38 @@ export function CardDetail() {
     });
   };
 
-  const submitSubtask = () => {
-    // Guard: Enter keydown unmounts the input row which fires focusout on the container,
-    // which would otherwise call submitSubtask a second time before state has cleared.
-    if (subtaskSubmittedRef.current) return;
-    subtaskSubmittedRef.current = true;
-    // Read from ref to avoid stale closure (focusOut fires before Preact re-renders)
+  /** Create the subtask from current input state. Returns true if created. */
+  const doCreateSubtask = (): boolean => {
     const trimmed = subtaskTitleRef.current.trim();
     if (trimmed && token) {
       const newSubtask: Record<string, string> = { title: trimmed, parent_id: item.id, owner: subtaskOwner, created_by: user?.email || '' };
       if (subtaskDueDate) newSubtask.due_date = subtaskDueDate;
       createItem(newSubtask, actor, token);
+      return true;
     }
+    return false;
+  };
+
+  /** #208: Enter path — create subtask and keep the add row open for the next one. */
+  const submitAndContinue = () => {
+    if (subtaskSubmittedRef.current) return;
+    subtaskSubmittedRef.current = true;
+    const created = doCreateSubtask();
+    // Clear input but keep the add row open
+    setSubtaskTitle('');
+    subtaskTitleRef.current = '';
+    setSubtaskDueDate('');
+    subtaskSubmittedRef.current = false;
+    if (created) {
+      requestAnimationFrame(() => subtaskInputRef.current?.focus());
+    }
+  };
+
+  /** Focusout / confirm button path — create subtask and close the add row. */
+  const submitSubtask = () => {
+    if (subtaskSubmittedRef.current) return;
+    subtaskSubmittedRef.current = true;
+    doCreateSubtask();
     setAddingSubtask(false);
     setSubtaskTitle('');
     subtaskTitleRef.current = '';
@@ -587,7 +607,7 @@ export function CardDetail() {
                       setSubtaskTitle(v);
                     }}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') { e.preventDefault(); submitSubtask(); }
+                      if (e.key === 'Enter') { e.preventDefault(); submitAndContinue(); }
                       if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }
                     }}
                   />
@@ -629,7 +649,7 @@ export function CardDetail() {
                     onClick={() => cancelSubtask()}
                   >&#10005;</button>
                 </div>
-                <span id="subtask-add-hint" class="subtask-add-hint">Enter to add · Esc to cancel</span>
+                <span id="subtask-add-hint" class="subtask-add-hint">Enter to add another · Esc to cancel</span>
               </div>
             )}
           </div>
