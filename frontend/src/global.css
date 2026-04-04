@@ -1912,6 +1912,7 @@ body {
   z-index: 100;
   display: flex;
   justify-content: flex-end;
+  overflow: hidden;
 }
 
 .detail-panel {
@@ -1984,6 +1985,14 @@ body {
   letter-spacing: 0.5px;
   color: var(--color-text-secondary);
 }
+.detail-field-no-label {
+  gap: 0;
+}
+.editable-value-title {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+}
 
 /* === #220: Status chevron pipeline === */
 .status-pipeline {
@@ -2040,6 +2049,26 @@ body {
 }
 
 /* === #220: Owner avatar circles === */
+/* === #220 follow-up: Combined owner + date row === */
+.owner-date-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  position: relative;
+  padding: 4px 0;
+}
+.owner-date-feedback {
+  position: absolute;
+  top: -4px;
+  right: 0;
+}
+.row-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--color-border);
+  flex-shrink: 0;
+}
 .owner-row {
   display: flex;
   align-items: center;
@@ -2104,55 +2133,66 @@ body {
   color: var(--color-text-secondary);
 }
 
-/* === #220: Due date redesign === */
-.due-date-row {
+/* === #220 follow-up: Due date (clickable row in owner-date row) === */
+.due-date-btn {
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-.due-cal-btn {
-  width: 48px;
-  height: 48px;
+  gap: 10px;
+  padding: 8px 10px;
   border: none;
-  background: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border-radius: var(--radius);
-  transition: background var(--transition-fast);
-  padding: 0;
-  color: var(--color-text-muted);
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+.due-date-btn:hover {
+  background: var(--overlay-xs);
+}
+.due-date-btn svg {
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
+  color: var(--color-text-muted);
 }
-.due-cal-btn:hover {
-  background: var(--overlay-xl);
-}
-.due-cal-btn.set {
+.due-date-btn.has-date svg {
   color: var(--color-primary);
 }
-.due-cal-btn svg {
-  width: 32px;
-  height: 32px;
-}
-.due-date-info {
+.due-date-btn .date-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  flex: 1;
+  gap: 1px;
 }
-.due-date-text {
-  font-size: 15px;
+.due-date-btn .date-text {
+  font-size: 14px;
   font-weight: 500;
   color: var(--color-text);
 }
-.due-date-relative {
+.due-date-btn .date-relative {
   font-size: 12px;
   color: var(--color-text-secondary);
 }
+.due-date-btn .no-date {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+.due-date-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+.due-date-hidden {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
 .due-clear-btn {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border: none;
   background: var(--overlay-xs);
   color: var(--color-text-muted);
@@ -2169,8 +2209,8 @@ body {
   color: var(--color-danger);
 }
 .due-clear-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 .due-date-overdue-text {
   color: var(--color-overdue);
@@ -2481,13 +2521,6 @@ body {
   align-items: center;
   gap: 2px;
   flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.subtask-item:hover .subtask-actions,
-.subtask-item:focus-within .subtask-actions {
-  opacity: 1;
 }
 
 .subtask-action-btn {
@@ -2613,13 +2646,6 @@ body {
   align-self: flex-start;
   transition: all var(--transition-fast);
   min-height: 24px;
-  opacity: 0;
-  pointer-events: none;
-}
-.subtask-item:hover .subtask-date-add-inline,
-.subtask-item:focus-within .subtask-date-add-inline {
-  opacity: 1;
-  pointer-events: auto;
 }
 .subtask-date-add-inline:hover {
   border-color: var(--color-text-secondary);
@@ -2708,6 +2734,9 @@ body {
 }
 
 /* === Inline subtask add === */
+.subtask-add-li {
+  list-style: none;
+}
 .subtask-add-wrapper {
   margin-top: 4px;
 }
@@ -3757,27 +3786,13 @@ body {
   font-weight: 600;
 }
 
-/* === Sub-task drag handle (#88 AC5) === */
-.subtask-drag-handle {
-  display: none; /* hidden on desktop */
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: none;
+/* === Sub-task drag-and-drop (#220 follow-up) === */
+.subtask-item[draggable="true"] {
   cursor: grab;
-  color: var(--color-text-secondary);
-  font-size: 16px;
-  padding: 0;
-  touch-action: none;
-  flex-shrink: 0;
 }
-
-.subtask-drag-handle:active {
+.subtask-item[draggable="true"]:active {
   cursor: grabbing;
 }
-
 .subtask-dragging {
   background: color-mix(in srgb, var(--color-primary) 10%, var(--color-bg));
   box-shadow: var(--shadow-lg);
@@ -3893,29 +3908,8 @@ body {
     gap: 10px;
   }
 
-  /* #220: Subtask touch targets on mobile */
-  .subtask-date-add-inline {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  /* #220: Hide kebab on mobile (long-press instead) */
+  /* #220 follow-up: subtask touch targets on mobile */
   .subtask-kebab-btn {
-    display: none;
-  }
-
-  /* #220: Hide reorder arrows on mobile, show drag handle */
-  .subtask-action-btn[aria-label="Move up"],
-  .subtask-action-btn[aria-label="Move down"] {
-    display: none;
-  }
-
-  .subtask-actions {
-    opacity: 1;
-  }
-
-  .subtask-drag-handle {
-    display: flex;
     width: 44px;
     height: 44px;
   }

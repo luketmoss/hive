@@ -161,8 +161,8 @@ describe('Issue #204: Sub-item display improvements', () => {
       expect(css).toMatch(/\.subtask-title\s*\{[^}]*cursor:\s*pointer/);
     });
 
-    it('desktop: subtask-item hover shows actions', () => {
-      expect(css).toMatch(/\.subtask-item:hover\s+\.subtask-actions[^{]*\{/);
+    it('desktop: subtask-kebab-btn is always visible (no hover-to-reveal)', () => {
+      expect(css).toMatch(/\.subtask-kebab-btn\s*\{/);
     });
 
     it('subtask-title cursor pointer style is in CSS', () => {
@@ -246,9 +246,9 @@ describe('Issue #204: Sub-item display improvements', () => {
     });
   });
 
-  // --- AC3: Reorder only for incomplete items ---
-  describe('AC3: Reorder buttons only appear for incomplete items', () => {
-    it('reorder buttons only appear for incomplete items, not done items', () => {
+  // --- AC3: Drag reorder only for incomplete items (arrow buttons removed) ---
+  describe('AC3: Drag reorder only available for incomplete items', () => {
+    it('incomplete items are draggable, done items are not', () => {
       mockChildren = [
         makeChild({ id: 'c1', title: 'Incomplete A', status: 'To Do', sort_order: 1 }),
         makeChild({ id: 'c2', title: 'Incomplete B', status: 'To Do', sort_order: 2 }),
@@ -260,11 +260,9 @@ describe('Issue #204: Sub-item display improvements', () => {
       const subtaskItems = container.querySelectorAll('.subtask-item');
       expect(subtaskItems.length).toBe(3);
 
-      // Reorder buttons only for incomplete items (2 items)
-      const moveUpBtns = container.querySelectorAll('.subtask-action-btn[aria-label="Move up"]');
-      const moveDownBtns = container.querySelectorAll('.subtask-action-btn[aria-label="Move down"]');
-      expect(moveUpBtns.length).toBe(2);
-      expect(moveDownBtns.length).toBe(2);
+      // Incomplete items have draggable="true", done items do not
+      const draggableItems = container.querySelectorAll('.subtask-item[draggable="true"]');
+      expect(draggableItems.length).toBe(2);
     });
   });
 
