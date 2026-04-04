@@ -179,7 +179,7 @@ describe('LabelPickerManager', () => {
   });
 
   // Scenario 2: "Manage labels" button toggles edit mode
-  it('shows "Manage labels" button that toggles to "Done"', () => {
+  it('shows "Manage labels" button (gear icon) that toggles to "Done"', () => {
     const { container } = render(
       <LabelPickerManager
         currentLabels=""
@@ -188,11 +188,12 @@ describe('LabelPickerManager', () => {
       />
     );
     const manageBtn = container.querySelector('[data-testid="manage-labels-btn"]')!;
-    expect(manageBtn.textContent).toBe('Manage labels');
+    // In normal mode: gear icon (SVG), accessible via aria-label
+    expect(manageBtn.getAttribute('aria-label')).toBe('Manage labels');
     fireEvent.click(manageBtn);
     expect(manageBtn.textContent).toBe('Done');
     fireEvent.click(manageBtn);
-    expect(manageBtn.textContent).toBe('Manage labels');
+    expect(manageBtn.getAttribute('aria-label')).toBe('Manage labels');
   });
 
   // Scenario 2: In edit mode, each label has edit and delete icons

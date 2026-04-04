@@ -382,11 +382,10 @@ describe('Design token: --color-primary-light (Issue #104)', () => {
       expect(match![0]).not.toContain('rgba(var(--color-primary-rgb)');
     });
 
-    it('.quick-date-chip:hover uses var(--color-primary-light)', () => {
+    it('.quick-date-chip:hover uses var(--color-surface) background', () => {
       const match = css.match(/\.quick-date-chip:hover\s*\{[^}]*\}/);
       expect(match).not.toBeNull();
-      expect(match![0]).toContain('var(--color-primary-light)');
-      expect(match![0]).not.toContain('color-mix(in srgb, var(--color-primary) 8%');
+      expect(match![0]).toContain('var(--color-surface)');
     });
 
     it('.btn-icon-danger:hover no longer has transparent primary-rgb fallback', () => {

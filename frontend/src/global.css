@@ -1985,6 +1985,236 @@ body {
   color: var(--color-text-secondary);
 }
 
+/* === #220: Status chevron pipeline === */
+.status-pipeline {
+  display: flex;
+  align-items: stretch;
+  padding: 10px 12px;
+  background: var(--color-surface-raised);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  gap: 4px;
+}
+.status-chevron {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 8px 10px 16px;
+  border: none;
+  background: var(--overlay-md);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  position: relative;
+  white-space: nowrap;
+  min-height: 40px;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%);
+}
+.status-chevron:first-child {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  padding-left: 12px;
+}
+.status-chevron:last-child {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding-right: 12px;
+}
+.status-chevron.reached {
+  background: var(--overlay-xl);
+  color: var(--color-text-secondary);
+}
+.status-chevron.active {
+  color: var(--color-text);
+  font-weight: 700;
+  font-size: 13px;
+}
+.status-chevron:not(.active):hover {
+  background: var(--overlay-2xl);
+}
+
+/* === #220: Owner avatar circles === */
+.owner-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.owner-circle-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.owner-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+  padding: 0;
+  position: relative;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.owner-circle.active {
+  box-shadow: 0 0 0 3px var(--color-surface), 0 0 0 5px var(--color-primary);
+}
+.owner-circle:not(.active):hover {
+  transform: scale(1.08);
+}
+.owner-circle-name {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+  text-align: center;
+  max-width: 52px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.owner-search-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px dashed var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all var(--transition-fast);
+}
+.owner-search-circle:hover {
+  border-color: var(--color-text-secondary);
+  color: var(--color-text-secondary);
+}
+
+/* === #220: Due date redesign === */
+.due-date-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.due-cal-btn {
+  width: 48px;
+  height: 48px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  transition: background var(--transition-fast);
+  padding: 0;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.due-cal-btn:hover {
+  background: var(--overlay-xl);
+}
+.due-cal-btn.set {
+  color: var(--color-primary);
+}
+.due-cal-btn svg {
+  width: 32px;
+  height: 32px;
+}
+.due-date-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.due-date-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+.due-date-relative {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.due-clear-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: var(--overlay-xs);
+  color: var(--color-text-muted);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+.due-clear-btn:hover {
+  background: var(--overlay-xl);
+  color: var(--color-danger);
+}
+.due-clear-btn svg {
+  width: 18px;
+  height: 18px;
+}
+.due-date-overdue-text {
+  color: var(--color-overdue);
+}
+
+/* === #220: Label "New" pill + gear icon === */
+.label-new-pill {
+  padding: 5px 14px;
+  border-radius: var(--radius-full);
+  border: 2px dashed var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  transition: all var(--transition-fast);
+}
+.label-new-pill:hover {
+  border-color: var(--color-text-secondary);
+  color: var(--color-text);
+}
+.label-gear-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  padding: 0;
+  transition: all var(--transition-fast);
+}
+.label-gear-btn:hover {
+  background: var(--overlay-xl);
+  color: var(--color-text);
+}
+
 /* #207: Date field row — inline date input + clear button */
 .date-field-row {
   display: flex;
@@ -2046,6 +2276,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  align-items: center;
 }
 
 .label-toggle {
@@ -2068,7 +2299,7 @@ body {
   color: var(--label-text-color, white);
 }
 
-/* === Sub-tasks in detail === */
+/* === #220: Sub-tasks in detail (redesigned) === */
 .detail-subtasks {
   margin-top: 8px;
 }
@@ -2088,49 +2319,103 @@ body {
   color: var(--color-text-secondary);
 }
 
+/* Circle-plus add button */
+.subtask-add-circle {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background var(--transition-fast);
+  padding: 0;
+}
+.subtask-add-circle:hover {
+  background: var(--color-primary-light);
+}
+
 .subtask-list {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .subtask-item {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 6px 8px;
+  padding: 10px 4px;
   border-radius: var(--radius-sm);
   font-size: 14px;
-  min-height: 36px;
+  min-height: 48px;
+  transition: background var(--transition-fast);
 }
 
 .subtask-item:hover {
-  background: var(--overlay-sm);
+  background: var(--overlay-xs);
+}
+
+/* #220: Rounded square checkbox */
+.check-icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  margin: -8px 0;
+}
+.check-box {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid var(--color-border-light);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+.check-icon:hover .check-box {
+  border-color: var(--color-primary);
+}
+.check-box.checked {
+  background: var(--color-success);
+  border-color: var(--color-success);
+}
+.check-box.checked svg {
+  width: 14px;
+  height: 14px;
+  stroke: #fff;
+  stroke-width: 3;
+  fill: none;
+}
+
+/* #220: Subtask content column (title + date stacked) */
+.subtask-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 2px 0;
 }
 
 .subtask-title {
-  flex: 1;
-  min-width: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  font-size: 14px;
+  color: var(--color-text);
   line-height: 1.4;
   cursor: pointer;
-  transition: max-height 0.15s ease;
-  max-height: 2.8em; /* 2 lines × 1.4 line-height */
-}
-
-/* #204 AC1: Expand clamped titles on hover/focus */
-.subtask-item:hover .subtask-title {
-  -webkit-line-clamp: unset;
-  max-height: 20em;
-}
-
-.subtask-item:focus-within .subtask-title {
-  -webkit-line-clamp: unset;
-  max-height: 20em;
 }
 
 .subtask-title:hover,
@@ -2138,7 +2423,7 @@ body {
   text-decoration: underline;
 }
 
-/* Edit input that replaces the title span */
+/* Edit textarea that replaces the title span */
 .subtask-title-input {
   flex: 1;
   min-width: 0;
@@ -2150,20 +2435,47 @@ body {
   outline: none;
   background: var(--color-surface);
   color: var(--color-text);
+  resize: none;
+  overflow: hidden;
+  line-height: 1.4;
 }
 
 .subtask-title-input:focus {
   box-shadow: var(--focus-ring);
 }
 
-.subtask-done span {
+/* Done items — muted styling */
+.subtask-done {
+  opacity: 0.6;
+}
+.subtask-done .subtask-title {
   text-decoration: line-through;
   color: var(--color-text-secondary);
 }
 
+/* Divider between active and completed */
+.subtask-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  list-style: none;
+}
+.subtask-divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+.subtask-divider-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
 
-
-/* === Sub-task action buttons (delete, reorder) === */
+/* === Sub-task action buttons (delete, reorder, kebab) === */
 .subtask-actions {
   display: flex;
   align-items: center;
@@ -2190,98 +2502,162 @@ body {
   color: var(--color-primary);
 }
 
-/* #204 AC2/AC5: Completed sub-items toggle */
-.subtask-completed-toggle {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  margin-top: 4px;
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  background: none;
+/* #220: Kebab menu button (desktop only, hidden on mobile) */
+.subtask-kebab-btn {
+  width: 32px;
+  height: 32px;
   border: none;
+  background: none;
   cursor: pointer;
-  font-family: inherit;
-  border-radius: var(--radius-sm);
-}
-
-.subtask-completed-toggle:hover {
-  color: var(--color-text);
-  background: var(--overlay-sm);
-}
-
-.subtask-completed-toggle:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-}
-
-/* === #86: Sub-task date badges === */
-.subtask-dates {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+  font-size: 18px;
+  font-family: inherit;
+  padding: 0;
+  transition: all var(--transition-fast);
   flex-shrink: 0;
 }
-
-.subtask-date-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px 6px;
-  font-size: 11px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  font-family: inherit;
-  white-space: nowrap;
-  line-height: 1.4;
-}
-
-.subtask-date-badge:hover {
-  border-color: var(--color-primary);
+.subtask-kebab-btn:hover {
+  background: var(--overlay-xl);
   color: var(--color-text);
 }
 
-.subtask-date-overdue {
-  color: var(--color-overdue);
-  border-color: var(--color-overdue);
+/* #220: Subtask context menu (kebab dropdown) */
+.subtask-context-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 50;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  min-width: 160px;
+  padding: 4px 0;
+}
+.subtask-context-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.subtask-context-menu button:hover {
+  background: var(--overlay-sm);
+}
+.subtask-context-menu button.danger {
+  color: var(--color-danger);
+}
+.subtask-context-menu button.danger:hover {
+  background: rgba(211, 47, 47, 0.06);
 }
 
-.subtask-date-overdue:hover {
-  color: var(--color-overdue);
-  border-color: var(--color-overdue);
-}
-
-/* #86 AC2: "Set date" affordance for dateless sub-tasks — hidden until hover/focus */
-.subtask-date-add {
+/* #220: Inline date badge under subtask title */
+.subtask-date-inline {
   display: inline-flex;
   align-items: center;
-  padding: 1px 5px;
-  font-size: 11px;
-  border: 1px dashed var(--color-border);
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(var(--color-primary-rgb), 0.1);
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  align-self: flex-start;
+  transition: background var(--transition-fast);
+  min-height: 24px;
+}
+.subtask-date-inline:hover {
+  background: rgba(var(--color-primary-rgb), 0.18);
+}
+.subtask-date-inline svg {
+  width: 14px;
+  height: 14px;
+}
+.subtask-date-inline.overdue {
+  background: rgba(211, 47, 47, 0.1);
+  color: var(--color-overdue);
+}
+.subtask-date-inline.done {
+  background: var(--overlay-md);
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+/* #220: Add date affordance (under subtask title) */
+.subtask-date-add-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
+  font-size: 12px;
   cursor: pointer;
+  border: 1px dashed var(--color-border);
   font-family: inherit;
-  white-space: nowrap;
-  line-height: 1.4;
+  align-self: flex-start;
+  transition: all var(--transition-fast);
+  min-height: 24px;
   opacity: 0;
   pointer-events: none;
 }
-
-.subtask-item:hover .subtask-date-add,
-.subtask-item:focus-within .subtask-date-add {
+.subtask-item:hover .subtask-date-add-inline,
+.subtask-item:focus-within .subtask-date-add-inline {
   opacity: 1;
   pointer-events: auto;
 }
+.subtask-date-add-inline:hover {
+  border-color: var(--color-text-secondary);
+  color: var(--color-text-secondary);
+}
+.subtask-date-add-inline svg {
+  width: 14px;
+  height: 14px;
+}
 
-.subtask-date-add:hover {
-  color: var(--color-primary);
+/* #220: Subtask date popover */
+.subtask-date-popover {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  z-index: 50;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.subtask-date-popover input[type="date"] {
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+.subtask-date-popover input[type="date"]:focus {
   border-color: var(--color-primary);
-  border-style: solid;
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .subtask-date-input {
@@ -3153,12 +3529,6 @@ body {
   gap: 8px;
 }
 
-.label-picker-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
 .label-picker-empty {
   display: flex;
   flex-direction: column;
@@ -3305,22 +3675,28 @@ body {
 }
 
 .quick-date-chip {
-  padding: 4px 12px;
+  flex: 1;
+  padding: 8px 4px;
   border: 1px solid var(--color-border);
-  border-radius: 14px;
-  background: transparent;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
   color: var(--color-text-secondary);
   font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
   font-family: inherit;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .quick-date-chip:hover {
   border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: var(--color-primary-light);
+  color: var(--color-text);
+  background: var(--color-surface);
 }
 
 .quick-date-chip:focus-visible {
@@ -3329,15 +3705,16 @@ body {
 }
 
 .quick-date-chip-active {
-  background: var(--color-primary);
+  background: rgba(var(--color-primary-rgb), 0.12);
   border-color: var(--color-primary);
-  color: white;
+  color: var(--color-primary);
+  font-weight: 600;
 }
 
 .quick-date-chip-active:hover {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-  color: white;
+  background: rgba(var(--color-primary-rgb), 0.18);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 /* === Filter bar toggle (#88 AC3) === */
@@ -3516,84 +3893,56 @@ body {
     gap: 10px;
   }
 
-  /* #59 AC1+AC2: Sub-task rows wrap action buttons to second row on mobile */
-  .subtask-item {
+  /* #220: Subtask touch targets on mobile */
+  .subtask-date-add-inline {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* #220: Hide kebab on mobile (long-press instead) */
+  .subtask-kebab-btn {
+    display: none;
+  }
+
+  /* #220: Hide reorder arrows on mobile, show drag handle */
+  .subtask-action-btn[aria-label="Move up"],
+  .subtask-action-btn[aria-label="Move down"] {
+    display: none;
+  }
+
+  .subtask-actions {
+    opacity: 1;
+  }
+
+  .subtask-drag-handle {
+    display: flex;
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Creation row on mobile */
+  .subtask-add-inline {
     flex-wrap: wrap;
     min-height: 44px;
   }
 
-  /* #59 AC1: Ensure title gets at least 120px, forcing actions to wrap */
-  /* #204 AC1: No line-clamp on mobile — detail panel is full-width */
-  .subtask-title {
-    min-width: 120px;
-    -webkit-line-clamp: unset;
-    max-height: none;
-  }
-
-  /* #204 AC5: Completed toggle meets 44px touch target */
-  .subtask-completed-toggle {
+  .subtask-add-input {
     min-height: 44px;
   }
 
-  /* #59 AC2: Action buttons right-align when wrapped to second row */
-  .subtask-actions {
-    opacity: 1;
-    margin-left: auto;
-  }
-
-  /* #86 AC5: Sub-task dates wrap below title+owner on mobile */
-  .subtask-dates {
-    width: 100%;
-    order: 10;
-    min-height: 44px;
-  }
-
-  .subtask-date-badge {
-    min-height: 44px;
-    padding: 4px 10px;
-    font-size: 13px;
-  }
-
-  /* #86 AC5: Add-affordance always visible on mobile, 44px touch target */
-  .subtask-date-add {
-    opacity: 1;
-    pointer-events: auto;
-    min-height: 44px;
-    padding: 4px 10px;
-    font-size: 13px;
-  }
-
-  .subtask-date-input {
-    min-height: 44px;
-    font-size: 14px;
-    padding: 4px 8px;
-  }
-
-  /* #86 AC5: Creation row date inputs 44px touch targets */
   .subtask-add-date {
     min-height: 44px;
   }
 
-  /* #86 AC5: Creation row wraps on mobile */
-  .subtask-add-inline {
-    flex-wrap: wrap;
-  }
-
-  /* Sub-task creation row: 44px min-height for touch targets on mobile */
-  .subtask-add-inline {
-    min-height: 44px;
-  }
-
-  /* Touch-friendly action buttons: 44x44px minimum */
   .subtask-action-btn {
     width: 44px;
     height: 44px;
     font-size: 16px;
   }
 
-  /* #88 AC1: Sub-task creation row 44px touch targets */
-  .subtask-add-input {
-    min-height: 44px;
+  /* #220: overscroll containment */
+  .detail-panel {
+    overscroll-behavior: contain;
   }
 
   /* #88 AC3: Show filter toggle on mobile */
@@ -3604,18 +3953,6 @@ body {
   /* #88 AC3: Collapsed filter content hidden on mobile */
   .filter-group-collapsed {
     display: none;
-  }
-
-  /* #88 AC5: Hide arrow buttons on mobile, show drag handle */
-  .subtask-action-btn[aria-label="Move up"],
-  .subtask-action-btn[aria-label="Move down"] {
-    display: none;
-  }
-
-  .subtask-drag-handle {
-    display: flex;
-    width: 44px;
-    height: 44px;
   }
 
   /* #90 AC4: Share modal Add button meets 44px WCAG 2.5.8 touch target */
