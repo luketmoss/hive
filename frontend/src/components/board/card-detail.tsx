@@ -364,8 +364,8 @@ export function CardDetail() {
               aria-label={expanded ? 'Collapse panel' : 'Expand panel'}
               onClick={() => setExpanded(!expanded)}
             >{expanded
-              ? <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
-              : <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+              ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="10" y2="14"/><polyline points="10 20 4 20 4 14"/><line x1="20" y1="4" x2="14" y2="10"/><polyline points="14 4 20 4 20 10"/></svg>
+              : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="14" y1="10" x2="20" y2="4"/><polyline points="20 10 20 4 14 4"/><line x1="10" y1="14" x2="4" y2="20"/><polyline points="4 14 4 20 10 20"/></svg>
             }</button>
             <button class="btn btn-ghost" aria-label="Close" onClick={close}>✕</button>
           </div>
