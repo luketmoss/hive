@@ -3911,8 +3911,13 @@ body {
     padding: 0;
   }
 
+  /* Full-screen detail panel on mobile — anchor to viewport */
+  .detail-overlay {
+    justify-content: stretch;
+  }
   .detail-panel {
     width: 100vw;
+    scroll-snap-align: none;
   }
 
   /* #207: Touch-friendly clear date button on mobile */
