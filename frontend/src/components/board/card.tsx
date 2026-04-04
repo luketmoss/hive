@@ -53,10 +53,10 @@ export function Card({ item, onMoveStatus, onReorder, columnItems, onMoveToTop, 
     selectedItemId.value = item.id;
   };
 
-  /** Click on the title button opens detail in title-edit mode */
+  /** Click on the title button opens detail (edit title from inside the panel) */
   const handleTitleClick = (e: MouseEvent) => {
     e.stopPropagation();
-    openDetailWithTitleEdit.value = true;
+    openDetailWithTitleEdit.value = false;
     selectedItemId.value = item.id;
   };
 
@@ -64,7 +64,7 @@ export function Card({ item, onMoveStatus, onReorder, columnItems, onMoveToTop, 
   const handleTitleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      openDetailWithTitleEdit.value = true;
+      openDetailWithTitleEdit.value = false;
       selectedItemId.value = item.id;
       return;
     }
@@ -135,7 +135,7 @@ export function Card({ item, onMoveStatus, onReorder, columnItems, onMoveToTop, 
           class="card-title"
           type="button"
           tabIndex={0}
-          aria-label={`${item.title}, ${item.status}. Press Enter to edit title. Arrow keys to move between columns, Alt+Up/Down to reorder.`}
+          aria-label={`${item.title}, ${item.status}. Press Enter to view details. Arrow keys to move between columns, Alt+Up/Down to reorder.`}
           onClick={handleTitleClick}
           onKeyDown={handleTitleKeyDown}
         >

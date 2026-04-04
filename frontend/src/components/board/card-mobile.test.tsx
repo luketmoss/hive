@@ -86,15 +86,15 @@ describe('Issue #126: Immediate drag + title button', () => {
     });
   });
 
-  // AC3: Clicking card title opens detail with title in edit mode
-  describe('AC3: Clicking card title opens detail in edit mode', () => {
-    it('clicking the title button sets openDetailWithTitleEdit and selectedItemId', () => {
+  // AC3: Clicking card title opens detail (no edit mode)
+  describe('AC3: Clicking card title opens detail', () => {
+    it('clicking the title button opens detail without title edit mode', () => {
       const item = makeItem({ id: 'title-click' });
       const { container } = render(<Card item={item} />);
       const title = container.querySelector('.card-title') as HTMLElement;
 
       fireEvent.click(title);
-      expect(openDetailWithTitleEdit.value).toBe(true);
+      expect(openDetailWithTitleEdit.value).toBe(false);
       expect(selectedItemId.value).toBe('title-click');
     });
   });
@@ -137,23 +137,23 @@ describe('Issue #126: Immediate drag + title button', () => {
 
   // AC6: Keyboard navigation — title button is sole tab stop
   describe('AC6: Keyboard navigation via title button', () => {
-    it('Enter on title button opens detail in edit mode', () => {
+    it('Enter on title button opens detail without edit mode', () => {
       const item = makeItem({ id: 'kb-enter' });
       const { container } = render(<Card item={item} />);
       const title = container.querySelector('.card-title') as HTMLElement;
 
       fireEvent.keyDown(title, { key: 'Enter' });
-      expect(openDetailWithTitleEdit.value).toBe(true);
+      expect(openDetailWithTitleEdit.value).toBe(false);
       expect(selectedItemId.value).toBe('kb-enter');
     });
 
-    it('Space on title button opens detail in edit mode', () => {
+    it('Space on title button opens detail without edit mode', () => {
       const item = makeItem({ id: 'kb-space' });
       const { container } = render(<Card item={item} />);
       const title = container.querySelector('.card-title') as HTMLElement;
 
       fireEvent.keyDown(title, { key: ' ' });
-      expect(openDetailWithTitleEdit.value).toBe(true);
+      expect(openDetailWithTitleEdit.value).toBe(false);
       expect(selectedItemId.value).toBe('kb-space');
     });
 

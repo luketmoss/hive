@@ -20,6 +20,7 @@ import { UserDropdown } from '../header/user-dropdown';
 import { ControlBar } from '../header/control-bar';
 import { HiveLogo } from '../shared/hive-logo';
 import { UpcomingView } from '../upcoming/upcoming-view';
+import { ColumnIndicator } from './column-indicator';
 import type { ItemStatus, ItemWithRow } from '../../api/types';
 
 export function KanbanBoard() {
@@ -338,6 +339,10 @@ export function KanbanBoard() {
           renderSwimlanes()
         )}
       </main>
+
+      {activeView.value !== 'upcoming' && viewMode.value === 'board' && groupBy.value === 'none' && (
+        <ColumnIndicator />
+      )}
 
       {activeView.value !== 'upcoming' && (
         <button
