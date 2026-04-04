@@ -145,48 +145,46 @@ describe('Issue #204: Sub-item display improvements', () => {
     mockItems = [];
   });
 
-  // --- AC1: Expandable sub-item titles ---
-  describe('AC1: Expandable sub-item titles', () => {
-    it('desktop: hover on subtask-item removes line-clamp from subtask-title', () => {
-      // CSS rule: .subtask-item:hover .subtask-title should override line-clamp
-      expect(css).toMatch(/\.subtask-item:hover\s+\.subtask-title\s*\{[^}]*-webkit-line-clamp:\s*unset/);
+  // --- AC1: Subtask title display ---
+  describe('AC1: Subtask title display', () => {
+    it('desktop: subtask-title is a clickable span with role=button', () => {
+      mockChildren = [
+        makeChild({ id: 'c1', title: 'Buy groceries', status: 'To Do', sort_order: 1 }),
+      ];
+      const { container } = renderDetail();
+      const title = container.querySelector('.subtask-title');
+      expect(title).not.toBeNull();
+      expect(title!.getAttribute('role')).toBe('button');
     });
 
-    it('desktop: focus-within on subtask-item removes line-clamp from subtask-title', () => {
-      expect(css).toMatch(/\.subtask-item:focus-within\s+\.subtask-title\s*\{[^}]*-webkit-line-clamp:\s*unset/);
+    it('desktop: subtask-title has cursor pointer CSS', () => {
+      expect(css).toMatch(/\.subtask-title\s*\{[^}]*cursor:\s*pointer/);
     });
 
-    it('desktop: subtask-title has max-height transition for smooth expand', () => {
-      expect(css).toMatch(/\.subtask-title\s*\{[^}]*transition:[^}]*max-height/);
+    it('desktop: subtask-item hover shows actions', () => {
+      expect(css).toMatch(/\.subtask-item:hover\s+\.subtask-actions[^{]*\{/);
     });
 
-    it('mobile: subtask-title has no line-clamp', () => {
-      expect(mobileBlock).toContain('.subtask-title');
-      expect(mobileBlock).toMatch(/\.subtask-title\s*\{[^}]*-webkit-line-clamp:\s*unset/);
+    it('subtask-title cursor pointer style is in CSS', () => {
+      expect(css).toMatch(/\.subtask-title\s*\{[^}]*cursor:\s*pointer/);
     });
   });
 
-  // --- AC2: Collapse completed sub-items ---
-  describe('AC2: Collapse completed sub-items', () => {
-    it('completed sub-items are hidden by default, toggle shows count', () => {
+  // --- AC2: Flat list with divider between incomplete and done items ---
+  describe('AC2: Flat list with divider separator', () => {
+    it('all items are always visible — incomplete first, then done', () => {
       mockChildren = [
         makeChild({ id: 'c1', title: 'Incomplete task', status: 'To Do', sort_order: 1 }),
         makeChild({ id: 'c2', title: 'Done task', status: 'Done', sort_order: 2 }),
       ];
 
       const { container } = renderDetail();
-      const toggle = container.querySelector('.subtask-completed-toggle');
-      expect(toggle).toBeTruthy();
-      expect(toggle!.textContent).toContain('1');
-      expect(toggle!.textContent).toContain('completed');
-
-      // Completed item should not be visible when collapsed
+      // Both items always visible
       const subtaskItems = container.querySelectorAll('.subtask-item');
-      // Only the incomplete one should be in the main list
-      expect(subtaskItems.length).toBe(1);
+      expect(subtaskItems.length).toBe(2);
     });
 
-    it('toggle expands to show completed items', () => {
+    it('shows a .subtask-divider between incomplete and done items', () => {
       mockChildren = [
         makeChild({ id: 'c1', title: 'Incomplete', status: 'To Do', sort_order: 1 }),
         makeChild({ id: 'c2', title: 'Done one', status: 'Done', sort_order: 2 }),
@@ -194,86 +192,63 @@ describe('Issue #204: Sub-item display improvements', () => {
       ];
 
       const { container } = renderDetail();
-      const toggle = container.querySelector('.subtask-completed-toggle') as HTMLElement;
-      fireEvent.click(toggle);
-
-      // After expanding, all 3 items visible
+      const divider = container.querySelector('.subtask-divider');
+      expect(divider).not.toBeNull();
+      // All 3 items visible
       const subtaskItems = container.querySelectorAll('.subtask-item');
       expect(subtaskItems.length).toBe(3);
     });
 
-    it('toggle has disclosure triangle ▸ when collapsed and ▾ when expanded', () => {
+    it('divider has "completed" label text', () => {
       mockChildren = [
         makeChild({ id: 'c1', title: 'Incomplete', status: 'To Do', sort_order: 1 }),
         makeChild({ id: 'c2', title: 'Done', status: 'Done', sort_order: 2 }),
       ];
 
       const { container } = renderDetail();
-      const toggle = container.querySelector('.subtask-completed-toggle') as HTMLElement;
-      expect(toggle.textContent).toContain('▸');
-
-      fireEvent.click(toggle);
-      expect(toggle.textContent).toContain('▾');
+      const divider = container.querySelector('.subtask-divider');
+      expect(divider).not.toBeNull();
+      expect(divider!.textContent).toContain('completed');
     });
 
-    it('when ALL sub-items are completed, toggle starts expanded', () => {
+    it('when ALL sub-items are completed, all items are still visible', () => {
       mockChildren = [
         makeChild({ id: 'c1', title: 'Done one', status: 'Done', sort_order: 1 }),
         makeChild({ id: 'c2', title: 'Done two', status: 'Done', sort_order: 2 }),
       ];
 
       const { container } = renderDetail();
-      // All items should be visible (expanded by default)
       const subtaskItems = container.querySelectorAll('.subtask-item');
       expect(subtaskItems.length).toBe(2);
-
-      // Toggle should show expanded state
-      const toggle = container.querySelector('.subtask-completed-toggle') as HTMLElement;
-      expect(toggle.textContent).toContain('▾');
     });
 
-    it('toggle state resets when different item selected', () => {
-      mockChildren = [
-        makeChild({ id: 'c1', title: 'Incomplete', status: 'To Do', sort_order: 1 }),
-        makeChild({ id: 'c2', title: 'Done', status: 'Done', sort_order: 2 }),
-      ];
-
-      const { container, rerender } = renderDetail();
-      const toggle = container.querySelector('.subtask-completed-toggle') as HTMLElement;
-      fireEvent.click(toggle); // expand
-
-      // Simulate selecting a new item
-      mockSelectedItemId = 'parent-2';
-      mockChildren = [
-        makeChild({ id: 'c3', title: 'Other incomplete', status: 'To Do', sort_order: 1, parent_id: 'parent-2' }),
-        makeChild({ id: 'c4', title: 'Other done', status: 'Done', sort_order: 2, parent_id: 'parent-2' }),
-      ];
-      rerender(
-        <AuthContext.Provider value={mockAuth}>
-          <CardDetail />
-        </AuthContext.Provider>
-      );
-
-      // Should be collapsed again (default state)
-      const items = container.querySelectorAll('.subtask-item');
-      expect(items.length).toBe(1); // only incomplete
-    });
-
-    it('no toggle rendered when there are no completed sub-items', () => {
+    it('no divider rendered when there are no completed sub-items', () => {
       mockChildren = [
         makeChild({ id: 'c1', title: 'Task A', status: 'To Do', sort_order: 1 }),
         makeChild({ id: 'c2', title: 'Task B', status: 'In Progress', sort_order: 2 }),
       ];
 
       const { container } = renderDetail();
-      const toggle = container.querySelector('.subtask-completed-toggle');
-      expect(toggle).toBeNull();
+      const divider = container.querySelector('.subtask-divider');
+      expect(divider).toBeNull();
+    });
+
+    it('divider appears whenever there are done sub-items (even if all are done)', () => {
+      mockChildren = [
+        makeChild({ id: 'c1', title: 'Done A', status: 'Done', sort_order: 1 }),
+        makeChild({ id: 'c2', title: 'Done B', status: 'Done', sort_order: 2 }),
+      ];
+
+      const { container } = renderDetail();
+      // Divider always shows when there are done items
+      const divider = container.querySelector('.subtask-divider');
+      expect(divider).not.toBeNull();
     });
   });
 
-  // --- AC3: Reorder respects collapsed state ---
-  describe('AC3: Reorder respects collapsed state', () => {
-    it('when collapsed, reorder buttons only appear for incomplete items', () => {
+  // --- AC3: Reorder only for incomplete items ---
+  describe('AC3: Reorder buttons only appear for incomplete items', () => {
+    it('reorder buttons only appear for incomplete items, not done items', () => {
       mockChildren = [
         makeChild({ id: 'c1', title: 'Incomplete A', status: 'To Do', sort_order: 1 }),
         makeChild({ id: 'c2', title: 'Incomplete B', status: 'To Do', sort_order: 2 }),
@@ -281,11 +256,11 @@ describe('Issue #204: Sub-item display improvements', () => {
       ];
 
       const { container } = renderDetail();
-      // Only 2 incomplete items visible, each with reorder buttons
+      // All 3 items visible (flat list)
       const subtaskItems = container.querySelectorAll('.subtask-item');
-      expect(subtaskItems.length).toBe(2);
+      expect(subtaskItems.length).toBe(3);
 
-      // Each incomplete item should have move up/down buttons
+      // Reorder buttons only for incomplete items (2 items)
       const moveUpBtns = container.querySelectorAll('.subtask-action-btn[aria-label="Move up"]');
       const moveDownBtns = container.querySelectorAll('.subtask-action-btn[aria-label="Move down"]');
       expect(moveUpBtns.length).toBe(2);
@@ -321,48 +296,35 @@ describe('Issue #204: Sub-item display improvements', () => {
 
   // --- AC5: Keyboard and screen reader support ---
   describe('AC5: Keyboard and screen reader support', () => {
-    it('toggle has aria-expanded attribute', () => {
+    it('check-icon button is accessible for toggling subtask status', () => {
       mockChildren = [
         makeChild({ id: 'c1', title: 'Incomplete', status: 'To Do', sort_order: 1 }),
         makeChild({ id: 'c2', title: 'Done', status: 'Done', sort_order: 2 }),
       ];
 
       const { container } = renderDetail();
-      const toggle = container.querySelector('.subtask-completed-toggle') as HTMLElement;
-      expect(toggle.getAttribute('aria-expanded')).toBe('false');
-
-      fireEvent.click(toggle);
-      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+      // Both items always visible
+      const checkBtns = container.querySelectorAll('.check-icon');
+      expect(checkBtns.length).toBe(2);
+      // Each has aria-label matching the subtask title
+      expect((checkBtns[0] as HTMLElement).getAttribute('aria-label')).toBe('Incomplete');
+      expect((checkBtns[1] as HTMLElement).getAttribute('aria-label')).toBe('Done');
     });
 
-    it('toggle is activatable with Enter key', () => {
+    it('subtask-divider has aria-hidden to avoid redundant screen reader announcement', () => {
       mockChildren = [
         makeChild({ id: 'c1', title: 'Incomplete', status: 'To Do', sort_order: 1 }),
         makeChild({ id: 'c2', title: 'Done', status: 'Done', sort_order: 2 }),
       ];
 
       const { container } = renderDetail();
-      const toggle = container.querySelector('.subtask-completed-toggle') as HTMLElement;
-      expect(container.querySelectorAll('.subtask-item').length).toBe(1);
-
-      fireEvent.keyDown(toggle, { key: 'Enter' });
-      expect(container.querySelectorAll('.subtask-item').length).toBe(2);
+      const divider = container.querySelector('.subtask-divider') as HTMLElement;
+      expect(divider).not.toBeNull();
+      expect(divider.getAttribute('aria-hidden')).toBe('true');
     });
 
-    it('toggle is activatable with Space key', () => {
-      mockChildren = [
-        makeChild({ id: 'c1', title: 'Incomplete', status: 'To Do', sort_order: 1 }),
-        makeChild({ id: 'c2', title: 'Done', status: 'Done', sort_order: 2 }),
-      ];
-
-      const { container } = renderDetail();
-      const toggle = container.querySelector('.subtask-completed-toggle') as HTMLElement;
-      fireEvent.keyDown(toggle, { key: ' ' });
-      expect(container.querySelectorAll('.subtask-item').length).toBe(2);
-    });
-
-    it('mobile: completed toggle has 44px min touch target', () => {
-      expect(mobileBlock).toMatch(/\.subtask-completed-toggle\s*\{[^}]*min-height:\s*44px/);
+    it('subtask-item has min-height for touch targets', () => {
+      expect(css).toMatch(/\.subtask-item\s*\{[^}]*min-height:/);
     });
   });
 });

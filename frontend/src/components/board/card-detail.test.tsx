@@ -131,17 +131,15 @@ describe('CardDetail save feedback (Issue #11)', () => {
       });
     });
 
-    it('shows "Saved" indicator after changing owner select', async () => {
+    it('shows "Saved" indicator after clicking owner circle button', async () => {
       const { container } = renderCardDetail();
 
-      // Find the Owner select
-      const selects = container.querySelectorAll('select');
-      // Owner is the second select (Status is first)
-      const ownerSelect = selects[1] as HTMLSelectElement;
-      expect(ownerSelect).not.toBeNull();
+      // Find an owner-circle button
+      const ownerBtn = container.querySelector('.owner-circle') as HTMLElement;
+      expect(ownerBtn).not.toBeNull();
 
       await act(async () => {
-        fireEvent.change(ownerSelect, { target: { value: 'Luke' } });
+        fireEvent.click(ownerBtn);
       });
 
       await waitFor(() => {
@@ -200,16 +198,15 @@ describe('CardDetail save feedback (Issue #11)', () => {
       expect(editableValue?.textContent).toBe('Test Item');
     });
 
-    it('shows error indicator on owner select save failure', async () => {
+    it('shows error indicator on owner circle button save failure', async () => {
       mockUpdateItem.mockResolvedValue(false);
 
       const { container } = renderCardDetail();
 
-      const selects = container.querySelectorAll('select');
-      const ownerSelect = selects[1] as HTMLSelectElement;
+      const ownerBtn = container.querySelector('.owner-circle') as HTMLElement;
 
       await act(async () => {
-        fireEvent.change(ownerSelect, { target: { value: '' } });
+        fireEvent.click(ownerBtn);
       });
 
       await waitFor(() => {
@@ -442,10 +439,9 @@ describe('CardDetail inline dialogs (Issue #9)', () => {
     it('shows inline text input when + Add is clicked instead of browser prompt()', () => {
       const { container } = renderCardDetail();
 
-      // Click + Add
-      const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+      // Click + Add (circle-plus icon button)
+      const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
       expect(addBtn).not.toBeNull();
-      expect(addBtn.textContent).toBe('+ Add');
       fireEvent.click(addBtn);
 
       // Inline input should appear
@@ -458,7 +454,7 @@ describe('CardDetail inline dialogs (Issue #9)', () => {
       const promptSpy = vi.spyOn(window, 'prompt');
       const { container } = renderCardDetail();
 
-      const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+      const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
       fireEvent.click(addBtn);
 
       expect(promptSpy).not.toHaveBeenCalled();
@@ -468,11 +464,11 @@ describe('CardDetail inline dialogs (Issue #9)', () => {
     it('hides + Add button while input is visible', () => {
       const { container } = renderCardDetail();
 
-      const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+      const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
       fireEvent.click(addBtn);
 
       // + Add button should be hidden
-      expect(container.querySelector('.detail-subtasks-header .btn-sm')).toBeNull();
+      expect(container.querySelector('.detail-subtasks-header .subtask-add-circle')).toBeNull();
     });
   });
 
@@ -482,7 +478,7 @@ describe('CardDetail inline dialogs (Issue #9)', () => {
       const { container } = renderCardDetail();
 
       // Open inline input
-      const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+      const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
       fireEvent.click(addBtn);
 
       const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -508,7 +504,7 @@ describe('CardDetail inline dialogs (Issue #9)', () => {
       const { container } = renderCardDetail();
 
       // Open inline input
-      const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+      const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
       fireEvent.click(addBtn);
 
       const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -522,7 +518,7 @@ describe('CardDetail inline dialogs (Issue #9)', () => {
     it('does not create subtask if input is whitespace-only on Enter', () => {
       const { container } = renderCardDetail();
 
-      const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+      const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
       fireEvent.click(addBtn);
 
       const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -539,7 +535,7 @@ describe('CardDetail inline dialogs (Issue #9)', () => {
       const { container } = renderCardDetail();
 
       // Open inline input
-      const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+      const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
       fireEvent.click(addBtn);
 
       const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -553,13 +549,13 @@ describe('CardDetail inline dialogs (Issue #9)', () => {
       // No subtask created
       expect(createItem).not.toHaveBeenCalled();
       // + Add button should return
-      expect(container.querySelector('.detail-subtasks-header .btn-sm')).not.toBeNull();
+      expect(container.querySelector('.detail-subtasks-header .subtask-add-circle')).not.toBeNull();
     });
 
     it('creation row stays open when focus moves between sibling controls', () => {
       const { container } = renderCardDetail();
 
-      const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+      const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
       fireEvent.click(addBtn);
 
       const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -588,7 +584,7 @@ describe('CardDetail subtask double-submit fix (Issue #54)', () => {
   it('AC1: pressing Enter creates exactly one sub-task, not two', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -614,7 +610,7 @@ describe('CardDetail subtask double-submit fix (Issue #54)', () => {
   it('AC2: focusout submits exactly once when Enter was not pressed', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -635,7 +631,7 @@ describe('CardDetail subtask double-submit fix (Issue #54)', () => {
   it('AC3: Escape cancels and subsequent focusout does not create a sub-task', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -655,7 +651,7 @@ describe('CardDetail subtask double-submit fix (Issue #54)', () => {
     const { container } = renderCardDetail();
 
     // First sub-task
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
     let input = container.querySelector('.subtask-add-input') as HTMLInputElement;
     fireEvent.input(input, { target: { value: 'First task' } });
@@ -675,7 +671,7 @@ describe('CardDetail subtask double-submit fix (Issue #54)', () => {
   it('AC5: empty input does not create a sub-task on Enter', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -687,7 +683,7 @@ describe('CardDetail subtask double-submit fix (Issue #54)', () => {
   it('AC5: whitespace-only input does not create a sub-task on focusout', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -703,7 +699,7 @@ describe('CardDetail subtask double-submit fix (Issue #54)', () => {
   it('AC6: sub-task title input has aria-label independent of placeholder', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -764,7 +760,7 @@ describe('CardDetail Add/Cancel buttons (Issue #58)', () => {
   it('AC1: Add button creates sub-task when title is non-empty', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -788,7 +784,7 @@ describe('CardDetail Add/Cancel buttons (Issue #58)', () => {
   it('AC2: Cancel button closes creation row without creating sub-task', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -802,14 +798,14 @@ describe('CardDetail Add/Cancel buttons (Issue #58)', () => {
     expect(createItem).not.toHaveBeenCalled();
     expect(container.querySelector('.subtask-add-input')).toBeNull();
     // + Add button should return
-    expect(container.querySelector('.detail-subtasks-header .btn-sm')).not.toBeNull();
+    expect(container.querySelector('.detail-subtasks-header .subtask-add-circle')).not.toBeNull();
   });
 
   // AC4: Add button is disabled when input is empty
   it('AC4: Add button is disabled when input is empty', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const confirmBtn = container.querySelector('[aria-label="Add sub-task"]') as HTMLElement;
@@ -825,7 +821,7 @@ describe('CardDetail Add/Cancel buttons (Issue #58)', () => {
   it('AC4: Add button becomes enabled when text is entered', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -839,7 +835,7 @@ describe('CardDetail Add/Cancel buttons (Issue #58)', () => {
   it('AC5: Add and Cancel buttons have aria-label', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const confirmBtn = container.querySelector('[aria-label="Add sub-task"]');
@@ -852,7 +848,7 @@ describe('CardDetail Add/Cancel buttons (Issue #58)', () => {
   it('Buttons are ordered: Add (left) then Cancel (right)', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const buttons = container.querySelectorAll('.subtask-add-inline .subtask-action-btn');
@@ -874,7 +870,7 @@ describe('CardDetail keyboard hint (Issue #60)', () => {
   it('AC1: shows keyboard hint when creation row is open', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const hint = container.querySelector('#subtask-add-hint');
@@ -886,7 +882,7 @@ describe('CardDetail keyboard hint (Issue #60)', () => {
   it('AC2: hint has correct CSS class', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const hint = container.querySelector('.subtask-add-hint');
@@ -897,7 +893,7 @@ describe('CardDetail keyboard hint (Issue #60)', () => {
   it('AC3: hint stays after Enter submits (row stays open)', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
     expect(container.querySelector('#subtask-add-hint')).not.toBeNull();
 
@@ -912,7 +908,7 @@ describe('CardDetail keyboard hint (Issue #60)', () => {
   it('AC3: hint disappears after Escape cancels', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
     expect(container.querySelector('#subtask-add-hint')).not.toBeNull();
 
@@ -926,7 +922,7 @@ describe('CardDetail keyboard hint (Issue #60)', () => {
   it('AC4: input references hint via aria-describedby', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -937,7 +933,7 @@ describe('CardDetail keyboard hint (Issue #60)', () => {
   it('hint is inside the wrapper div (not inside the flex row)', () => {
     const { container } = renderCardDetail();
 
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const wrapper = container.querySelector('.subtask-add-wrapper');
@@ -961,10 +957,10 @@ describe('CardDetail — Touch reorder (Issue #88)', () => {
 
   // AC5: Drag handle rendered on each sub-task
   describe('AC5: Touch-friendly sub-task reorder', () => {
-    it('renders a drag handle on each visible sub-task when 2+ children exist', () => {
+    it('renders a drag handle on each incomplete sub-task when 2+ incomplete children exist', () => {
       const { container } = renderCardDetail();
       const handles = container.querySelectorAll('.subtask-drag-handle');
-      // #204: Only incomplete items visible by default (2 of 3), Done items collapsed
+      // #220: drag handles only appear for incomplete items (2 of 3), not done items
       expect(handles.length).toBe(2);
     });
 
@@ -992,11 +988,11 @@ describe('CardDetail — Touch reorder (Issue #88)', () => {
       expect(live!.getAttribute('role')).toBe('status');
     });
 
-    it('arrow buttons still rendered for visible items (hidden via CSS on mobile)', () => {
+    it('arrow buttons rendered for incomplete items only (hidden via CSS on mobile)', () => {
       const { container } = renderCardDetail();
       const upBtns = container.querySelectorAll('[aria-label="Move up"]');
       const downBtns = container.querySelectorAll('[aria-label="Move down"]');
-      // #204: Only incomplete items visible by default (2 of 3), Done items collapsed
+      // #220: reorder arrows only for incomplete items (2 of 3)
       expect(upBtns.length).toBe(2);
       expect(downBtns.length).toBe(2);
     });
@@ -1063,10 +1059,10 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
   describe('AC1: Date display on sub-task rows', () => {
     it('shows compact due date on a sub-task with dates', () => {
       const { container } = renderCardDetail();
-      const badges = container.querySelectorAll('.subtask-date-badge');
+      // #220: .subtask-date-inline replaces .subtask-date-badge
+      const badges = container.querySelectorAll('.subtask-date-inline');
       // childWithDates has due_date, childNoDates has neither
       expect(badges.length).toBe(1);
-      expect(badges[0].textContent).toContain('Due:');
       expect(badges[0].textContent).toContain('Mar 20');
     });
 
@@ -1074,11 +1070,11 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
       mockChildren = [childNoDates];
       mockItems = [childNoDates];
       const { container } = renderCardDetail();
-      // No date badges (the compact "Due: Mar 8" display elements)
-      const badges = container.querySelectorAll('.subtask-date-badge');
+      // No date inline buttons
+      const badges = container.querySelectorAll('.subtask-date-inline');
       expect(badges.length).toBe(0);
-      // Add-affordance button is present (hidden via CSS, but in DOM)
-      const addBtns = container.querySelectorAll('.subtask-date-add');
+      // Add-affordance button is present
+      const addBtns = container.querySelectorAll('.subtask-date-add-inline');
       expect(addBtns.length).toBe(1);
     });
 
@@ -1086,16 +1082,16 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
       mockChildren = [childOverdue];
       mockItems = [childOverdue];
       const { container } = renderCardDetail();
-      const overdueBadge = container.querySelector('.subtask-date-overdue');
+      // #220: .overdue class on .subtask-date-inline
+      const overdueBadge = container.querySelector('.subtask-date-inline.overdue');
       expect(overdueBadge).not.toBeNull();
-      expect(overdueBadge!.textContent).toContain('Due:');
     });
 
     it('does not show overdue styling on Done sub-tasks', () => {
       mockChildren = [childDoneOverdue];
       mockItems = [childDoneOverdue];
       const { container } = renderCardDetail();
-      const overdueBadge = container.querySelector('.subtask-date-overdue');
+      const overdueBadge = container.querySelector('.subtask-date-inline.overdue');
       expect(overdueBadge).toBeNull();
     });
   });
@@ -1104,10 +1100,11 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
   describe('AC2: Inline date editing on sub-tasks', () => {
     it('clicking a date badge shows an inline date input', () => {
       const { container } = renderCardDetail();
-      const dueBadge = container.querySelector('.subtask-date-badge') as HTMLElement;
+      // #220: .subtask-date-inline replaces .subtask-date-badge
+      const dueBadge = container.querySelector('.subtask-date-inline') as HTMLElement;
       fireEvent.click(dueBadge);
 
-      const dateInput = container.querySelector('.subtask-date-input') as HTMLInputElement;
+      const dateInput = container.querySelector('.subtask-date-popover input[type="date"]') as HTMLInputElement;
       expect(dateInput).not.toBeNull();
       expect(dateInput.type).toBe('date');
       expect(dateInput.value).toBe('2026-03-20');
@@ -1115,67 +1112,73 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
 
     it('changing the date input calls updateItem and closes the editor', async () => {
       const { container } = renderCardDetail();
-      const dueBadge = container.querySelector('.subtask-date-badge') as HTMLElement;
+      const dueBadge = container.querySelector('.subtask-date-inline') as HTMLElement;
       fireEvent.click(dueBadge);
 
-      const dateInput = container.querySelector('.subtask-date-input') as HTMLInputElement;
+      const dateInput = container.querySelector('.subtask-date-popover input[type="date"]') as HTMLInputElement;
       await act(async () => {
         fireEvent.change(dateInput, { target: { value: '2026-04-01' } });
       });
 
       expect(mockUpdateItem).toHaveBeenCalledWith('child-dates-1', { due_date: '2026-04-01' }, 'Luke', 'test-token');
       // Editor should close after save
-      expect(container.querySelector('.subtask-date-input')).toBeNull();
+      expect(container.querySelector('.subtask-date-popover')).toBeNull();
     });
 
-    it('blurring the date input closes the editor', () => {
+    it('popover contains a date input and optional clear button', () => {
       const { container } = renderCardDetail();
-      const dueBadge = container.querySelector('.subtask-date-badge') as HTMLElement;
+      const dueBadge = container.querySelector('.subtask-date-inline') as HTMLElement;
       fireEvent.click(dueBadge);
 
-      const dateInput = container.querySelector('.subtask-date-input') as HTMLInputElement;
-      fireEvent.blur(dateInput);
-
-      expect(container.querySelector('.subtask-date-input')).toBeNull();
+      // Popover should be open
+      const popover = container.querySelector('.subtask-date-popover');
+      expect(popover).not.toBeNull();
+      // Contains a date input
+      const dateInput = popover!.querySelector('input[type="date"]') as HTMLInputElement;
+      expect(dateInput).not.toBeNull();
+      // Contains a clear button (since childWithDates has a due_date)
+      const clearBtn = popover!.querySelector('button');
+      expect(clearBtn).not.toBeNull();
+      expect(clearBtn!.textContent).toContain('Clear date');
     });
 
     it('Escape closes the date editor', () => {
       const { container } = renderCardDetail();
-      const dueBadge = container.querySelector('.subtask-date-badge') as HTMLElement;
+      const dueBadge = container.querySelector('.subtask-date-inline') as HTMLElement;
       fireEvent.click(dueBadge);
 
-      const dateInput = container.querySelector('.subtask-date-input') as HTMLInputElement;
+      const dateInput = container.querySelector('.subtask-date-popover input[type="date"]') as HTMLInputElement;
       fireEvent.keyDown(dateInput, { key: 'Escape' });
 
-      expect(container.querySelector('.subtask-date-input')).toBeNull();
+      expect(container.querySelector('.subtask-date-popover')).toBeNull();
     });
 
-    it('date badge has accessible label including date and edit hint', () => {
+    it('date badge has accessible title including date', () => {
       const { container } = renderCardDetail();
-      const dueBadge = container.querySelector('.subtask-date-badge') as HTMLElement;
-      const label = dueBadge.getAttribute('aria-label') || '';
-      expect(label).toContain('Due date:');
-      expect(label).toContain('Click to edit');
+      // #220: .subtask-date-inline uses title attribute
+      const dueBadge = container.querySelector('.subtask-date-inline') as HTMLElement;
+      const title = dueBadge.getAttribute('title') || '';
+      expect(title).toContain('Due:');
     });
 
-    it('clicking "Due +" affordance opens due date editor for dateless sub-task', () => {
+    it('clicking "Add date" affordance opens due date editor for dateless sub-task', () => {
       mockChildren = [childNoDates];
       mockItems = [childNoDates];
       const { container } = renderCardDetail();
-      const dueAddBtn = container.querySelector('.subtask-date-add[aria-label^="Add due date"]') as HTMLElement;
+      // #220: .subtask-date-add-inline replaces .subtask-date-add
+      const dueAddBtn = container.querySelector('.subtask-date-add-inline') as HTMLElement;
       expect(dueAddBtn).not.toBeNull();
       fireEvent.click(dueAddBtn);
-      const dateInput = container.querySelector('.subtask-date-input') as HTMLInputElement;
+      const dateInput = container.querySelector('.subtask-date-popover input[type="date"]') as HTMLInputElement;
       expect(dateInput).not.toBeNull();
-      expect(dateInput.getAttribute('aria-label')).toContain('Due date');
     });
 
     it('shows no add-affordance buttons when due date is set', () => {
       mockChildren = [childWithDates];
       mockItems = [childWithDates];
       const { container } = renderCardDetail();
-      // childWithDates has due_date set — no affordance buttons
-      const addBtns = container.querySelectorAll('.subtask-date-add');
+      // childWithDates has due_date set — no add-inline buttons
+      const addBtns = container.querySelectorAll('.subtask-date-add-inline');
       expect(addBtns.length).toBe(0);
     });
   });
@@ -1184,7 +1187,7 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
   describe('AC3: Date fields on sub-task creation', () => {
     it('creation row includes due date input', () => {
       const { container } = renderCardDetail();
-      const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+      const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
       fireEvent.click(addBtn);
 
       const dateInputs = container.querySelectorAll('.subtask-add-date');
@@ -1194,7 +1197,7 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
 
     it('date input defaults to empty', () => {
       const { container } = renderCardDetail();
-      const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+      const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
       fireEvent.click(addBtn);
 
       const dateInputs = container.querySelectorAll('.subtask-add-date') as NodeListOf<HTMLInputElement>;
@@ -1203,7 +1206,7 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
 
     it('submitting with dates includes them in createItem call', () => {
       const { container } = renderCardDetail();
-      const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+      const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
       fireEvent.click(addBtn);
 
       const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -1227,7 +1230,7 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
     it('submitting without dates does not include date fields in createItem call', () => {
       vi.mocked(createItem).mockClear();
       const { container } = renderCardDetail();
-      const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+      const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
       fireEvent.click(addBtn);
 
       const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -1246,9 +1249,10 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
       mockChildren = [{ ...childWithDates, due_date: '2099-12-31' }];
       mockItems = [{ ...childWithDates, due_date: '2099-12-31' }];
       const { container } = renderCardDetail();
-      const overdue = container.querySelector('.subtask-date-overdue');
+      const overdue = container.querySelector('.subtask-date-inline.overdue');
       expect(overdue).toBeNull();
-      const badge = container.querySelector('.subtask-date-badge');
+      // #220: .subtask-date-inline replaces .subtask-date-badge
+      const badge = container.querySelector('.subtask-date-inline');
       expect(badge).not.toBeNull();
       expect(badge!.textContent).toContain('Dec 31');
     });
@@ -1563,15 +1567,13 @@ describe('CardDetail clear date button (Issue #207)', () => {
     expect(mockUpdateItem).toHaveBeenCalledWith('detail-test-1', { due_date: '' }, 'Luke', 'test-token');
   });
 
-  // AC3: No extra vertical space — button is inline in same row as date input
-  it('AC3: clear button is inline with date input in a date-field-row', () => {
+  // AC3: No extra vertical space — button is inline in same row as date button
+  it('AC3: clear button is inline with date button in a due-date-row', () => {
     mockItemOverrides = { due_date: '2026-04-10' };
     const { container } = renderCardDetail();
-    const row = container.querySelector('.date-field-row');
+    const row = container.querySelector('.due-date-row');
     expect(row).not.toBeNull();
-    const dateInput = row!.querySelector('input[type="date"]');
     const clearBtn = row!.querySelector('[aria-label="Clear due date"]');
-    expect(dateInput).not.toBeNull();
     expect(clearBtn).not.toBeNull();
   });
 });
@@ -1589,7 +1591,7 @@ describe('CardDetail quick-add sub-tasks (Issue #208)', () => {
   it('AC1: pressing Enter creates sub-task and keeps add row open', async () => {
     const { container } = renderCardDetail();
     // Open add row
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -1610,7 +1612,7 @@ describe('CardDetail quick-add sub-tasks (Issue #208)', () => {
   // AC2: Empty title Enter does nothing
   it('AC2: pressing Enter with empty title does nothing', () => {
     const { container } = renderCardDetail();
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -1623,7 +1625,7 @@ describe('CardDetail quick-add sub-tasks (Issue #208)', () => {
   // AC3: Escape still cancels
   it('AC3: pressing Escape closes the add row', () => {
     const { container } = renderCardDetail();
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -1635,7 +1637,7 @@ describe('CardDetail quick-add sub-tasks (Issue #208)', () => {
   // AC5: Confirm button still closes
   it('AC5: clicking confirm button creates and closes add row', () => {
     const { container } = renderCardDetail();
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const input = container.querySelector('.subtask-add-input') as HTMLInputElement;
@@ -1651,7 +1653,7 @@ describe('CardDetail quick-add sub-tasks (Issue #208)', () => {
   // AC6: Hint text updated
   it('AC6: hint text reads "Enter to add another · Esc to cancel"', () => {
     const { container } = renderCardDetail();
-    const addBtn = container.querySelector('.detail-subtasks-header .btn-sm') as HTMLElement;
+    const addBtn = container.querySelector('.detail-subtasks-header .subtask-add-circle') as HTMLElement;
     fireEvent.click(addBtn);
 
     const hint = container.querySelector('#subtask-add-hint');
