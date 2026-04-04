@@ -2276,6 +2276,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  align-items: center;
 }
 
 .label-toggle {
@@ -3526,12 +3527,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.label-picker-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
 }
 
 .label-picker-empty {

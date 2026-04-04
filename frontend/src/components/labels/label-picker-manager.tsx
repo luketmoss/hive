@@ -247,13 +247,6 @@ export function LabelPickerManager({ currentLabels, onToggle, token }: Props) {
             </div>
           );
         })}
-      </div>
-
-      {/* Inline create form (shown below label toggles) */}
-      {form && form.mode === 'create' && renderForm()}
-
-      {/* Action bar: New label + Manage labels */}
-      <div class="label-picker-actions">
         {mode === 'normal' && !form && (
           <button
             ref={newLabelBtnRef}
@@ -261,9 +254,8 @@ export function LabelPickerManager({ currentLabels, onToggle, token }: Props) {
             class="label-new-pill"
             onClick={openCreateForm}
             data-testid="new-label-btn"
-          >
-            New
-          </button>
+            aria-label="New label"
+          >+</button>
         )}
         <button
           ref={manageBtnRef}
@@ -279,6 +271,9 @@ export function LabelPickerManager({ currentLabels, onToggle, token }: Props) {
           )}
         </button>
       </div>
+
+      {/* Inline create form (shown below label toggles) */}
+      {form && form.mode === 'create' && renderForm()}
     </div>
   );
 }
