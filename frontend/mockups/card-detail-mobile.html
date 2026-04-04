@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=412, initial-scale=1">
+<title>Card Detail Mobile Mockup</title>
+<style>
+/* === Design Tokens (copied from global.css) === */
+:root {
+  --color-bg: #f0f2f5;
+  --color-surface: #ffffff;
+  --color-accent: #F5B700;
+  --color-primary: #C49200;
+  --color-primary-hover: #A67B00;
+  --color-primary-rgb: 196, 146, 0;
+  --color-primary-light: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  --color-text: #1f1f1f;
+  --color-text-secondary: #5f6368;
+  --color-border: #dadce0;
+  --color-danger: #d32f2f;
+  --color-danger-hover: #b71c1c;
+  --color-success: #2e7d32;
+  --color-warning: #a05d00;
+  --color-overdue: #b71c1c;
+  --overlay-xs: rgba(0,0,0,0.02);
+  --overlay-sm: rgba(0,0,0,0.03);
+  --overlay-md: rgba(0,0,0,0.05);
+  --overlay-lg: rgba(0,0,0,0.06);
+  --overlay-xl: rgba(0,0,0,0.08);
+  --overlay-2xl: rgba(0,0,0,0.1);
+  --overlay-3xl: rgba(0,0,0,0.15);
+  --overlay-4xl: rgba(0,0,0,0.4);
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --color-surface-raised: #f8f9fa;
+  --color-border-light: #969696;
+  --color-text-muted: #767676;
+  --radius: 8px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  --shadow: 0 1px 3px var(--overlay-3xl), 0 1px 2px var(--overlay-md);
+  --shadow-lg: 0 4px 12px var(--overlay-3xl);
+  --color-focus: #C49200;
+  --focus-ring: 0 0 0 2px var(--color-focus);
+
+  /* Column colors */
+  --color-todo: #e3f2fd;
+  --color-inprogress: #fff3e0;
+  --color-done: #e8f5e9;
+}
+
+[data-theme="dark"] {
+  --color-bg: #121212;
+  --color-surface: #1e1e1e;
+  --color-accent: #F5B700;
+  --color-primary: #F5B700;
+  --color-primary-hover: #FFD54F;
+  --color-primary-rgb: 245, 183, 0;
+  --color-text: #e8eaed;
+  --color-text-secondary: #9aa0a6;
+  --color-border: #3c3c3c;
+  --color-danger: #ef5350;
+  --color-success: #66bb6a;
+  --color-warning: #ffb74d;
+  --color-overdue: #ff6b6b;
+  --color-surface-raised: #2a2a2a;
+  --color-border-light: #787878;
+  --color-text-muted: #8b8b8b;
+  --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.5);
+  --color-focus: #F5B700;
+  --color-todo: #1a2a3a;
+  --color-inprogress: #2a1f10;
+  --color-done: #1a2a1a;
+  --overlay-4xl: rgba(0,0,0,0.6);
+}
+
+/* === Reset === */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  padding: 16px;
+  flex-wrap: wrap;
+}
+
+/* === Theme toggle === */
+.theme-bar {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+}
+.theme-bar button {
+  padding: 8px 20px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.theme-bar button.active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+/* === Mockup Panel === */
+.panel {
+  width: 412px;
+  max-width: 100%;
+  background: var(--color-surface);
+  min-height: 700px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* Header */
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+.panel-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+.close-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Body */
+.panel-body {
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+/* Field */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-secondary);
+}
+
+/* Title */
+.title-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+  padding: 4px 0;
+}
+
+/* Description */
+.desc-text {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  font-style: italic;
+  padding: 8px 10px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+/* === Status Chevrons === */
+.status-pipeline {
+  display: flex;
+  align-items: stretch;
+  padding: 10px 12px;
+  background: var(--color-surface-raised);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  gap: 4px;
+}
+.status-chevron {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 8px 10px 16px;
+  border: none;
+  background: var(--overlay-md);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  position: relative;
+  white-space: nowrap;
+  min-height: 40px;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%);
+}
+/* First chevron — flat left edge */
+.status-chevron:first-child {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  padding-left: 12px;
+}
+/* Last chevron — flat right edge */
+.status-chevron:last-child {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding-right: 12px;
+}
+.status-chevron.reached {
+  background: var(--overlay-xl);
+  color: var(--color-text-secondary);
+}
+.status-chevron.active {
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+}
+.status-chevron.active[data-status="todo"] {
+  background: #1976d2;
+}
+.status-chevron.active[data-status="inprogress"] {
+  background: #e65100;
+}
+.status-chevron.active[data-status="done"] {
+  background: var(--color-success);
+}
+.status-chevron:not(.active):hover {
+  background: var(--overlay-2xl);
+}
+
+/* === Owner Row === */
+.owner-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.owner-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+  padding: 0;
+  position: relative;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.owner-circle.active {
+  box-shadow: 0 0 0 3px var(--color-surface), 0 0 0 5px var(--color-primary);
+}
+.owner-circle:not(.active):hover {
+  transform: scale(1.08);
+}
+.owner-circle-name {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+  text-align: center;
+  max-width: 52px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.owner-circle-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.owner-search-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px dashed var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all var(--transition-fast);
+}
+.owner-search-circle:hover {
+  border-color: var(--color-text-secondary);
+  color: var(--color-text-secondary);
+}
+
+/* === Due Date === */
+.due-date-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.due-cal-btn {
+  width: 48px;
+  height: 48px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  transition: background var(--transition-fast);
+  padding: 0;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.due-cal-btn:hover {
+  background: var(--overlay-xl);
+}
+.due-cal-btn.set {
+  color: var(--color-primary);
+}
+.due-cal-btn svg {
+  width: 32px;
+  height: 32px;
+}
+.due-date-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.due-date-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+.due-date-relative {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.due-clear-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: var(--overlay-xs);
+  color: var(--color-text-muted);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+.due-clear-btn:hover {
+  background: var(--overlay-xl);
+  color: var(--color-danger);
+}
+.due-clear-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Quick picks — square/blocky style, distinct from rounded label pills */
+.quick-picks {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.quick-pick {
+  flex: 1;
+  padding: 8px 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+.quick-pick:hover {
+  border-color: var(--color-primary);
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+.quick-pick.active {
+  background: rgba(var(--color-primary-rgb), 0.12);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* === Labels === */
+.label-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.label-pill {
+  padding: 5px 14px;
+  border-radius: var(--radius-full);
+  border: 2px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+}
+.label-new {
+  padding: 5px 14px;
+  border-radius: var(--radius-full);
+  border: 2px dashed var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  transition: all var(--transition-fast);
+}
+.label-new:hover {
+  border-color: var(--color-text-secondary);
+  color: var(--color-text);
+}
+.label-gear {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all var(--transition-fast);
+}
+.label-gear:hover {
+  background: var(--overlay-xl);
+  color: var(--color-text);
+}
+
+/* === Sub-tasks === */
+.subtasks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.subtask-add-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background var(--transition-fast);
+}
+.subtask-add-btn:hover {
+  background: var(--color-primary-light);
+}
+
+.subtask-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+}
+.subtask-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 4px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+  min-height: 48px;
+}
+.subtask-item:hover {
+  background: var(--overlay-xs);
+}
+
+/* Rounded square checkbox */
+.check-icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  margin: -8px 0;
+}
+.check-box {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid var(--color-border-light);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+.check-icon:hover .check-box {
+  border-color: var(--color-primary);
+}
+.check-box.checked {
+  background: var(--color-success);
+  border-color: var(--color-success);
+}
+.check-box.checked svg {
+  width: 14px;
+  height: 14px;
+  stroke: #fff;
+  stroke-width: 3;
+  fill: none;
+}
+
+/* Subtask content column (title + date stacked) */
+.subtask-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 2px 0;
+}
+.subtask-title {
+  font-size: 14px;
+  color: var(--color-text);
+  line-height: 1.4;
+}
+.subtask-done .subtask-title {
+  text-decoration: line-through;
+  color: var(--color-text-secondary);
+}
+
+/* Inline date badge under title */
+.subtask-date-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(var(--color-primary-rgb), 0.1);
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  align-self: flex-start;
+  transition: background var(--transition-fast);
+  min-height: 24px;
+}
+.subtask-date-inline:hover {
+  background: rgba(var(--color-primary-rgb), 0.18);
+}
+.subtask-date-inline svg {
+  width: 14px;
+  height: 14px;
+}
+.subtask-date-inline.overdue {
+  background: rgba(211, 47, 47, 0.1);
+  color: var(--color-overdue);
+}
+/* Add date affordance (hidden until hover/focus on mobile always visible) */
+.subtask-add-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px dashed var(--color-border);
+  font-family: inherit;
+  align-self: flex-start;
+  transition: all var(--transition-fast);
+  min-height: 24px;
+}
+.subtask-add-date:hover {
+  border-color: var(--color-text-secondary);
+  color: var(--color-text-secondary);
+}
+.subtask-add-date svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Subtask delete button (single action on right) */
+.subtask-del-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background var(--transition-fast);
+  padding: 0;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  margin: -4px 0;
+}
+.subtask-del-btn:hover {
+  background: var(--overlay-xl);
+  color: var(--color-danger);
+}
+.subtask-del-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Done items — muted styling */
+.subtask-done {
+  opacity: 0.6;
+}
+.subtask-done .subtask-title {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+}
+.subtask-date-inline.done {
+  background: var(--overlay-md);
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+/* Divider between active and completed */
+.subtask-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  list-style: none;
+}
+.subtask-divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+.subtask-divider-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+/* === Footer === */
+.panel-footer {
+  display: flex;
+  padding: 16px 20px;
+  border-top: 1px solid var(--color-border);
+  gap: 12px;
+}
+.footer-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  transition: all var(--transition-fast);
+}
+.footer-btn:hover {
+  border-color: var(--color-text-secondary);
+}
+.footer-btn.danger {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+.footer-btn.danger:hover {
+  background: var(--color-danger);
+  color: #fff;
+}
+.footer-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Metadata */
+.metadata {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Editing state for subtask */
+.subtask-editing textarea {
+  width: 100%;
+  flex: 1;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  resize: none;
+  line-height: 1.4;
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Separator */
+hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+</style>
+</head>
+<body>
+
+<!-- Theme toggle -->
+<div class="theme-bar">
+  <button class="active" onclick="setTheme('light')">Light</button>
+  <button onclick="setTheme('dark')">Dark</button>
+</div>
+
+<!-- === PROPOSED DESIGN === -->
+<div class="panel" id="panel">
+
+  <!-- Header -->
+  <div class="panel-header">
+    <h2>Item Details</h2>
+    <button class="close-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    </button>
+  </div>
+
+  <!-- Status Chevrons (no label, top of panel) -->
+  <div class="status-pipeline">
+    <button class="status-chevron reached" data-status="todo">To Do</button>
+    <button class="status-chevron active" data-status="inprogress">In Progress</button>
+    <button class="status-chevron" data-status="done">Done</button>
+  </div>
+
+  <div class="panel-body">
+
+    <!-- Title -->
+    <div class="field">
+      <span class="field-label">Title</span>
+      <span class="title-text">Fertilize front lawn</span>
+    </div>
+
+    <!-- Description -->
+    <div class="field">
+      <span class="field-label">Description</span>
+      <span class="desc-text">Click to edit</span>
+    </div>
+
+    <!-- Owner (avatar circle row) -->
+    <div class="field">
+      <span class="field-label">Owner</span>
+      <div class="owner-row">
+        <div class="owner-circle-wrapper">
+          <button class="owner-circle active" title="Luke" style="background: #e65100;">LT</button>
+          <span class="owner-circle-name">Luke</span>
+        </div>
+        <div class="owner-circle-wrapper">
+          <button class="owner-circle" title="Sarah" style="background: #1976d2;">SM</button>
+          <span class="owner-circle-name">Sarah</span>
+        </div>
+        <div class="owner-circle-wrapper">
+          <button class="owner-circle" title="Unassigned" style="background: var(--color-border); color: var(--color-text-secondary);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </button>
+          <span class="owner-circle-name">None</span>
+        </div>
+        <div class="owner-circle-wrapper">
+          <button class="owner-search-circle" title="Search all owners">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </button>
+          <span class="owner-circle-name">More</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Due Date (with date set) -->
+    <div class="field">
+      <span class="field-label">Due Date</span>
+      <div class="due-date-row">
+        <button class="due-cal-btn set" title="Change date">
+          <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+        </button>
+        <div class="due-date-info">
+          <span class="due-date-text">Apr 3, 2026</span>
+          <span class="due-date-relative">Today</span>
+        </div>
+        <button class="due-clear-btn" title="Clear date">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <div class="quick-picks">
+        <button class="quick-pick active">Today</button>
+        <button class="quick-pick">This Fri</button>
+        <button class="quick-pick">Next Mon</button>
+        <button class="quick-pick">Next Mo.</button>
+      </div>
+    </div>
+
+    <!-- Due Date (no date set - for comparison) -->
+    <div class="field">
+      <span class="field-label">Due Date (empty state)</span>
+      <div class="due-date-row">
+        <button class="due-cal-btn" title="Set due date">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
+        </button>
+        <span style="font-size: 14px; color: var(--color-text-muted);">No date set</span>
+      </div>
+      <div class="quick-picks">
+        <button class="quick-pick">Today</button>
+        <button class="quick-pick">This Fri</button>
+        <button class="quick-pick">Next Mon</button>
+        <button class="quick-pick">Next Mo.</button>
+      </div>
+    </div>
+
+    <!-- Labels -->
+    <div class="field">
+      <span class="field-label">Labels</span>
+      <div class="label-picker">
+        <button class="label-pill" style="background: #F5B700; color: #1f1f1f; border-color: #F5B700;">Chore</button>
+        <button class="label-pill" style="background: #d32f2f; color: #fff; border-color: #d32f2f;">Errand</button>
+        <button class="label-pill" style="background: #1976d2; color: #fff; border-color: #1976d2;">Finance</button>
+        <button class="label-pill" style="background: #388e3c; color: #fff; border-color: #388e3c;">Little Bear</button>
+        <button class="label-pill" style="background: #7b1fa2; color: #fff; border-color: #7b1fa2;">Clymer</button>
+        <button class="label-new">New</button>
+        <button class="label-gear" title="Manage labels">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sub-tasks -->
+    <div class="field">
+      <div class="subtasks-header">
+        <span class="field-label">Sub-tasks (4/5)</span>
+        <button class="subtask-add-btn" title="Add sub-task">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+        </button>
+      </div>
+      <ul class="subtask-list">
+
+        <!-- Incomplete subtask, no date -->
+        <li class="subtask-item">
+          <button class="check-icon" title="Mark complete">
+            <span class="check-box"></span>
+          </button>
+          <div class="subtask-content">
+            <span class="subtask-title">Fertilize</span>
+            <button class="subtask-add-date" title="Add due date">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
+              Add date
+            </button>
+          </div>
+        </li>
+
+        <!-- Incomplete subtask with date set -->
+        <li class="subtask-item">
+          <button class="check-icon" title="Mark complete">
+            <span class="check-box"></span>
+          </button>
+          <div class="subtask-content">
+            <span class="subtask-title">Buy fertilizer from the garden center on Main Street</span>
+            <button class="subtask-date-inline" title="Due: Apr 5. Tap to change.">
+              <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+              Apr 5
+            </button>
+          </div>
+        </li>
+
+        <!-- Subtask with no date, no add-date shown (minimal) -->
+        <li class="subtask-item">
+          <button class="check-icon" title="Mark complete">
+            <span class="check-box"></span>
+          </button>
+          <div class="subtask-content">
+            <span class="subtask-title">Rake leaves first to prep the area</span>
+          </div>
+        </li>
+
+        <!-- Editing state demo -->
+        <li class="subtask-item subtask-editing">
+          <button class="check-icon" title="Mark complete">
+            <span class="check-box"></span>
+          </button>
+          <textarea rows="2" readonly>Water the lawn area thoroughly before applying the fertilizer treatment</textarea>
+        </li>
+
+        <!-- Completed toggle -->
+      </ul>
+      <!-- Divider between active and done -->
+      <li class="subtask-divider" aria-hidden="true">
+        <span class="subtask-divider-line"></span>
+        <span class="subtask-divider-label">completed</span>
+        <span class="subtask-divider-line"></span>
+      </li>
+
+      <!-- Completed items — same list, sunk to bottom -->
+      <li class="subtask-item subtask-done">
+        <button class="check-icon" title="Mark incomplete">
+          <span class="check-box checked"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+        </button>
+        <div class="subtask-content">
+          <span class="subtask-title">Measure the lawn area</span>
+          <button class="subtask-date-inline done" title="Was due: Mar 30">
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+            Mar 30
+          </button>
+        </div>
+      </li>
+      <li class="subtask-item subtask-done">
+        <button class="check-icon" title="Mark incomplete">
+          <span class="check-box checked"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+        </button>
+        <div class="subtask-content">
+          <span class="subtask-title">Research best fertilizer type for this climate</span>
+        </div>
+      </li>
+      <li class="subtask-item subtask-done">
+        <button class="check-icon" title="Mark incomplete">
+          <span class="check-box checked"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+        </button>
+        <div class="subtask-content">
+          <span class="subtask-title">Check sprinkler coverage</span>
+        </div>
+      </li>
+      <li class="subtask-item subtask-done">
+        <button class="check-icon" title="Mark incomplete">
+          <span class="check-box checked"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+        </button>
+        <div class="subtask-content">
+          <span class="subtask-title">Get quote from landscaping company</span>
+        </div>
+      </li>
+    </div>
+
+    <!-- Metadata -->
+    <div class="metadata">
+      Created by: Luke<br>
+      Created: 4/3/2026, 6:48:31 AM<br>
+      Updated: 4/3/2026, 7:47:42 AM
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="panel-footer">
+    <button class="footer-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Move to board
+    </button>
+    <button class="footer-btn danger">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+      Delete
+    </button>
+  </div>
+
+</div>
+
+<script>
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : '');
+  document.querySelectorAll('.theme-bar button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+// Make status chevrons interactive for demo
+document.querySelectorAll('.status-chevron').forEach(chev => {
+  chev.addEventListener('click', () => {
+    const chevrons = Array.from(document.querySelectorAll('.status-chevron'));
+    const clickedIdx = chevrons.indexOf(chev);
+
+    chevrons.forEach((c, i) => {
+      c.classList.remove('active', 'reached');
+      if (i < clickedIdx) {
+        c.classList.add('reached');
+      } else if (i === clickedIdx) {
+        c.classList.add('active');
+      }
+    });
+  });
+});
+
+// Make owner circles interactive
+document.querySelectorAll('.owner-circle').forEach(circle => {
+  circle.addEventListener('click', () => {
+    document.querySelectorAll('.owner-circle').forEach(c => c.classList.remove('active'));
+    circle.classList.add('active');
+  });
+});
+
+// Make checkboxes toggle
+document.querySelectorAll('.check-icon').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const box = btn.querySelector('.check-box');
+    const isChecked = box.classList.contains('checked');
+    if (isChecked) {
+      box.classList.remove('checked');
+      box.innerHTML = '';
+      btn.closest('.subtask-item')?.classList.remove('subtask-done');
+    } else {
+      box.classList.add('checked');
+      box.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+      btn.closest('.subtask-item')?.classList.add('subtask-done');
+    }
+  });
+});
+
+</script>
+
+</body>
+</html>

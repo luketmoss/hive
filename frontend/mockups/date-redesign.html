@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=412, initial-scale=1">
+<title>Date Section Mockup</title>
+<style>
+:root {
+  --color-bg: #f0f2f5;
+  --color-surface: #ffffff;
+  --color-primary: #C49200;
+  --color-primary-hover: #A67B00;
+  --color-primary-rgb: 196, 146, 0;
+  --color-text: #1f1f1f;
+  --color-text-secondary: #5f6368;
+  --color-text-muted: #767676;
+  --color-border: #dadce0;
+  --color-danger: #d32f2f;
+  --color-overdue: #b71c1c;
+  --color-surface-raised: #f8f9fa;
+  --overlay-xs: rgba(0,0,0,0.02);
+  --overlay-xl: rgba(0,0,0,0.08);
+  --radius: 8px;
+  --radius-sm: 4px;
+  --radius-full: 9999px;
+  --transition-fast: 150ms ease;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+.section { background: var(--color-surface); border-radius: var(--radius); padding: 20px; }
+.section h3 { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+.detail-field { display: flex; flex-direction: column; gap: 4px; }
+.detail-field label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-text-secondary); }
+
+/* === Option A: Unified clickable row === */
+/* No date set: icon + "No date" + compact quick picks inline */
+/* Date set: icon + date text + relative label — entire row is one big button */
+
+.due-date-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+  width: 100%;
+  text-align: left;
+}
+.due-date-btn:hover {
+  background: var(--overlay-xs);
+}
+.due-date-btn svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.due-date-btn .no-date {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+.due-date-btn .date-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+}
+.due-date-btn .date-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+.due-date-btn .date-relative {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.due-date-btn .date-relative.overdue {
+  color: var(--color-overdue);
+}
+.due-date-btn.has-date {
+  padding: 8px 10px;
+}
+.due-date-btn.has-date svg {
+  color: var(--color-primary);
+}
+/* Clear: inline after relative text */
+.date-row-bottom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.due-date-clear {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  transition: all var(--transition-fast);
+}
+.due-date-clear:hover {
+  color: var(--color-danger);
+  background: rgba(211, 47, 47, 0.08);
+}
+.date-dot {
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+/* Quick picks — compact, only shown when no date */
+.quick-picks-compact {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+.quick-pick-sm {
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition-fast);
+}
+.quick-pick-sm:hover {
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+.quick-pick-sm.active {
+  background: rgba(var(--color-primary-rgb), 0.12);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.separator { height: 1px; background: var(--color-border); margin: 8px 0; }
+.note { font-size: 12px; color: var(--color-text-muted); font-style: italic; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<h2 style="font-size: 16px; color: var(--color-text);">Due Date — Redesign Options</h2>
+
+<!-- STATE 1: No date set -->
+<div class="section">
+  <h3>No date set</h3>
+  <div class="detail-field">
+    <label>Due Date</label>
+    <!-- Bordered row — looks like an input, tap to pick -->
+    <button class="due-date-btn" title="Set due date">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-text-muted)"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <span class="no-date">No date set</span>
+    </button>
+    <!-- Quick picks below — compact -->
+    <div class="quick-picks-compact">
+      <button class="quick-pick-sm">Today</button>
+      <button class="quick-pick-sm">This Fri</button>
+      <button class="quick-pick-sm">Next Mon</button>
+      <button class="quick-pick-sm">Next Fri</button>
+    </div>
+  </div>
+</div>
+
+<!-- STATE 2: Date set, not overdue -->
+<div class="section">
+  <h3>Date set — tap anywhere to change</h3>
+  <div class="detail-field">
+    <label>Due Date</label>
+    <div class="due-date-btn has-date" role="button" tabindex="0" title="Change due date">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+      <div class="date-info">
+        <span class="date-text">Apr 8</span>
+        <div class="date-row-bottom">
+          <span class="date-relative">In 4 days</span>
+          <span class="date-dot">·</span>
+          <button class="due-date-clear" title="Clear date" onclick="event.stopPropagation()">Clear</button>
+        </div>
+      </div>
+    </div>
+    <p class="note">No quick picks when date is set — just tap row to change, or "Clear" to remove</p>
+  </div>
+</div>
+
+<!-- STATE 3: Date set, overdue -->
+<div class="section">
+  <h3>Overdue</h3>
+  <div class="detail-field">
+    <label>Due Date</label>
+    <div class="due-date-btn has-date" role="button" tabindex="0" title="Change due date">
+      <svg viewBox="0 0 24 24" fill="currentColor" style="color: var(--color-overdue)"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+      <div class="date-info">
+        <span class="date-text" style="color: var(--color-overdue)">Apr 3</span>
+        <div class="date-row-bottom">
+          <span class="date-relative overdue">1 day overdue</span>
+          <span class="date-dot">·</span>
+          <button class="due-date-clear" title="Clear date" onclick="event.stopPropagation()">Clear</button>
+        </div>
+      </div>
+    </button>
+  </div>
+</div>
+
+<!-- STATE 4: Date set, today -->
+<div class="section">
+  <h3>Due today</h3>
+  <div class="detail-field">
+    <label>Due Date</label>
+    <div class="due-date-btn has-date" role="button" tabindex="0" title="Change due date">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+      <div class="date-info">
+        <span class="date-text">Apr 4</span>
+        <div class="date-row-bottom">
+          <span class="date-relative">Today</span>
+          <span class="date-dot">·</span>
+          <button class="due-date-clear" title="Clear date" onclick="event.stopPropagation()">Clear</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -955,30 +955,30 @@ describe('CardDetail — Touch reorder (Issue #88)', () => {
     mockItems = [...mockChildren];
   });
 
-  // AC5: Drag handle rendered on each sub-task
+  // AC5: Drag reorder via draggable attribute on <li>
   describe('AC5: Touch-friendly sub-task reorder', () => {
-    it('renders a drag handle on each incomplete sub-task when 2+ incomplete children exist', () => {
+    it('incomplete sub-tasks have draggable="true" when 2+ incomplete children exist', () => {
       const { container } = renderCardDetail();
-      const handles = container.querySelectorAll('.subtask-drag-handle');
-      // #220: drag handles only appear for incomplete items (2 of 3), not done items
-      expect(handles.length).toBe(2);
+      const draggable = container.querySelectorAll('.subtask-item[draggable="true"]');
+      // Only incomplete items (2 of 3) are draggable
+      expect(draggable.length).toBe(2);
     });
 
-    it('drag handle has role="button" and accessible label', () => {
+    it('done sub-tasks are not draggable', () => {
       const { container } = renderCardDetail();
-      const handle = container.querySelector('.subtask-drag-handle') as HTMLElement;
-      expect(handle.getAttribute('role')).toBe('button');
-      expect(handle.getAttribute('aria-label')).toBe('Drag to reorder Sub A');
+      const doneItems = container.querySelectorAll('.subtask-done');
+      expect(doneItems.length).toBe(1);
+      expect((doneItems[0] as HTMLElement).getAttribute('draggable')).not.toBe('true');
     });
 
-    it('does not render drag handles when only 1 sub-task exists', () => {
+    it('does not make items draggable when only 1 sub-task exists', () => {
       mockChildren = [
         { id: 'child-1', title: 'Sub A', status: 'To Do', owner: 'Luke', parent_id: 'detail-test-1', sort_order: 1 },
       ];
       mockItems = [...mockChildren];
       const { container } = renderCardDetail();
-      const handles = container.querySelectorAll('.subtask-drag-handle');
-      expect(handles.length).toBe(0);
+      const draggable = container.querySelectorAll('.subtask-item[draggable="true"]');
+      expect(draggable.length).toBe(0);
     });
 
     it('has an aria-live region for reorder announcements', () => {
@@ -986,15 +986,6 @@ describe('CardDetail — Touch reorder (Issue #88)', () => {
       const live = container.querySelector('[aria-live="polite"]');
       expect(live).not.toBeNull();
       expect(live!.getAttribute('role')).toBe('status');
-    });
-
-    it('arrow buttons rendered for incomplete items only (hidden via CSS on mobile)', () => {
-      const { container } = renderCardDetail();
-      const upBtns = container.querySelectorAll('[aria-label="Move up"]');
-      const downBtns = container.querySelectorAll('[aria-label="Move down"]');
-      // #220: reorder arrows only for incomplete items (2 of 3)
-      expect(upBtns.length).toBe(2);
-      expect(downBtns.length).toBe(2);
     });
   });
 });
@@ -1567,11 +1558,11 @@ describe('CardDetail clear date button (Issue #207)', () => {
     expect(mockUpdateItem).toHaveBeenCalledWith('detail-test-1', { due_date: '' }, 'Luke', 'test-token');
   });
 
-  // AC3: No extra vertical space — button is inline in same row as date button
-  it('AC3: clear button is inline with date button in a due-date-row', () => {
+  // AC3: No extra vertical space — button is inline in same row as date/owner
+  it('AC3: clear button is inline with date button in the owner-date-row', () => {
     mockItemOverrides = { due_date: '2026-04-10' };
     const { container } = renderCardDetail();
-    const row = container.querySelector('.due-date-row');
+    const row = container.querySelector('.owner-date-row');
     expect(row).not.toBeNull();
     const clearBtn = row!.querySelector('[aria-label="Clear due date"]');
     expect(clearBtn).not.toBeNull();

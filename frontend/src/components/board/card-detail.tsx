@@ -6,7 +6,7 @@ import { LabelBadge } from '../shared/label-badge';
 import { LabelPickerManager } from '../labels/label-picker-manager';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
 import { getContrastTextColor } from '../../utils/color';
-import { QuickDateChips } from '../shared/quick-date-chips';
+// QuickDateChips removed in #220 follow-up — native date picker only
 import type { ItemStatus, ItemWithRow } from '../../api/types';
 
 // #220: Map status colors to theme-aware CSS variables (same as column.tsx)
@@ -395,6 +395,7 @@ export function CardDetail() {
         <div class="detail-body">
           <EditableField
             label="Title"
+            hideLabel
             value={item.title}
             onSave={(v) => save('title', v)}
             initialEditing={openDetailWithTitleEdit.value}
@@ -408,112 +409,9 @@ export function CardDetail() {
             multiline
           />
 
-          <SaveFeedbackField label="Owner">
-            {(onFieldSaved) => (
-              <div class="owner-row">
-                {owners.value.map((o, i) => (
-                  <div key={o.name} class="owner-circle-wrapper">
-                    <button
-                      type="button"
-                      class={`owner-circle${item.owner === o.name ? ' active' : ''}`}
-                      title={o.name}
-                      style={{ background: getOwnerColor(i) }}
-                      onClick={async () => {
-                        const ok = await save('owner', o.name);
-                        onFieldSaved(ok);
-                      }}
-                    >{getInitials(o.name)}</button>
-                    <span class="owner-circle-name">{o.name.split(' ')[0]}</span>
-                  </div>
-                ))}
-                <div class="owner-circle-wrapper">
-                  <button
-                    type="button"
-                    class={`owner-circle${!item.owner ? ' active' : ''}`}
-                    title="Unassigned"
-                    style={{ background: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
-                    onClick={async () => {
-                      const ok = await save('owner', '');
-                      onFieldSaved(ok);
-                    }}
-                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                  </button>
-                  <span class="owner-circle-name">None</span>
-                </div>
-              </div>
-            )}
-          </SaveFeedbackField>
+          <OwnerDateRow item={item} owners={owners.value} save={save} />
 
-          <SaveFeedbackField label="Due Date">
-            {(onFieldSaved) => {
-              const dateVal = item.due_date ? item.due_date.split('T')[0] : '';
-              const hasDate = !!dateVal;
-              const hiddenDateRef = useRef<HTMLInputElement>(null);
-              return (
-                <>
-                  <div class="due-date-row">
-                    <button
-                      type="button"
-                      class={`due-cal-btn${hasDate ? ' set' : ''}`}
-                      title={hasDate ? 'Change date' : 'Set due date'}
-                      onClick={() => hiddenDateRef.current?.showPicker()}
-                    >
-                      {hasDate ? (
-                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
-                      ) : (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                      )}
-                    </button>
-                    <input
-                      ref={hiddenDateRef}
-                      type="date"
-                      style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }}
-                      value={dateVal}
-                      onChange={async (e) => {
-                        const ok = await save('due_date', (e.target as HTMLInputElement).value);
-                        onFieldSaved(ok);
-                      }}
-                    />
-                    {hasDate ? (
-                      <div class="due-date-info">
-                        <span class="due-date-text">{formatCompactDate(dateVal)}</span>
-                        {getRelativeDateLabel(dateVal) && (
-                          <span class={`due-date-relative${isOverdue(dateVal, item.status) ? ' due-date-overdue-text' : ''}`}>{getRelativeDateLabel(dateVal)}</span>
-                        )}
-                      </div>
-                    ) : (
-                      <div class="due-date-info">
-                        <span class="due-date-text" style={{ color: 'var(--color-text-muted)' }}>No date set</span>
-                      </div>
-                    )}
-                    {hasDate && (
-                      <button
-                        type="button"
-                        class="due-clear-btn"
-                        aria-label="Clear due date"
-                        onClick={async () => {
-                          const ok = await save('due_date', '');
-                          onFieldSaved(ok);
-                        }}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      </button>
-                    )}
-                  </div>
-                  <QuickDateChips
-                    value={dateVal}
-                    onChange={async (date) => {
-                      const ok = await save('due_date', date);
-                      onFieldSaved(ok);
-                    }}
-                  />
-                </>
-              );
-            }}
-          </SaveFeedbackField>
-
-          <SaveFeedbackField label="Labels">
+          <SaveFeedbackField label="Labels" hideLabel>
             {(onFieldSaved) => (
               <LabelPickerManager
                 currentLabels={item.labels}
@@ -541,7 +439,7 @@ export function CardDetail() {
                 </button>
               )}
             </div>
-            {(incompleteChildren.length > 0 || doneChildren.length > 0) && (
+            {(incompleteChildren.length > 0 || doneChildren.length > 0 || addingSubtask) && (
               <ul class="subtask-list">
                 {incompleteChildren.map((child, idx) => (
                   <SubtaskRow
@@ -568,6 +466,59 @@ export function CardDetail() {
                     item={item}
                   />
                 ))}
+                {addingSubtask && (
+                  <li class="subtask-add-li">
+                    <div
+                      class="subtask-add-wrapper"
+                      ref={subtaskRowRef}
+                      onFocusOut={handleCreationRowFocusOut}
+                    >
+                      <div class="subtask-add-inline">
+                        <input
+                          ref={subtaskInputRef}
+                          type="text"
+                          class="subtask-add-input"
+                          placeholder="Sub-task title..."
+                          aria-label="Sub-task title"
+                          aria-describedby="subtask-add-hint"
+                          value={subtaskTitle}
+                          onInput={(e) => {
+                            const v = (e.target as HTMLInputElement).value;
+                            subtaskTitleRef.current = v;
+                            setSubtaskTitle(v);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') { e.preventDefault(); submitAndContinue(); }
+                            if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }
+                          }}
+                        />
+                        <input
+                          type="date"
+                          class="subtask-add-date"
+                          value={subtaskDueDate}
+                          aria-label="Due date for new sub-task"
+                          onChange={(e) => setSubtaskDueDate((e.target as HTMLInputElement).value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }
+                          }}
+                        />
+                        <button
+                          class="btn-icon subtask-action-btn subtask-add-confirm"
+                          aria-label="Add sub-task"
+                          aria-disabled={!subtaskTitle.trim() ? 'true' : undefined}
+                          style={!subtaskTitle.trim() ? 'opacity: 0.4; cursor: not-allowed;' : undefined}
+                          onClick={() => { if (subtaskTitle.trim()) submitSubtask(); }}
+                        >&#10003;</button>
+                        <button
+                          class="btn-icon subtask-action-btn"
+                          aria-label="Cancel adding sub-task"
+                          onClick={() => cancelSubtask()}
+                        >&#10005;</button>
+                      </div>
+                      <span id="subtask-add-hint" class="subtask-add-hint">Enter to add another · Esc to cancel</span>
+                    </div>
+                  </li>
+                )}
                 {doneChildren.length > 0 && (
                   <li class="subtask-divider" aria-hidden="true">
                     <span class="subtask-divider-line"></span>
@@ -604,57 +555,6 @@ export function CardDetail() {
             )}
             {/* #88 AC5: Announce reorder to screen readers */}
             <div class="reorder-live-region" aria-live="polite" role="status">{reorderAnnouncement}</div>
-            {addingSubtask && (
-              <div
-                class="subtask-add-wrapper"
-                ref={subtaskRowRef}
-                onFocusOut={handleCreationRowFocusOut}
-              >
-                <div class="subtask-add-inline">
-                  <input
-                    ref={subtaskInputRef}
-                    type="text"
-                    class="subtask-add-input"
-                    placeholder="Sub-task title..."
-                    aria-label="Sub-task title"
-                    aria-describedby="subtask-add-hint"
-                    value={subtaskTitle}
-                    onInput={(e) => {
-                      const v = (e.target as HTMLInputElement).value;
-                      subtaskTitleRef.current = v;
-                      setSubtaskTitle(v);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') { e.preventDefault(); submitAndContinue(); }
-                      if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }
-                    }}
-                  />
-                  <input
-                    type="date"
-                    class="subtask-add-date"
-                    value={subtaskDueDate}
-                    aria-label="Due date for new sub-task"
-                    onChange={(e) => setSubtaskDueDate((e.target as HTMLInputElement).value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Escape') { e.stopPropagation(); cancelSubtask(); }
-                    }}
-                  />
-                  <button
-                    class="btn-icon subtask-action-btn subtask-add-confirm"
-                    aria-label="Add sub-task"
-                    aria-disabled={!subtaskTitle.trim() ? 'true' : undefined}
-                    style={!subtaskTitle.trim() ? 'opacity: 0.4; cursor: not-allowed;' : undefined}
-                    onClick={() => { if (subtaskTitle.trim()) submitSubtask(); }}
-                  >&#10003;</button>
-                  <button
-                    class="btn-icon subtask-action-btn"
-                    aria-label="Cancel adding sub-task"
-                    onClick={() => cancelSubtask()}
-                  >&#10005;</button>
-                </div>
-                <span id="subtask-add-hint" class="subtask-add-hint">Enter to add another · Esc to cancel</span>
-              </div>
-            )}
           </div>
 
           <div class="detail-meta">
@@ -706,11 +606,112 @@ export function CardDetail() {
   );
 }
 
+// --- Combined owner + date row (no labels) ---
+
+function OwnerDateRow({ item, owners: ownersList, save }: {
+  item: ItemWithRow;
+  owners: Array<{ name: string; google_account: string }>;
+  save: (field: string, value: string) => Promise<boolean>;
+}) {
+  const [feedback, setFeedback] = useState<'saved' | 'error' | null>(null);
+  const hiddenDateRef = useRef<HTMLInputElement>(null);
+
+  const onSaved = (ok: boolean) => {
+    setFeedback(ok ? 'saved' : 'error');
+    setTimeout(() => setFeedback(null), 2000);
+  };
+
+  const dateVal = item.due_date ? item.due_date.split('T')[0] : '';
+  const hasDate = !!dateVal;
+
+  return (
+    <div class="owner-date-row">
+      {feedback === 'saved' && (
+        <span class="save-indicator save-indicator-success owner-date-feedback" data-testid="save-indicator">Saved</span>
+      )}
+      {feedback === 'error' && (
+        <span class="save-indicator save-indicator-error owner-date-feedback" data-testid="save-indicator-error">Error</span>
+      )}
+      {ownersList.map((o, i) => (
+        <div key={o.name} class="owner-circle-wrapper">
+          <button
+            type="button"
+            class={`owner-circle${item.owner === o.name ? ' active' : ''}`}
+            title={o.name}
+            style={{ background: getOwnerColor(i) }}
+            onClick={async () => onSaved(await save('owner', o.name))}
+          >{getInitials(o.name)}</button>
+          <span class="owner-circle-name">{o.name.split(' ')[0]}</span>
+        </div>
+      ))}
+      <div class="owner-circle-wrapper">
+        <button
+          type="button"
+          class={`owner-circle${!item.owner ? ' active' : ''}`}
+          title="Unassigned"
+          style={{ background: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+          onClick={async () => onSaved(await save('owner', ''))}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </button>
+        <span class="owner-circle-name">None</span>
+      </div>
+
+      <div class="row-divider"></div>
+
+      <div class="due-date-group">
+        <button
+          type="button"
+          class={`due-date-btn${hasDate ? ' has-date' : ''}`}
+          title={hasDate ? 'Change date' : 'Set due date'}
+          onClick={() => hiddenDateRef.current?.showPicker()}
+        >
+          {hasDate ? (
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          )}
+          <div class="date-info">
+            {hasDate ? (
+              <>
+                <span class={`date-text${isOverdue(dateVal, item.status) ? ' due-date-overdue-text' : ''}`}>{formatCompactDate(dateVal)}</span>
+                {getRelativeDateLabel(dateVal) && (
+                  <span class={`date-relative${isOverdue(dateVal, item.status) ? ' due-date-overdue-text' : ''}`}>{getRelativeDateLabel(dateVal)}</span>
+                )}
+              </>
+            ) : (
+              <span class="no-date">No date</span>
+            )}
+          </div>
+        </button>
+        <input
+          ref={hiddenDateRef}
+          type="date"
+          class="due-date-hidden"
+          value={dateVal}
+          onChange={async (e) => onSaved(await save('due_date', (e.target as HTMLInputElement).value))}
+        />
+        {hasDate && (
+          <button
+            type="button"
+            class="due-clear-btn"
+            aria-label="Clear due date"
+            onClick={async () => onSaved(await save('due_date', ''))}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // --- Save feedback wrapper for non-editable fields (selects, dates, labels) ---
 
-function SaveFeedbackField({ label, children }: {
+function SaveFeedbackField({ label, children, hideLabel }: {
   label: string;
   children: (onFieldSaved: (success: boolean) => void) => any;
+  hideLabel?: boolean;
 }) {
   const [feedback, setFeedback] = useState<'saved' | 'error' | null>(null);
 
@@ -721,15 +722,23 @@ function SaveFeedbackField({ label, children }: {
 
   return (
     <div class="detail-field">
-      <label>
-        {label}
-        {feedback === 'saved' && (
-          <span class="save-indicator save-indicator-success" data-testid="save-indicator">Saved</span>
-        )}
-        {feedback === 'error' && (
-          <span class="save-indicator save-indicator-error" data-testid="save-indicator-error">Error</span>
-        )}
-      </label>
+      {!hideLabel && (
+        <label>
+          {label}
+          {feedback === 'saved' && (
+            <span class="save-indicator save-indicator-success" data-testid="save-indicator">Saved</span>
+          )}
+          {feedback === 'error' && (
+            <span class="save-indicator save-indicator-error" data-testid="save-indicator-error">Error</span>
+          )}
+        </label>
+      )}
+      {hideLabel && feedback === 'saved' && (
+        <span class="save-indicator save-indicator-success" data-testid="save-indicator">Saved</span>
+      )}
+      {hideLabel && feedback === 'error' && (
+        <span class="save-indicator save-indicator-error" data-testid="save-indicator-error">Error</span>
+      )}
       {children(onFieldSaved)}
     </div>
   );
@@ -737,8 +746,9 @@ function SaveFeedbackField({ label, children }: {
 
 // --- Inline editable field ---
 
-function EditableField({ label, value, onSave, multiline, initialEditing, onEditStart }: {
+function EditableField({ label, hideLabel, value, onSave, multiline, initialEditing, onEditStart }: {
   label: string;
+  hideLabel?: boolean;
   value: string;
   onSave: (value: string) => Promise<boolean>;
   multiline?: boolean;
@@ -777,18 +787,26 @@ function EditableField({ label, value, onSave, multiline, initialEditing, onEdit
 
   if (!editing) {
     return (
-      <div class="detail-field" onClick={() => { setDraft(value); setEditing(true); }}>
-        <label>
-          {label}
-          {feedback === 'saved' && (
-            <span class="save-indicator save-indicator-success" data-testid="save-indicator">Saved</span>
-          )}
-          {feedback === 'error' && (
-            <span class="save-indicator save-indicator-error" data-testid="save-indicator-error">Error</span>
-          )}
-        </label>
+      <div class={`detail-field${hideLabel ? ' detail-field-no-label' : ''}`} onClick={() => { setDraft(value); setEditing(true); }}>
+        {!hideLabel && (
+          <label>
+            {label}
+            {feedback === 'saved' && (
+              <span class="save-indicator save-indicator-success" data-testid="save-indicator">Saved</span>
+            )}
+            {feedback === 'error' && (
+              <span class="save-indicator save-indicator-error" data-testid="save-indicator-error">Error</span>
+            )}
+          </label>
+        )}
+        {hideLabel && feedback === 'saved' && (
+          <span class="save-indicator save-indicator-success" data-testid="save-indicator">Saved</span>
+        )}
+        {hideLabel && feedback === 'error' && (
+          <span class="save-indicator save-indicator-error" data-testid="save-indicator-error">Error</span>
+        )}
         <div
-          class="editable-value"
+          class={`editable-value${hideLabel ? ' editable-value-title' : ''}`}
           role="button"
           tabIndex={0}
           aria-label={`Edit ${label.toLowerCase()}`}
@@ -807,8 +825,8 @@ function EditableField({ label, value, onSave, multiline, initialEditing, onEdit
   }
 
   return (
-    <div class="detail-field">
-      <label>{label}</label>
+    <div class={`detail-field${hideLabel ? ' detail-field-no-label' : ''}`}>
+      {!hideLabel && <label>{label}</label>}
       {multiline ? (
         <textarea
           value={draft}
@@ -1006,24 +1024,47 @@ function SubtaskRow({ child, idx, allItems, isDone, editingSubtaskId, editingSub
       key={child.id}
       class={`subtask-item${isDone ? ' subtask-done' : ''}`}
       style={{ position: 'relative' }}
+      draggable={!isDone && allItems.length > 1}
+      onDragStart={(e) => {
+        if (isDone) return;
+        (e as DragEvent).dataTransfer!.effectAllowed = 'move';
+        (e as DragEvent).dataTransfer!.setData('text/plain', child.id);
+        (e.currentTarget as HTMLElement).classList.add('subtask-dragging');
+      }}
+      onDragEnd={(e) => {
+        (e.currentTarget as HTMLElement).classList.remove('subtask-dragging');
+        document.querySelectorAll('.subtask-drop-target').forEach(el => el.classList.remove('subtask-drop-target'));
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        (e as DragEvent).dataTransfer!.dropEffect = 'move';
+        (e.currentTarget as HTMLElement).classList.add('subtask-drop-target');
+      }}
+      onDragLeave={(e) => {
+        (e.currentTarget as HTMLElement).classList.remove('subtask-drop-target');
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        (e.currentTarget as HTMLElement).classList.remove('subtask-drop-target');
+        const draggedId = (e as DragEvent).dataTransfer!.getData('text/plain');
+        if (draggedId && draggedId !== child.id) {
+          const fromIdx = allItems.findIndex(i => i.id === draggedId);
+          if (fromIdx !== -1) {
+            const dir = fromIdx < idx ? 'down' : 'up';
+            const steps = Math.abs(fromIdx - idx);
+            for (let s = 0; s < steps; s++) handleReorder(draggedId, dir);
+          }
+        }
+      }}
       onContextMenu={handleContextMenuEvent}
-      onTouchStart={handleTouchStartLongPress as any}
-      onTouchEnd={handleTouchEndLongPress}
-      onTouchCancel={handleTouchEndLongPress}
+      onTouchStart={(e) => {
+        handleTouchStartLongPress(e as unknown as TouchEvent);
+        if (!isDone && allItems.length > 1) handleTouchReorderStart(child.id, idx, e as unknown as TouchEvent);
+      }}
+      onTouchMove={(e) => handleTouchReorderMove(e as unknown as TouchEvent)}
+      onTouchEnd={() => { handleTouchEndLongPress(); handleTouchReorderEnd(); }}
+      onTouchCancel={() => { handleTouchEndLongPress(); handleTouchReorderEnd(); }}
     >
-      {/* Drag handle (mobile only via CSS) */}
-      {allItems.length > 1 && !isDone && (
-        <span
-          class="subtask-drag-handle"
-          aria-label={`Drag to reorder ${child.title}`}
-          role="button"
-          tabIndex={0}
-          onTouchStart={(e) => { handleTouchEndLongPress(); handleTouchReorderStart(child.id, idx, e as unknown as TouchEvent); }}
-          onTouchMove={(e) => handleTouchReorderMove(e as unknown as TouchEvent)}
-          onTouchEnd={handleTouchReorderEnd}
-        >&#9776;</span>
-      )}
-
       {/* Rounded square checkbox */}
       <button class="check-icon" onClick={() => toggleChildStatus(child.id, child.status)} aria-label={child.title}>
         <span class={`check-box${isTerminalStatus(child.status) ? ' checked' : ''}`}>
@@ -1072,32 +1113,12 @@ function SubtaskRow({ child, idx, allItems, isDone, editingSubtaskId, editingSub
         <SubtaskDateInline child={child} onSave={handleSubtaskDateSave} />
       </div>
 
-      {/* Actions (desktop): reorder arrows + kebab menu */}
-      <div class="subtask-actions">
-        {allItems.length > 1 && !isDone && (
-          <>
-            <button
-              class="btn-icon subtask-action-btn"
-              aria-label="Move up"
-              aria-disabled={idx === 0 ? 'true' : undefined}
-              style={idx === 0 ? 'opacity: 0.3; cursor: not-allowed;' : undefined}
-              onClick={() => { if (idx > 0) handleReorder(child.id, 'up'); }}
-            >&#9650;</button>
-            <button
-              class="btn-icon subtask-action-btn"
-              aria-label="Move down"
-              aria-disabled={idx === allItems.length - 1 ? 'true' : undefined}
-              style={idx === allItems.length - 1 ? 'opacity: 0.3; cursor: not-allowed;' : undefined}
-              onClick={() => { if (idx < allItems.length - 1) handleReorder(child.id, 'down'); }}
-            >&#9660;</button>
-          </>
-        )}
-        <button
-          class="subtask-kebab-btn"
-          aria-label="Sub-task options"
-          onClick={(e) => { e.stopPropagation(); setContextMenu(!contextMenu); }}
-        >&#8942;</button>
-      </div>
+      {/* Kebab menu (always visible) */}
+      <button
+        class="subtask-kebab-btn"
+        aria-label="Sub-task options"
+        onClick={(e) => { e.stopPropagation(); setContextMenu(!contextMenu); }}
+      >&#8942;</button>
 
       {/* Context menu */}
       {contextMenu && (

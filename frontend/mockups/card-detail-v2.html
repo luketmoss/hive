@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=412, initial-scale=1">
+<title>Card Detail v2 — Full Mockup</title>
+<style>
+:root {
+  --color-bg: #f0f2f5;
+  --color-surface: #ffffff;
+  --color-primary: #C49200;
+  --color-primary-rgb: 196, 146, 0;
+  --color-primary-light: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  --color-text: #1f1f1f;
+  --color-text-secondary: #5f6368;
+  --color-text-muted: #767676;
+  --color-border: #dadce0;
+  --color-border-light: #969696;
+  --color-danger: #d32f2f;
+  --color-overdue: #b71c1c;
+  --color-success: #2e7d32;
+  --color-surface-raised: #f8f9fa;
+  --overlay-xs: rgba(0,0,0,0.02);
+  --overlay-sm: rgba(0,0,0,0.03);
+  --overlay-md: rgba(0,0,0,0.05);
+  --overlay-xl: rgba(0,0,0,0.08);
+  --overlay-2xl: rgba(0,0,0,0.1);
+  --radius: 8px;
+  --radius-sm: 4px;
+  --radius-full: 9999px;
+  --transition-fast: 150ms ease;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; list-style: none; }
+body { font-family: var(--font-sans); background: var(--color-bg); }
+
+/* === Panel shell === */
+.panel {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--color-surface);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+.header h2 { font-size: 18px; color: var(--color-text); }
+.header-actions { display: flex; gap: 4px; }
+.header-btn {
+  width: 36px; height: 36px; border: none; background: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-sm); color: var(--color-text-secondary);
+}
+.header-btn:hover { background: var(--overlay-xl); }
+
+/* Status pipeline */
+.status-pipeline {
+  display: flex; align-items: stretch; padding: 10px 12px;
+  background: var(--color-surface-raised); border-bottom: 1px solid var(--color-border);
+  gap: 4px;
+}
+.status-chevron {
+  flex: 1; min-width: 0; padding: 10px 8px 10px 16px; border: none;
+  background: var(--overlay-md); color: var(--color-text-muted);
+  font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 40px; transition: all var(--transition-fast);
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%);
+}
+.status-chevron:first-child {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%);
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm); padding-left: 12px;
+}
+.status-chevron:last-child {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0; padding-right: 12px;
+}
+.status-chevron.reached { background: var(--overlay-xl); color: var(--color-text-secondary); }
+.status-chevron.active { font-weight: 700; font-size: 13px; }
+
+/* Body */
+.body { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+
+/* Title — no label, just editable text */
+.title-field {
+  font-size: 18px; font-weight: 600; color: var(--color-text);
+  padding: 6px 0; border: none; cursor: text; line-height: 1.4;
+}
+
+/* Description — keep label since it could be empty */
+.detail-field { display: flex; flex-direction: column; gap: 4px; }
+.detail-field label {
+  font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--color-text-secondary);
+}
+.desc-text { font-size: 14px; color: var(--color-text); line-height: 1.5; padding: 4px 0; }
+
+/* === Owner + Date row === */
+.owner-date-row {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.owner-circle-wrapper {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.owner-circle {
+  width: 44px; height: 44px; border-radius: 50%; border: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-family: inherit; padding: 0; color: #fff; font-size: 15px;
+  font-weight: 700; letter-spacing: 0.5px; transition: all var(--transition-fast);
+}
+.owner-circle.active {
+  box-shadow: 0 0 0 3px var(--color-surface), 0 0 0 5px var(--color-primary);
+}
+.owner-circle-name {
+  font-size: 10px; color: var(--color-text-secondary); text-align: center;
+  max-width: 52px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.row-divider { width: 1px; height: 32px; background: var(--color-border); flex-shrink: 0; }
+
+/* Date button — whole thing clickable */
+.due-date-btn {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  border: none; border-radius: var(--radius); background: transparent;
+  cursor: pointer; font-family: inherit; transition: all var(--transition-fast); text-align: left;
+}
+.due-date-btn:hover { background: var(--overlay-xs); }
+.due-date-btn svg { width: 24px; height: 24px; flex-shrink: 0; }
+.due-date-btn .no-date { color: var(--color-text-muted); font-size: 14px; }
+.due-date-btn .date-info { display: flex; flex-direction: column; gap: 1px; }
+.due-date-btn .date-text { font-size: 14px; font-weight: 500; color: var(--color-text); }
+.due-date-btn .date-relative { font-size: 12px; color: var(--color-text-secondary); }
+.due-date-btn.has-date svg { color: var(--color-primary); }
+
+/* Date popover */
+.date-popover {
+  position: absolute; left: 0; top: calc(100% + 4px); z-index: 50;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius); box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  padding: 8px; display: flex; flex-direction: column; gap: 6px;
+  min-width: 220px;
+}
+.date-popover-picks {
+  display: flex; gap: 4px; flex-wrap: wrap;
+}
+.date-popover-pick {
+  padding: 6px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border); background: transparent;
+  color: var(--color-text-secondary); font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: inherit; transition: all var(--transition-fast);
+}
+.date-popover-pick:hover { border-color: var(--color-primary); color: var(--color-text); }
+.date-popover-pick.active {
+  background: rgba(var(--color-primary-rgb), 0.12);
+  border-color: var(--color-primary); color: var(--color-primary); font-weight: 600;
+}
+.date-popover-custom {
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  background: transparent; color: var(--color-text-secondary); font-size: 13px;
+  cursor: pointer; font-family: inherit; transition: all var(--transition-fast);
+}
+.date-popover-custom:hover { border-color: var(--color-primary); color: var(--color-text); }
+.date-popover-custom svg { width: 16px; height: 16px; }
+.date-popover-clear {
+  padding: 6px 8px; border: none; background: none;
+  color: var(--color-text-muted); font-size: 12px; cursor: pointer;
+  font-family: inherit; text-align: left; border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+.date-popover-clear:hover { color: var(--color-danger); background: rgba(211,47,47,0.06); }
+.date-popover-sep { height: 1px; background: var(--color-border); }
+
+/* Labels — no label header, just pills */
+.label-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.label-pill {
+  padding: 5px 14px; border-radius: var(--radius-full); border: 2px solid transparent;
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+  display: inline-flex; align-items: center; min-height: 32px;
+}
+.label-new-pill {
+  padding: 5px 14px; border-radius: var(--radius-full);
+  border: 2px dashed var(--color-border); background: transparent;
+  color: var(--color-text-secondary); font-size: 15px; font-weight: 500;
+  cursor: pointer; font-family: inherit; display: inline-flex;
+  align-items: center; justify-content: center; min-height: 32px; min-width: 32px;
+  transition: all var(--transition-fast);
+}
+.label-new-pill:hover { border-color: var(--color-text-secondary); }
+.label-gear {
+  width: 32px; height: 32px; border: none; background: none;
+  color: var(--color-text-secondary); cursor: pointer; display: flex;
+  align-items: center; justify-content: center; border-radius: 50%;
+  transition: all var(--transition-fast);
+}
+.label-gear:hover { background: var(--overlay-xl); color: var(--color-text); }
+
+/* === Subtasks === */
+.subtasks-header {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.subtasks-header label {
+  font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--color-text-secondary);
+}
+.subtask-add-circle {
+  width: 44px; height: 44px; border: none; background: none;
+  color: var(--color-primary); cursor: pointer; display: flex;
+  align-items: center; justify-content: center; border-radius: 50%;
+  transition: background var(--transition-fast); padding: 0;
+}
+.subtask-add-circle:hover { background: var(--color-primary-light); }
+
+.subtask-list { display: flex; flex-direction: column; gap: 2px; }
+.subtask-item {
+  display: flex; align-items: flex-start; gap: 8px; padding: 10px 4px;
+  border-radius: var(--radius-sm); min-height: 48px; position: relative;
+  transition: background var(--transition-fast);
+}
+.subtask-item:hover { background: var(--overlay-xs); }
+
+/* Rounded square checkbox */
+.check-icon {
+  width: 44px; height: 44px; min-width: 44px; border: none; background: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; padding: 0; margin: -8px 0;
+}
+.check-box {
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 2px solid var(--color-border-light); background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition-fast);
+}
+.check-icon:hover .check-box { border-color: var(--color-primary); }
+.check-box.checked { background: var(--color-success); border-color: var(--color-success); }
+.check-box.checked svg { width: 14px; height: 14px; stroke: #fff; stroke-width: 3; fill: none; }
+
+.subtask-content {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding: 2px 0;
+}
+.subtask-title { font-size: 14px; color: var(--color-text); line-height: 1.4; cursor: pointer; }
+.subtask-done { opacity: 0.6; }
+.subtask-done .subtask-title {
+  text-decoration: line-through; color: var(--color-text-muted);
+}
+
+/* Subtask date — always visible */
+.subtask-date-inline {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px;
+  border-radius: var(--radius-sm); background: rgba(var(--color-primary-rgb), 0.1);
+  color: var(--color-primary); font-size: 12px; font-weight: 500;
+  cursor: pointer; border: none; font-family: inherit; align-self: flex-start;
+  transition: background var(--transition-fast); min-height: 24px;
+}
+.subtask-date-inline:hover { background: rgba(var(--color-primary-rgb), 0.18); }
+.subtask-date-inline svg { width: 14px; height: 14px; }
+.subtask-date-inline.overdue { background: rgba(211,47,47,0.1); color: var(--color-overdue); }
+.subtask-date-inline.done { background: var(--overlay-md); color: var(--color-text-muted); text-decoration: line-through; }
+.subtask-date-add {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px;
+  border-radius: var(--radius-sm); background: transparent;
+  color: var(--color-text-muted); font-size: 12px; cursor: pointer;
+  border: 1px dashed var(--color-border); font-family: inherit;
+  align-self: flex-start; transition: all var(--transition-fast); min-height: 24px;
+}
+.subtask-date-add:hover { border-color: var(--color-text-secondary); color: var(--color-text-secondary); }
+.subtask-date-add svg { width: 14px; height: 14px; }
+
+/* Kebab — always visible */
+.subtask-kebab {
+  width: 32px; height: 32px; border: none; background: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  color: var(--color-text-muted); font-size: 18px; flex-shrink: 0; padding: 0;
+  transition: all var(--transition-fast);
+}
+.subtask-kebab:hover { background: var(--overlay-xl); color: var(--color-text); }
+
+/* Divider */
+.subtask-divider {
+  display: flex; align-items: center; gap: 10px; padding: 6px 0;
+}
+.subtask-divider-line { flex: 1; height: 1px; background: var(--color-border); }
+.subtask-divider-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--color-text-muted);
+}
+
+/* Add subtask inline (appears above divider) */
+.subtask-add-inline {
+  display: flex; gap: 8px; align-items: center; padding: 6px 4px;
+}
+.subtask-add-input {
+  flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm); font-size: 14px; font-family: inherit;
+  color: var(--color-text); background: var(--color-surface); outline: none;
+}
+.subtask-add-hint {
+  font-size: 11px; color: var(--color-text-muted); padding: 2px 4px;
+}
+
+/* Meta */
+.detail-meta {
+  display: flex; flex-direction: column; gap: 4px; padding-top: 16px;
+  border-top: 1px solid var(--color-border); color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+/* Footer */
+.panel-footer {
+  display: flex; padding: 16px 20px; border-top: 1px solid var(--color-border);
+  gap: 12px;
+}
+.footer-btn {
+  flex: 1; padding: 12px; border-radius: var(--radius);
+  border: 1px solid var(--color-border); background: transparent;
+  color: var(--color-text-secondary); font-size: 14px; font-family: inherit;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  gap: 8px; min-height: 48px; transition: all var(--transition-fast);
+}
+.footer-btn:hover { border-color: var(--color-text-secondary); }
+.footer-btn.danger { color: var(--color-danger); border-color: var(--color-danger); }
+.footer-btn.danger:hover { background: var(--color-danger); color: #fff; }
+.footer-btn svg { width: 18px; height: 18px; }
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <!-- Header -->
+  <div class="header">
+    <h2>Item Details</h2>
+    <div class="header-actions">
+      <button class="header-btn" title="Expand">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="14" y1="10" x2="20" y2="4"/><polyline points="20 10 20 4 14 4"/><line x1="10" y1="14" x2="4" y2="20"/><polyline points="4 14 4 20 10 20"/></svg>
+      </button>
+      <button class="header-btn" title="Close">✕</button>
+    </div>
+  </div>
+
+  <!-- Status chevrons -->
+  <div class="status-pipeline">
+    <button class="status-chevron reached" style="background: #e3f2fd; color: #1f1f1f;">To Do</button>
+    <button class="status-chevron active" style="background: #fff3e0; color: #1f1f1f;">In Progress</button>
+    <button class="status-chevron">Done</button>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+
+    <!-- Title — no label -->
+    <div class="title-field">Lowes</div>
+
+    <!-- Description — keep label -->
+    <div class="detail-field">
+      <label>Description</label>
+      <div class="desc-text">Stuff for next Lowes trip</div>
+    </div>
+
+    <!-- Owner + Date combined row — no labels -->
+    <div class="owner-date-row">
+      <div class="owner-circle-wrapper">
+        <button class="owner-circle active" style="background: #e65100;">LU</button>
+        <span class="owner-circle-name">Luke</span>
+      </div>
+      <div class="owner-circle-wrapper">
+        <button class="owner-circle" style="background: var(--color-border); color: var(--color-text-secondary);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </button>
+        <span class="owner-circle-name">None</span>
+      </div>
+
+      <div class="row-divider"></div>
+
+      <div class="due-date-btn has-date" role="button" tabindex="0" title="Tap to change date" style="position: relative;">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+        <div class="date-info">
+          <span class="date-text" style="color: var(--color-overdue)">Apr 3</span>
+          <span class="date-relative" style="color: var(--color-overdue)">1 day overdue</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Date popover example (shown as if open) -->
+    <div style="position: relative; margin-top: -8px; margin-left: 112px;">
+      <div class="date-popover" style="position: relative; top: 0;">
+        <div class="date-popover-picks">
+          <button class="date-popover-pick">Today</button>
+          <button class="date-popover-pick">This Fri</button>
+          <button class="date-popover-pick">Next Mon</button>
+          <button class="date-popover-pick">Next Fri</button>
+        </div>
+        <div class="date-popover-sep"></div>
+        <button class="date-popover-custom">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Pick a date...
+        </button>
+        <div class="date-popover-sep"></div>
+        <button class="date-popover-clear">Clear date</button>
+      </div>
+    </div>
+
+    <!-- Labels — no label header, just pills inline -->
+    <div class="label-row">
+      <span class="label-pill" style="background: #4caf50; color: white;">Errand</span>
+      <span class="label-pill" style="background: #2196f3; color: white;">Finance</span>
+      <span class="label-pill" style="background: #9c27b0; color: white;">Little Bear</span>
+      <span class="label-pill" style="background: #ff9800; color: white;">Clymer</span>
+      <button class="label-new-pill">+</button>
+      <button class="label-gear">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+
+    <!-- Subtasks -->
+    <div>
+      <div class="subtasks-header">
+        <label>Sub-tasks (1/4)</label>
+        <button class="subtask-add-circle">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        </button>
+      </div>
+
+      <ul class="subtask-list">
+        <!-- Incomplete items -->
+        <li class="subtask-item">
+          <button class="check-icon"><span class="check-box"></span></button>
+          <div class="subtask-content">
+            <span class="subtask-title">Flood lights for kitchen</span>
+            <button class="subtask-date-add">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Add date
+            </button>
+          </div>
+          <button class="subtask-kebab">⋮</button>
+        </li>
+
+        <li class="subtask-item">
+          <button class="check-icon"><span class="check-box"></span></button>
+          <div class="subtask-content">
+            <span class="subtask-title">Fertilizer</span>
+            <button class="subtask-date-inline overdue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Apr 1
+            </button>
+          </div>
+          <button class="subtask-kebab">⋮</button>
+        </li>
+
+        <li class="subtask-item">
+          <button class="check-icon"><span class="check-box"></span></button>
+          <div class="subtask-content">
+            <span class="subtask-title">Mulch bags — need to measure the garden bed first to figure out how many</span>
+            <button class="subtask-date-inline">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Apr 10
+            </button>
+          </div>
+          <button class="subtask-kebab">⋮</button>
+        </li>
+
+        <!-- Divider -->
+        <li class="subtask-divider" aria-hidden="true">
+          <span class="subtask-divider-line"></span>
+          <span class="subtask-divider-label">completed</span>
+          <span class="subtask-divider-line"></span>
+        </li>
+
+        <!-- Done items -->
+        <li class="subtask-item subtask-done">
+          <button class="check-icon">
+            <span class="check-box checked"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </button>
+          <div class="subtask-content">
+            <span class="subtask-title">Paint samples</span>
+            <button class="subtask-date-inline done">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Mar 30
+            </button>
+          </div>
+          <button class="subtask-kebab">⋮</button>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Meta -->
+    <div class="detail-meta">
+      <small>Created by: Luke</small>
+      <small>Created: 3/8/2026, 9:37:33 PM</small>
+      <small>Updated: 4/3/2026, 6:49:25 AM</small>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="panel-footer">
+    <button class="footer-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+      Move
+    </button>
+    <button class="footer-btn danger">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+      Delete
+    </button>
+  </div>
+</div>
+
+</body>
+</html>
