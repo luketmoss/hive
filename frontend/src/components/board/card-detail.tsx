@@ -9,6 +9,23 @@ import { getContrastTextColor } from '../../utils/color';
 import { QuickDateChips } from '../shared/quick-date-chips';
 import type { ItemStatus, ItemWithRow } from '../../api/types';
 
+// #220: Map status colors to theme-aware CSS variables (same as column.tsx)
+const COLOR_TO_CSS_VAR: Record<string, string> = {
+  '#e3f2fd': 'var(--color-todo)',
+  '#fff3e0': 'var(--color-inprogress)',
+  '#e8f5e9': 'var(--color-done)',
+  '#e8eaf6': 'var(--color-col-indigo)',
+  '#f3e5f5': 'var(--color-col-purple)',
+  '#fce4ec': 'var(--color-col-pink)',
+  '#e0f2f1': 'var(--color-col-teal)',
+  '#fff8e1': 'var(--color-col-amber)',
+};
+
+function resolveColumnColor(color?: string): string {
+  if (!color) return 'var(--color-bg)';
+  return COLOR_TO_CSS_VAR[color] || color;
+}
+
 // #220: Owner avatar initials + deterministic colors
 const OWNER_COLORS = ['#e65100', '#1976d2', '#2e7d32', '#7b1fa2', '#c62828', '#00838f', '#4e342e', '#455a64'];
 
@@ -360,6 +377,7 @@ export function CardDetail() {
             const activeIdx = boardStatuses.value.findIndex(bs => bs.name === item.status);
             const isActive = s.name === item.status;
             const isReached = i < activeIdx;
+            const resolvedColor = resolveColumnColor(s.color);
             return (
               <button
                 key={s.id}
@@ -367,7 +385,7 @@ export function CardDetail() {
                 class={`status-chevron${isActive ? ' active' : ''}${isReached ? ' reached' : ''}`}
                 role="radio"
                 aria-checked={isActive}
-                style={isActive ? { background: s.color } : undefined}
+                style={isActive ? { background: resolvedColor } : undefined}
                 onClick={() => handleMoveStatus(s.name as ItemStatus)}
               >{s.name}</button>
             );

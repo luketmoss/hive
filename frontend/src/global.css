@@ -2031,7 +2031,7 @@ body {
   color: var(--color-text-secondary);
 }
 .status-chevron.active {
-  color: #fff;
+  color: var(--color-text);
   font-weight: 700;
   font-size: 13px;
 }
