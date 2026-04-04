@@ -1995,9 +1995,22 @@ body {
   padding-left: 0;
   padding-right: 0;
 }
+.editable-value.editable-value-desc {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  padding-left: 0;
+  padding-right: 0;
+  color: var(--color-text-secondary);
+}
 .detail-field-no-label input[type="text"] {
   font-size: 28px;
   font-weight: 700;
+  padding-left: 0;
+}
+.detail-field-no-label textarea {
+  font-size: 16px;
+  font-weight: 400;
   padding-left: 0;
 }
 

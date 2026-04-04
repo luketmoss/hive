@@ -404,6 +404,7 @@ export function CardDetail() {
 
           <EditableField
             label="Description"
+            hideLabel
             value={item.description}
             onSave={(v) => save('description', v)}
             multiline
@@ -796,7 +797,7 @@ function EditableField({ label, hideLabel, value, onSave, multiline, initialEdit
           <span class="save-indicator save-indicator-error" data-testid="save-indicator-error">Error</span>
         )}
         <div
-          class={`editable-value${hideLabel ? ' editable-value-title' : ''}`}
+          class={`editable-value${hideLabel ? (multiline ? ' editable-value-desc' : ' editable-value-title') : ''}`}
           role="button"
           tabIndex={0}
           aria-label={`Edit ${label.toLowerCase()}`}
@@ -808,7 +809,7 @@ function EditableField({ label, hideLabel, value, onSave, multiline, initialEdit
             }
           }}
         >
-          {value || <span class="placeholder">Click to edit</span>}
+          {value || <span class="placeholder">{hideLabel && multiline ? 'Add a description...' : 'Click to edit'}</span>}
         </div>
       </div>
     );
