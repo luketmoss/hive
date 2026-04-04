@@ -1087,88 +1087,55 @@ describe('CardDetail sub-task date fields (Issue #86)', () => {
     });
   });
 
-  // AC2: Inline date editing on sub-tasks
+  // AC2: Inline date editing on sub-tasks (native picker, single click)
   describe('AC2: Inline date editing on sub-tasks', () => {
-    it('clicking a date badge shows an inline date input', () => {
+    it('hidden date input exists with correct value for subtask with date', () => {
       const { container } = renderCardDetail();
-      // #220: .subtask-date-inline replaces .subtask-date-badge
-      const dueBadge = container.querySelector('.subtask-date-inline') as HTMLElement;
-      fireEvent.click(dueBadge);
-
-      const dateInput = container.querySelector('.subtask-date-popover input[type="date"]') as HTMLInputElement;
-      expect(dateInput).not.toBeNull();
-      expect(dateInput.type).toBe('date');
-      expect(dateInput.value).toBe('2026-03-20');
+      const wrapper = container.querySelector('.subtask-date-wrapper');
+      expect(wrapper).not.toBeNull();
+      const hiddenInput = wrapper!.querySelector('.due-date-hidden') as HTMLInputElement;
+      expect(hiddenInput).not.toBeNull();
+      expect(hiddenInput.value).toBe('2026-03-20');
     });
 
-    it('changing the date input calls updateItem and closes the editor', async () => {
+    it('changing the hidden date input calls updateItem', async () => {
       const { container } = renderCardDetail();
-      const dueBadge = container.querySelector('.subtask-date-inline') as HTMLElement;
-      fireEvent.click(dueBadge);
-
-      const dateInput = container.querySelector('.subtask-date-popover input[type="date"]') as HTMLInputElement;
+      const hiddenInput = container.querySelector('.subtask-date-wrapper .due-date-hidden') as HTMLInputElement;
       await act(async () => {
-        fireEvent.change(dateInput, { target: { value: '2026-04-01' } });
+        fireEvent.change(hiddenInput, { target: { value: '2026-04-01' } });
       });
 
       expect(mockUpdateItem).toHaveBeenCalledWith('child-dates-1', { due_date: '2026-04-01' }, 'Luke', 'test-token');
-      // Editor should close after save
-      expect(container.querySelector('.subtask-date-popover')).toBeNull();
     });
 
-    it('popover contains a date input and optional clear button', () => {
+    it('no popover exists — native picker is used directly via showPicker()', () => {
       const { container } = renderCardDetail();
-      const dueBadge = container.querySelector('.subtask-date-inline') as HTMLElement;
-      fireEvent.click(dueBadge);
-
-      // Popover should be open
-      const popover = container.querySelector('.subtask-date-popover');
-      expect(popover).not.toBeNull();
-      // Contains a date input
-      const dateInput = popover!.querySelector('input[type="date"]') as HTMLInputElement;
-      expect(dateInput).not.toBeNull();
-      // Contains a clear button (since childWithDates has a due_date)
-      const clearBtn = popover!.querySelector('button');
-      expect(clearBtn).not.toBeNull();
-      expect(clearBtn!.textContent).toContain('Clear date');
-    });
-
-    it('Escape closes the date editor', () => {
-      const { container } = renderCardDetail();
-      const dueBadge = container.querySelector('.subtask-date-inline') as HTMLElement;
-      fireEvent.click(dueBadge);
-
-      const dateInput = container.querySelector('.subtask-date-popover input[type="date"]') as HTMLInputElement;
-      fireEvent.keyDown(dateInput, { key: 'Escape' });
-
+      // No popover in the DOM at all — dates use native picker
       expect(container.querySelector('.subtask-date-popover')).toBeNull();
     });
 
     it('date badge has accessible title including date', () => {
       const { container } = renderCardDetail();
-      // #220: .subtask-date-inline uses title attribute
       const dueBadge = container.querySelector('.subtask-date-inline') as HTMLElement;
       const title = dueBadge.getAttribute('title') || '';
       expect(title).toContain('Due:');
     });
 
-    it('clicking "Add date" affordance opens due date editor for dateless sub-task', () => {
+    it('"Add date" affordance exists for dateless sub-task with hidden input', () => {
       mockChildren = [childNoDates];
       mockItems = [childNoDates];
       const { container } = renderCardDetail();
-      // #220: .subtask-date-add-inline replaces .subtask-date-add
       const dueAddBtn = container.querySelector('.subtask-date-add-inline') as HTMLElement;
       expect(dueAddBtn).not.toBeNull();
-      fireEvent.click(dueAddBtn);
-      const dateInput = container.querySelector('.subtask-date-popover input[type="date"]') as HTMLInputElement;
-      expect(dateInput).not.toBeNull();
+      const hiddenInput = container.querySelector('.subtask-date-wrapper .due-date-hidden') as HTMLInputElement;
+      expect(hiddenInput).not.toBeNull();
+      expect(hiddenInput.value).toBe('');
     });
 
     it('shows no add-affordance buttons when due date is set', () => {
       mockChildren = [childWithDates];
       mockItems = [childWithDates];
       const { container } = renderCardDetail();
-      // childWithDates has due_date set — no add-inline buttons
       const addBtns = container.querySelectorAll('.subtask-date-add-inline');
       expect(addBtns.length).toBe(0);
     });

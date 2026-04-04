@@ -866,80 +866,53 @@ function isOverdue(dateStr: string, status: string): boolean {
   return parseLocalDate(dateStr) < new Date(new Date().toDateString());
 }
 
-// #220: Subtask inline date badge (stacked under title)
+// #220: Subtask inline date — launches native picker directly (single click)
 function SubtaskDateInline({ child, onSave }: {
   child: ItemWithRow;
   onSave: (childId: string, field: 'due_date', value: string) => void;
 }) {
-  const [showPopover, setShowPopover] = useState(false);
-  const popoverRef = useRef<HTMLDivElement>(null);
+  const hiddenRef = useRef<HTMLInputElement>(null);
 
   const hasDue = !!child.due_date;
   const dueOverdue = isOverdue(child.due_date, child.status);
   const isDone = isTerminalStatus(child.status);
+  const dateVal = child.due_date ? child.due_date.split('T')[0] : '';
 
-  const handleDateChange = (value: string) => {
-    onSave(child.id, 'due_date', value);
-    setShowPopover(false);
+  const openPicker = (e: Event) => {
+    e.stopPropagation();
+    hiddenRef.current?.showPicker();
   };
 
-  if (showPopover) {
-    const currentValue = child.due_date ? child.due_date.split('T')[0] : '';
-    return (
-      <div style={{ position: 'relative' }}>
-        <div
-          ref={popoverRef}
-          class="subtask-date-popover"
-          onFocusOut={(e: FocusEvent) => {
-            const related = e.relatedTarget as Node | null;
-            if (popoverRef.current && related && popoverRef.current.contains(related)) return;
-            setShowPopover(false);
-          }}
-        >
-          <input
-            type="date"
-            value={currentValue}
-            aria-label={`Due date for ${child.title}`}
-            autoFocus
-            onChange={(e) => handleDateChange((e.target as HTMLInputElement).value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') { e.stopPropagation(); setShowPopover(false); }
-            }}
-          />
-          {hasDue && (
-            <button
-              type="button"
-              class="btn btn-ghost btn-sm"
-              onClick={() => handleDateChange('')}
-            >Clear date</button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  if (hasDue) {
-    return (
-      <button
-        class={`subtask-date-inline${dueOverdue ? ' overdue' : ''}${isDone ? ' done' : ''}`}
-        title={`Due: ${formatCompactDate(child.due_date)}. Tap to change.`}
-        onClick={(e) => { e.stopPropagation(); setShowPopover(true); }}
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        {formatCompactDate(child.due_date)}
-      </button>
-    );
-  }
-
   return (
-    <button
-      class="subtask-date-add-inline"
-      aria-label={`Add due date for ${child.title}`}
-      onClick={(e) => { e.stopPropagation(); setShowPopover(true); }}
-    >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      Add date
-    </button>
+    <div class="subtask-date-wrapper">
+      <input
+        ref={hiddenRef}
+        type="date"
+        class="due-date-hidden"
+        value={dateVal}
+        aria-label={`Due date for ${child.title}`}
+        onChange={(e) => onSave(child.id, 'due_date', (e.target as HTMLInputElement).value)}
+      />
+      {hasDue ? (
+        <button
+          class={`subtask-date-inline${dueOverdue ? ' overdue' : ''}${isDone ? ' done' : ''}`}
+          title={`Due: ${formatCompactDate(child.due_date)}. Tap to change.`}
+          onClick={openPicker}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          {formatCompactDate(child.due_date)}
+        </button>
+      ) : (
+        <button
+          class="subtask-date-add-inline"
+          aria-label={`Add due date for ${child.title}`}
+          onClick={openPicker}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Add date
+        </button>
+      )}
+    </div>
   );
 }
 
