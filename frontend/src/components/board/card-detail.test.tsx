@@ -1537,35 +1537,35 @@ describe('CardDetail clear date button (Issue #207)', () => {
     expect(clearBtn).toBeNull();
   });
 
-  it('AC1: clear button appears when due_date is set', () => {
+  it('AC1: no standalone clear button — clearing is done via native date picker', () => {
     mockItemOverrides = { due_date: '2026-04-10' };
     const { container } = renderCardDetail();
     const clearBtn = container.querySelector('[aria-label="Clear due date"]');
-    expect(clearBtn).not.toBeNull();
+    expect(clearBtn).toBeNull();
   });
 
-  // AC2: Clearing saves immediately
-  it('AC2: clicking clear button saves empty due_date', async () => {
+  // AC2: Date can be changed via hidden date input (native picker)
+  it('AC2: changing date via hidden input saves the new value', async () => {
     mockItemOverrides = { due_date: '2026-04-10' };
     const { container } = renderCardDetail();
-    const clearBtn = container.querySelector('[aria-label="Clear due date"]') as HTMLElement;
-    expect(clearBtn).not.toBeNull();
+    const hiddenInput = container.querySelector('.due-date-hidden') as HTMLInputElement;
+    expect(hiddenInput).not.toBeNull();
 
     await act(async () => {
-      fireEvent.click(clearBtn);
+      fireEvent.change(hiddenInput, { target: { value: '2026-05-01' } });
     });
 
-    expect(mockUpdateItem).toHaveBeenCalledWith('detail-test-1', { due_date: '' }, 'Luke', 'test-token');
+    expect(mockUpdateItem).toHaveBeenCalledWith('detail-test-1', { due_date: '2026-05-01' }, 'Luke', 'test-token');
   });
 
-  // AC3: No extra vertical space — button is inline in same row as date/owner
-  it('AC3: clear button is inline with date button in the owner-date-row', () => {
+  // AC3: date button and owner circles are in the same owner-date-row
+  it('AC3: date button is in the owner-date-row alongside owner circles', () => {
     mockItemOverrides = { due_date: '2026-04-10' };
     const { container } = renderCardDetail();
     const row = container.querySelector('.owner-date-row');
     expect(row).not.toBeNull();
-    const clearBtn = row!.querySelector('[aria-label="Clear due date"]');
-    expect(clearBtn).not.toBeNull();
+    const dateBtn = row!.querySelector('.due-date-btn');
+    expect(dateBtn).not.toBeNull();
   });
 });
 
