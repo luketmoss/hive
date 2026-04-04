@@ -1988,14 +1988,17 @@ body {
 .detail-field-no-label {
   gap: 0;
 }
-.editable-value-title {
-  font-size: 24px;
+.editable-value.editable-value-title {
+  font-size: 28px;
   font-weight: 700;
-  line-height: 1.3;
+  line-height: 1.2;
+  padding-left: 0;
+  padding-right: 0;
 }
 .detail-field-no-label input[type="text"] {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
+  padding-left: 0;
 }
 
 /* === #220: Status chevron pipeline === */
@@ -2059,6 +2062,7 @@ body {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  justify-content: space-between;
   position: relative;
   padding: 4px 0;
 }
@@ -2067,11 +2071,17 @@ body {
   top: -4px;
   right: 0;
 }
+.owner-circles {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 .row-divider {
   width: 1px;
   height: 32px;
   background: var(--color-border);
   flex-shrink: 0;
+  display: none;
 }
 .owner-row {
   display: flex;

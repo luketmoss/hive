@@ -632,32 +632,32 @@ function OwnerDateRow({ item, owners: ownersList, save }: {
       {feedback === 'error' && (
         <span class="save-indicator save-indicator-error owner-date-feedback" data-testid="save-indicator-error">Error</span>
       )}
-      {ownersList.map((o, i) => (
-        <div key={o.name} class="owner-circle-wrapper">
+      <div class="owner-circles">
+        {ownersList.map((o, i) => (
+          <div key={o.name} class="owner-circle-wrapper">
+            <button
+              type="button"
+              class={`owner-circle${item.owner === o.name ? ' active' : ''}`}
+              title={o.name}
+              style={{ background: getOwnerColor(i) }}
+              onClick={async () => onSaved(await save('owner', o.name))}
+            >{getInitials(o.name)}</button>
+            <span class="owner-circle-name">{o.name.split(' ')[0]}</span>
+          </div>
+        ))}
+        <div class="owner-circle-wrapper">
           <button
             type="button"
-            class={`owner-circle${item.owner === o.name ? ' active' : ''}`}
-            title={o.name}
-            style={{ background: getOwnerColor(i) }}
-            onClick={async () => onSaved(await save('owner', o.name))}
-          >{getInitials(o.name)}</button>
-          <span class="owner-circle-name">{o.name.split(' ')[0]}</span>
+            class={`owner-circle${!item.owner ? ' active' : ''}`}
+            title="Unassigned"
+            style={{ background: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
+            onClick={async () => onSaved(await save('owner', ''))}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </button>
+          <span class="owner-circle-name">None</span>
         </div>
-      ))}
-      <div class="owner-circle-wrapper">
-        <button
-          type="button"
-          class={`owner-circle${!item.owner ? ' active' : ''}`}
-          title="Unassigned"
-          style={{ background: 'var(--color-border)', color: 'var(--color-text-secondary)' }}
-          onClick={async () => onSaved(await save('owner', ''))}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        </button>
-        <span class="owner-circle-name">None</span>
       </div>
-
-      <div class="row-divider"></div>
 
       <div class="due-date-group">
         <button
