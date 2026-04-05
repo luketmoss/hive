@@ -47,6 +47,7 @@ const mockAuth: AuthState = {
   token: 'test-token',
   user: { email: 'owner@family.com', name: 'Owner', picture: '' },
   isAuthenticated: true,
+  isAuthLoading: false,
   login: vi.fn(),
   logout: vi.fn(),
   updateUserName: vi.fn(),
