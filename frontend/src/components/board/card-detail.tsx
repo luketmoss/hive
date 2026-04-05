@@ -1077,7 +1077,7 @@ function SubtaskRow({ child, idx, allItems, isDone, editingSubtaskId, editingSub
               if (e.key === 'Enter') { e.preventDefault(); commitSubtaskTitleEdit(child.id); }
               if (e.key === 'Escape') { e.stopPropagation(); cancelSubtaskTitleEdit(); }
             }}
-            ref={(el) => { if (el) autoResize(el); }}
+            ref={(el) => { if (el) requestAnimationFrame(() => autoResize(el)); }}
           />
         ) : (
           <span
