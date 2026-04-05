@@ -208,6 +208,9 @@ export function ControlBar() {
           </div>
           <div class="filter-popup-body">
             {content}
+            <button class="btn btn-ghost filter-popup-done" onClick={closeFilters}>
+              Done
+            </button>
           </div>
         </div>
       </div>

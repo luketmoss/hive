@@ -3847,6 +3847,16 @@ body {
   display: none;
 }
 
+.filter-popup-done {
+  margin-top: 8px;
+  width: 100%;
+  min-height: 48px;
+  font-size: 16px;
+  font-weight: 600;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
 .filter-popup-header {
   display: flex;
   align-items: center;
@@ -4018,9 +4028,14 @@ body {
     display: none;
   }
 
-  /* Show mobile search in bar */
+  /* Show mobile search in bar, constrained width */
   .control-bar-mobile-search {
     display: contents;
+  }
+  .control-bar-mobile-search .filter-search-wrapper {
+    flex: 1;
+    min-width: 0;
+    max-width: 180px;
   }
 
   /* Show popup backdrop on mobile */
