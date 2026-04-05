@@ -55,7 +55,19 @@ function AuthenticatedApp() {
 }
 
 function AppContent() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAuthLoading } = useAuth();
+
+  if (isAuthLoading) {
+    return (
+      <>
+        <div class="loading-screen">
+          <div class="spinner" />
+          <p>Signing in...</p>
+        </div>
+        <Toast />
+      </>
+    );
+  }
 
   return (
     <>

@@ -12,6 +12,7 @@ const SCOPES = 'https://www.googleapis.com/auth/spreadsheets openid email profil
 const TOKEN_KEY = 'hive_token';
 const USER_KEY = 'hive_user';
 const TOKEN_EXPIRY_KEY = 'hive_token_expiry';
+const PRIOR_USER_KEY = 'hive_prior_user';
 
 export function loadCachedAuth(): { token: string; user: UserInfo; expiry: number } | null {
   try {
@@ -35,7 +36,20 @@ export function saveCachedAuth(token: string, user: UserInfo, expiresIn: number)
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     // GIS tokens last ~3600s; shave 60s to avoid edge-case expiry
     localStorage.setItem(TOKEN_EXPIRY_KEY, String(Date.now() + (expiresIn - 60) * 1000));
+    // Persist user separately so we can attempt silent auto-login after token expiry
+    localStorage.setItem(PRIOR_USER_KEY, JSON.stringify(user));
   } catch { /* ignore */ }
+}
+
+function loadPriorUser(): UserInfo | null {
+  try {
+    const raw = localStorage.getItem(PRIOR_USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function clearPriorUser() {
+  try { localStorage.removeItem(PRIOR_USER_KEY); } catch { /* ignore */ }
 }
 
 export function clearCachedAuth() {
@@ -62,10 +76,13 @@ interface Props {
 export function AuthProvider({ children }: Props) {
   const demo = isDemoMode();
   const cached = demo ? null : loadCachedAuth();
+  const shouldAttemptSilentAuth = !demo && !cached && !!loadPriorUser();
   const [token, setToken] = useState<string | null>(demo ? 'demo-token' : cached?.token ?? null);
   const [user, setUser] = useState<UserInfo | null>(demo ? DEMO_USER : cached?.user ?? null);
+  const [isAuthLoading, setIsAuthLoading] = useState(shouldAttemptSilentAuth);
   const tokenClientRef = useRef<any>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const silentAutoLoginRef = useRef(shouldAttemptSilentAuth);
 
   /** Schedule a silent token refresh 5 minutes before expiry. */
   const scheduleRefresh = useCallback((expiresInSec: number) => {
@@ -139,7 +156,7 @@ export function AuthProvider({ children }: Props) {
             reauthResolveRef.current = null;
             reauthRejectRef.current = null;
           } else {
-            // Normal login: fetch user info
+            // Normal login (including silent auto-login on page load): fetch user info
             try {
               const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
                 headers: { Authorization: `Bearer ${newToken}` },
@@ -156,13 +173,22 @@ export function AuthProvider({ children }: Props) {
               scheduleRefresh(expiresIn);
             } catch (err) {
               console.error('Failed to fetch user info:', err);
+            } finally {
+              if (silentAutoLoginRef.current) {
+                silentAutoLoginRef.current = false;
+                setIsAuthLoading(false);
+              }
             }
           }
         },
         error_callback: (error: any) => {
           console.error('Token client error:', error);
-          // If this was a silent reauth attempt, reject the promise
-          if (reauthRejectRef.current) {
+          if (silentAutoLoginRef.current) {
+            // Silent auto-login failed — fall back to login screen (no toast)
+            silentAutoLoginRef.current = false;
+            setIsAuthLoading(false);
+          } else if (reauthRejectRef.current) {
+            // Silent reauth attempt (401 retry) — reject the promise
             reauthRejectRef.current(new Error(`Token client error: ${error?.type || error?.message || 'unknown'}`));
             reauthResolveRef.current = null;
             reauthRejectRef.current = null;
@@ -172,6 +198,27 @@ export function AuthProvider({ children }: Props) {
     };
 
     init();
+
+    // If user previously logged in but token expired, attempt silent auto-login
+    let silentAuthTimeout: ReturnType<typeof setTimeout> | null = null;
+    if (silentAutoLoginRef.current) {
+      // Poll until GIS client is ready, then fire silent auth
+      const attemptSilentAuth = () => {
+        if (tokenClientRef.current) {
+          tokenClientRef.current.requestAccessToken({ prompt: '' });
+        } else {
+          setTimeout(attemptSilentAuth, 100);
+        }
+      };
+      attemptSilentAuth();
+      // Safety timeout — don't leave user staring at spinner forever
+      silentAuthTimeout = setTimeout(() => {
+        if (silentAutoLoginRef.current) {
+          silentAutoLoginRef.current = false;
+          setIsAuthLoading(false);
+        }
+      }, 5000);
+    }
 
     // Register the reauth callback so sheets.ts can trigger silent re-auth on 401
     const unregisterReauth = registerReauthCallback(() => {
@@ -198,6 +245,7 @@ export function AuthProvider({ children }: Props) {
     return () => {
       unregisterReauth();
       unregisterFailed();
+      if (silentAuthTimeout) clearTimeout(silentAuthTimeout);
     };
   }, [demo]);
 
@@ -229,6 +277,7 @@ export function AuthProvider({ children }: Props) {
     // Don't revoke the token — that removes the consent grant and forces
     // the full consent flow on next login. Just clear local state.
     clearCachedAuth();
+    clearPriorUser();
     setToken(null);
     setUser(null);
   }, [token, demo]);
@@ -239,6 +288,7 @@ export function AuthProvider({ children }: Props) {
         token,
         user,
         isAuthenticated: !!token,
+        isAuthLoading,
         login,
         logout,
         updateUserName,

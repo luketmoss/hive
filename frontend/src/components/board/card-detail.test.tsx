@@ -83,8 +83,10 @@ const mockAuth: AuthState = {
   token: 'test-token',
   user: { name: 'Luke', email: 'luke@example.com', picture: '' },
   isAuthenticated: true,
+  isAuthLoading: false,
   login: () => {},
   logout: () => {},
+  updateUserName: () => {},
 };
 
 function renderCardDetail() {
