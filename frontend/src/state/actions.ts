@@ -1,5 +1,5 @@
 import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl, initActiveViewFromUrl, initUpcomingBoardFilter, permissions, currentUserEmail, selectedItemId, boardItems as boardItemsComputed, statuses, isTerminalStatus, defaultStatusName, boardStatuses } from './board-store';
-import { validateStatusTransition, applyStatusSideEffects } from './rules';
+import { applyStatusSideEffects } from './rules';
 import {
   fetchAllItems as sheetsFetchAllItems,
   fetchOwners as sheetsFetchOwners,
@@ -471,12 +471,6 @@ export async function moveItem(
   const item = items.value.find(i => i.id === itemId);
   if (!item) return false;
   if (item.status === newStatus) return true;
-
-  const validation = validateStatusTransition(item, newStatus, items.value);
-  if (!validation.valid) {
-    showToast(validation.error!, 'error');
-    return false;
-  }
 
   const oldItem = { ...item };
   const oldItems = [...items.value];
@@ -1212,14 +1206,6 @@ export async function unshareBoard(
   }
 }
 
-export async function refreshPermissions(token: string) {
-  try {
-    permissions.value = await fetchPermissionsApi(token);
-  } catch (err: any) {
-    if (isReauthFailure(err)) return;
-    console.error('Permission refresh failed:', err);
-  }
-}
 
 // --- Delete board ---
 

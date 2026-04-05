@@ -2096,11 +2096,6 @@ body {
   flex-shrink: 0;
   display: none;
 }
-.owner-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
 .owner-circle-wrapper {
   display: flex;
   flex-direction: column;
@@ -2140,24 +2135,6 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.owner-search-circle {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 2px dashed var(--color-border);
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  transition: all var(--transition-fast);
-}
-.owner-search-circle:hover {
-  border-color: var(--color-text-secondary);
-  color: var(--color-text-secondary);
 }
 
 /* === #220 follow-up: Due date (clickable row in owner-date row) === */
@@ -4037,6 +4014,7 @@ body {
   .detail-panel {
     width: 100vw;
     scroll-snap-align: none;
+    overscroll-behavior: contain;
   }
 
   /* #207: Touch-friendly clear date button on mobile */
@@ -4129,10 +4107,6 @@ body {
     font-size: 16px;
   }
 
-  /* #220: overscroll containment */
-  .detail-panel {
-    overscroll-behavior: contain;
-  }
 
   /* Show filter toggle on mobile */
   .filter-toggle {
