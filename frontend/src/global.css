@@ -595,10 +595,8 @@ body {
   flex-wrap: wrap;
 }
 
-/* Mobile-only collapsed state (applied via JS when isMobile && !filtersExpanded) */
-.control-bar-filter-content-collapsed {
-  display: none;
-}
+/* Desktop filter content hidden on mobile — popup used instead */
+.control-bar-filter-desktop {}
 
 /* === 3-dot Overflow Menu (#154) === */
 .control-bar-overflow {
@@ -4014,7 +4012,9 @@ body {
   }
 
   /* Desktop inline chips hidden on mobile — popup used instead */
-  .filter-group-desktop {
+  /* Hide both old FilterBar and ControlBar desktop inline filters on mobile */
+  .filter-group-desktop,
+  .control-bar-filter-desktop {
     display: none;
   }
 

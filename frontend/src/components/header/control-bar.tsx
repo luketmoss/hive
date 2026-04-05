@@ -24,16 +24,15 @@ export function ControlBar() {
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const menuDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Detect mobile
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== 'undefined' ? window.innerWidth <= 768 : false
-  );
-
+  // Close filter popup on Escape
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    if (!filtersExpanded) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); setFiltersExpanded(false); }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [filtersExpanded]);
 
   // Click-outside to dismiss 3-dot menu
   useEffect(() => {
@@ -177,7 +176,7 @@ export function ControlBar() {
     );
   }
 
-  const filterContentClass = `control-bar-filter-content${isMobile && !filtersExpanded ? ' control-bar-filter-content-collapsed' : ''}`;
+  const closeFilters = useCallback(() => setFiltersExpanded(false), []);
 
   const handleDueClick = (due: 'today' | 'this-week') => {
     filterDue.value = filterDue.value === due ? null : due;
@@ -191,10 +190,83 @@ export function ControlBar() {
   const isUpcoming = activeView.value === 'upcoming';
 
   // Upcoming view: show search + board chips only
+  // Shared filter popup renderer (mobile bottom sheet)
+  const renderFilterPopup = (content: any) => (
+    filtersExpanded ? (
+      <div class="filter-popup-backdrop" onClick={closeFilters}>
+        <div
+          class="filter-popup"
+          role="dialog"
+          aria-label="Filters"
+          onClick={(e: Event) => e.stopPropagation()}
+        >
+          <div class="filter-popup-header">
+            <span class="filter-popup-title">Filters</span>
+            <button class="filter-popup-close" onClick={closeFilters} aria-label="Close filters">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="filter-popup-body">
+            {content}
+          </div>
+        </div>
+      </div>
+    ) : null
+  );
+
   if (isUpcoming) {
     const upcomingActiveCount =
       (upcomingFilterSearch.value ? 1 : 0) +
       (upcomingFilterBoards.value.size < accessibleBoards.value.length ? 1 : 0);
+
+    const upcomingFilterChips = (
+      <>
+        <div class="filter-search-wrapper" data-testid="upcoming-search-wrapper">
+          <input
+            ref={upcomingSearchRef}
+            type="text"
+            class="filter-search-input"
+            placeholder="Search cards..."
+            aria-label="Search cards"
+            value={localUpcomingSearch}
+            onInput={handleUpcomingSearchInput}
+            onKeyDown={handleUpcomingSearchKeyDown}
+            data-testid="upcoming-search-input"
+          />
+          {localUpcomingSearch && (
+            <button
+              class="filter-search-clear"
+              aria-label="Clear search"
+              onClick={clearUpcomingSearch}
+              data-testid="upcoming-search-clear"
+            >
+              &times;
+            </button>
+          )}
+        </div>
+
+        {accessibleBoards.value.length > 1 && (
+          <div role="group" aria-label="Filter by board" class="filter-chip-group" data-testid="upcoming-board-filter-group">
+            <span class="filter-chip-group-label">Board:</span>
+            {accessibleBoards.value.map(b => {
+              const active = upcomingFilterBoards.value.has(b.id);
+              return (
+                <button
+                  key={b.id}
+                  class={`filter-chip${active ? ' filter-chip-active' : ''}`}
+                  aria-pressed={active ? 'true' : 'false'}
+                  onClick={() => toggleUpcomingBoard(b.id)}
+                  data-testid={`upcoming-board-chip-${b.id}`}
+                >
+                  {b.icon && <span aria-hidden="true">{b.icon} </span>}
+                  {b.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </>
+    );
 
     return (
       <div class="control-bar" data-testid="control-bar">
@@ -202,7 +274,6 @@ export function ControlBar() {
           <button
             class="filter-toggle"
             aria-expanded={filtersExpanded}
-            aria-controls="upcoming-filter-content"
             onClick={() => setFiltersExpanded(prev => !prev)}
             data-testid="upcoming-filter-toggle"
           >
@@ -210,60 +281,85 @@ export function ControlBar() {
             {upcomingActiveCount > 0 && <span class="filter-badge">{upcomingActiveCount}</span>}
           </button>
 
-          <div
-            id="upcoming-filter-content"
-            class={filterContentClass}
-            data-testid="upcoming-filter-content"
-          >
-            <div class="filter-search-wrapper" data-testid="upcoming-search-wrapper">
-              <input
-                ref={upcomingSearchRef}
-                type="text"
-                class="filter-search-input"
-                placeholder="Search cards..."
-                aria-label="Search cards"
-                value={localUpcomingSearch}
-                onInput={handleUpcomingSearchInput}
-                onKeyDown={handleUpcomingSearchKeyDown}
-                data-testid="upcoming-search-input"
-              />
-              {localUpcomingSearch && (
-                <button
-                  class="filter-search-clear"
-                  aria-label="Clear search"
-                  onClick={clearUpcomingSearch}
-                  data-testid="upcoming-search-clear"
-                >
-                  &times;
-                </button>
-              )}
-            </div>
-
-            {accessibleBoards.value.length > 1 && (
-              <div role="group" aria-label="Filter by board" class="filter-chip-group" data-testid="upcoming-board-filter-group">
-                <span class="filter-chip-group-label">Board:</span>
-                {accessibleBoards.value.map(b => {
-                  const active = upcomingFilterBoards.value.has(b.id);
-                  return (
-                    <button
-                      key={b.id}
-                      class={`filter-chip${active ? ' filter-chip-active' : ''}`}
-                      aria-pressed={active ? 'true' : 'false'}
-                      onClick={() => toggleUpcomingBoard(b.id)}
-                      data-testid={`upcoming-board-chip-${b.id}`}
-                    >
-                      {b.icon && <span aria-hidden="true">{b.icon} </span>}
-                      {b.name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+          {/* Desktop: inline (always visible, toggle hidden via CSS) */}
+          <div class="control-bar-filter-content control-bar-filter-desktop" data-testid="upcoming-filter-content">
+            {upcomingFilterChips}
           </div>
+
+          {/* Mobile: bottom sheet popup */}
+          {renderFilterPopup(upcomingFilterChips)}
         </div>
       </div>
     );
   }
+
+  const boardFilterChips = (
+    <>
+      {/* AC1: Search input */}
+      <div class="filter-search-wrapper" data-testid="filter-search-wrapper">
+        <input
+          ref={searchRef}
+          type="text"
+          class="filter-search-input"
+          placeholder="Search cards..."
+          aria-label="Search cards"
+          value={localSearch}
+          onInput={handleSearchInput}
+          onKeyDown={handleSearchKeyDown}
+          data-testid="filter-search-input"
+        />
+        {localSearch && (
+          <button
+            class="filter-search-clear"
+            aria-label="Clear search"
+            onClick={clearSearch}
+            data-testid="filter-search-clear"
+          >
+            &times;
+          </button>
+        )}
+      </div>
+
+      {/* AC4/AC5: Due date chips */}
+      <div role="group" aria-label="Filter by due date" class="filter-chip-group" data-testid="filter-due-group">
+        <span class="filter-chip-group-label">Due:</span>
+        {(['today', 'this-week'] as const).map(due => {
+          const active = filterDue.value === due;
+          const label = due === 'today' ? 'Today' : 'This Week';
+          return (
+            <button
+              key={due}
+              class={`filter-chip filter-chip-due${active ? ' filter-chip-active' : ''}`}
+              aria-pressed={active ? 'true' : 'false'}
+              onClick={() => handleDueClick(due)}
+              data-testid={`filter-due-${due}`}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Label chips */}
+      <div role="group" aria-label="Filter by label" class="filter-chip-group">
+        <span class="filter-chip-group-label">Label:</span>
+        {labelsStore.value.map(l => {
+          const active = filterLabel.value === l.label;
+          return (
+            <button
+              key={l.label}
+              class={`filter-chip filter-chip-label${active ? ' filter-chip-active' : ''}`}
+              aria-pressed={active ? 'true' : 'false'}
+              style={`--label-color: ${l.color}`}
+              onClick={() => { filterLabel.value = active ? null : l.label; }}
+            >
+              {l.label}
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
 
   return (
     <div class="control-bar" data-testid="control-bar">
@@ -296,7 +392,6 @@ export function ControlBar() {
         <button
           class="filter-toggle"
           aria-expanded={filtersExpanded}
-          aria-controls="control-bar-filter-content"
           onClick={() => setFiltersExpanded(prev => !prev)}
           data-testid="control-bar-filter-toggle"
         >
@@ -304,75 +399,13 @@ export function ControlBar() {
           {activeCount > 0 && <span class="filter-badge">{activeCount}</span>}
         </button>
 
-        <div
-          id="control-bar-filter-content"
-          class={filterContentClass}
-          data-testid="control-bar-filter-content"
-        >
-          {/* AC1: Search input */}
-          <div class="filter-search-wrapper" data-testid="filter-search-wrapper">
-            <input
-              ref={searchRef}
-              type="text"
-              class="filter-search-input"
-              placeholder="Search cards..."
-              aria-label="Search cards"
-              value={localSearch}
-              onInput={handleSearchInput}
-              onKeyDown={handleSearchKeyDown}
-              data-testid="filter-search-input"
-            />
-            {localSearch && (
-              <button
-                class="filter-search-clear"
-                aria-label="Clear search"
-                onClick={clearSearch}
-                data-testid="filter-search-clear"
-              >
-                &times;
-              </button>
-            )}
-          </div>
-
-          {/* AC4/AC5: Due date chips */}
-          <div role="group" aria-label="Filter by due date" class="filter-chip-group" data-testid="filter-due-group">
-            <span class="filter-chip-group-label">Due:</span>
-            {(['today', 'this-week'] as const).map(due => {
-              const active = filterDue.value === due;
-              const label = due === 'today' ? 'Today' : 'This Week';
-              return (
-                <button
-                  key={due}
-                  class={`filter-chip filter-chip-due${active ? ' filter-chip-active' : ''}`}
-                  aria-pressed={active ? 'true' : 'false'}
-                  onClick={() => handleDueClick(due)}
-                  data-testid={`filter-due-${due}`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Label chips */}
-          <div role="group" aria-label="Filter by label" class="filter-chip-group">
-            <span class="filter-chip-group-label">Label:</span>
-            {labelsStore.value.map(l => {
-              const active = filterLabel.value === l.label;
-              return (
-                <button
-                  key={l.label}
-                  class={`filter-chip filter-chip-label${active ? ' filter-chip-active' : ''}`}
-                  aria-pressed={active ? 'true' : 'false'}
-                  style={`--label-color: ${l.color}`}
-                  onClick={() => { filterLabel.value = active ? null : l.label; }}
-                >
-                  {l.label}
-                </button>
-              );
-            })}
-          </div>
+        {/* Desktop: inline (always visible, toggle hidden via CSS) */}
+        <div class="control-bar-filter-content control-bar-filter-desktop" data-testid="control-bar-filter-content">
+          {boardFilterChips}
         </div>
+
+        {/* Mobile: bottom sheet popup */}
+        {renderFilterPopup(boardFilterChips)}
 
         {/* AC10: Live region for screen readers */}
         <div aria-live="polite" class="sr-only" data-testid="filter-live-region">

@@ -340,10 +340,11 @@ describe('ControlBar', () => {
   });
 
   describe('#177 AC9: Mobile responsive', () => {
-    it('filter content collapsed on mobile by default', () => {
+    it('desktop filter content is always rendered', () => {
       const { container } = render(<ControlBar />);
       const content = container.querySelector('[data-testid="control-bar-filter-content"]');
-      expect(content!.className).toContain('control-bar-filter-content-collapsed');
+      expect(content).not.toBeNull();
+      expect(content!.className).toContain('control-bar-filter-desktop');
     });
 
     it('Filters toggle shows badge with active filter count (search + due + label)', () => {
@@ -356,13 +357,30 @@ describe('ControlBar', () => {
       expect(badge!.textContent).toBe('3');
     });
 
-    it('clicking toggle expands filters on mobile', () => {
+    it('clicking toggle opens filter popup', () => {
+      const { container } = render(<ControlBar />);
+      const toggle = container.querySelector('[data-testid="control-bar-filter-toggle"]') as HTMLElement;
+      expect(container.querySelector('.filter-popup')).toBeNull();
+      fireEvent.click(toggle);
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+      expect(container.querySelector('.filter-popup')).not.toBeNull();
+    });
+
+    it('clicking toggle again closes filter popup', () => {
+      const { container } = render(<ControlBar />);
+      const toggle = container.querySelector('[data-testid="control-bar-filter-toggle"]') as HTMLElement;
+      fireEvent.click(toggle); // open
+      fireEvent.click(toggle); // close
+      expect(container.querySelector('.filter-popup')).toBeNull();
+    });
+
+    it('clicking backdrop closes filter popup', () => {
       const { container } = render(<ControlBar />);
       const toggle = container.querySelector('[data-testid="control-bar-filter-toggle"]') as HTMLElement;
       fireEvent.click(toggle);
-      expect(toggle.getAttribute('aria-expanded')).toBe('true');
-      const content = container.querySelector('[data-testid="control-bar-filter-content"]');
-      expect(content!.className).not.toContain('control-bar-filter-content-collapsed');
+      const backdrop = container.querySelector('.filter-popup-backdrop') as HTMLElement;
+      fireEvent.click(backdrop);
+      expect(container.querySelector('.filter-popup')).toBeNull();
     });
 
     it('badge count does not include owner (removed)', () => {
