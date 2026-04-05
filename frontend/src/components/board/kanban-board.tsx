@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, createModalInitialStatus, selectedItem, groupBy, rootItems, items, owners, boardLabels as labelsStore, viewMode, setViewMode, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement, showToast, activeView, switchToUpcoming, switchToBoard, boardStatuses, isTerminalStatus } from '../../state/board-store';
+import { columns, showCreateModal, createModalInitialStatus, selectedItem, groupBy, rootItems, items, owners, boardLabels as labelsStore, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement, showToast, activeView, switchToUpcoming, switchToBoard, boardStatuses, isTerminalStatus } from '../../state/board-store';
 import type { SortMode } from '../../state/board-store';
 import { moveItem, reorderItem, createItem, deleteItem } from '../../state/actions';
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts';
@@ -240,19 +240,14 @@ export function KanbanBoard() {
       );
     }
 
-    const groupValues = group === 'owner'
-      ? ['Unassigned', ...owners.value.map(o => o.name)]
-      : labelsStore.value.map(l => l.label);
+    const groupValues = labelsStore.value.map(l => l.label);
 
     return (
       <div class="board-swimlanes">
         {groupValues.map(groupValue => {
-          const swimlaneItems = rootItems.value.filter(item => {
-            if (group === 'owner') {
-              return groupValue === 'Unassigned' ? !item.owner : item.owner === groupValue;
-            }
-            return item.labels.split(',').map(l => l.trim()).includes(groupValue);
-          });
+          const swimlaneItems = rootItems.value.filter(item =>
+            item.labels.split(',').map(l => l.trim()).includes(groupValue)
+          );
 
           if (swimlaneItems.length === 0) return null;
 
@@ -333,14 +328,14 @@ export function KanbanBoard() {
             <h2>No tasks yet</h2>
             <p>Click <strong>+</strong> to create your first one.</p>
           </div>
-        ) : viewMode.value === 'list' ? (
+        ) : groupBy.value === 'status' ? (
           <ListView />
         ) : (
           renderSwimlanes()
         )}
       </main>
 
-      {activeView.value !== 'upcoming' && viewMode.value === 'board' && groupBy.value === 'none' && (
+      {activeView.value !== 'upcoming' && groupBy.value === 'none' && (
         <ColumnIndicator />
       )}
 

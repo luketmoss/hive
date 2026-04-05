@@ -73,9 +73,9 @@ export function FilterBar() {
       {/* #77 AC1–AC5: Group-by chip toggles */}
       <div role="group" aria-label="Group by" class="filter-chip-group filter-chip-group-separator">
         <span class="filter-chip-group-label">Group:</span>
-        {(['owner', 'label'] as const).map(mode => {
+        {(['status', 'label'] as const).map(mode => {
           const active = groupBy.value === mode;
-          const label = mode === 'owner' ? 'Owner' : 'Label';
+          const label = mode === 'status' ? 'Status' : 'Label';
           return (
             <button
               key={mode}
