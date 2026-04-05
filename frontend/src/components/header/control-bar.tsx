@@ -202,22 +202,22 @@ export function ControlBar() {
         >
           <div class="filter-popup-header">
             <span class="filter-popup-title">Filters</span>
-            <button class="filter-popup-close" onClick={closeFilters} aria-label="Close filters">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
-            </button>
-          </div>
-          <div class="filter-popup-body">
-            {content}
-            <div class="filter-popup-actions">
+            <div class="filter-popup-header-actions">
               {hasActive && onReset && (
-                <button class="btn btn-ghost filter-popup-reset" onClick={onReset}>
+                <button class="filter-popup-reset" onClick={() => { onReset(); closeFilters(); }}>
                   Reset
                 </button>
               )}
-              <button class="btn btn-primary filter-popup-apply" onClick={closeFilters}>
-                Apply
+              <button class="filter-popup-close" onClick={closeFilters} aria-label="Close filters">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
               </button>
             </div>
+          </div>
+          <div class="filter-popup-body">
+            {content}
+            <button class="btn btn-primary filter-popup-apply" onClick={closeFilters}>
+              Apply
+            </button>
           </div>
         </div>
       </div>

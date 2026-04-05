@@ -3851,26 +3851,37 @@ body {
   display: none;
 }
 
-.filter-popup-actions {
+.filter-popup-header-actions {
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.filter-popup-apply {
-  min-height: 44px;
-  padding: 0 32px;
-  font-size: 15px;
-  font-weight: 600;
-  border-radius: var(--radius);
+  gap: 8px;
 }
 
 .filter-popup-reset {
   min-height: 44px;
-  padding: 0 24px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  background: none;
+  color: var(--color-danger);
+  cursor: pointer;
+  border-radius: var(--radius);
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.filter-popup-reset:hover {
+  background: rgba(211, 47, 47, 0.06);
+}
+
+.filter-popup-apply {
+  margin-top: 8px;
+  align-self: center;
+  min-height: 44px;
+  padding: 0 32px;
   font-size: 15px;
+  font-weight: 600;
   border-radius: var(--radius);
 }
 
