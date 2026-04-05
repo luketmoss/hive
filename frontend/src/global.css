@@ -3777,7 +3777,7 @@ body {
 
 /* === Filter bar toggle (#88 AC3) === */
 .filter-toggle {
-  display: none; /* AC4: hidden on desktop */
+  display: none; /* hidden on desktop */
   align-items: center;
   gap: 6px;
   padding: 6px 14px;
@@ -3813,6 +3813,89 @@ body {
   color: white;
   font-size: 11px;
   font-weight: 600;
+}
+
+/* Desktop: popup elements hidden */
+.filter-popup-backdrop {
+  display: none;
+}
+
+/* Mobile filter popup */
+.filter-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.4);
+  display: none; /* shown only on mobile via media query */
+}
+
+.filter-popup {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 101;
+  background: var(--color-surface);
+  border-radius: 16px 16px 0 0;
+  box-shadow: var(--shadow-lg);
+  max-height: 70vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: filter-popup-slide-up 0.2s ease-out;
+}
+
+@keyframes filter-popup-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.filter-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.filter-popup-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.filter-popup-close {
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--color-text-muted);
+}
+
+.filter-popup-close:hover {
+  background: var(--overlay-sm);
+  color: var(--color-text);
+}
+
+.filter-popup-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 20px 24px;
+}
+
+.filter-popup-body .filter-chip-group {
+  flex-wrap: wrap;
+}
+
+.filter-popup-body .filter-chip-group-separator {
+  margin-left: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
 }
 
 /* === Sub-task drag-and-drop (#220 follow-up) === */
@@ -3927,27 +4010,17 @@ body {
   }
 
   .filter-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0;
     padding: 8px 16px;
   }
 
-  .filter-group {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    padding: 12px 0 4px;
+  /* Desktop inline chips hidden on mobile — popup used instead */
+  .filter-group-desktop {
+    display: none;
   }
 
-  .filter-chip-group {
-    flex-wrap: wrap;
-  }
-
-  .filter-chip-group-separator {
-    margin-left: 0;
-    padding-top: 4px;
-    border-top: 1px solid var(--color-border);
+  /* Show popup backdrop on mobile */
+  .filter-popup-backdrop {
+    display: block;
   }
 
   /* Board switcher: touch-friendly on mobile */
@@ -4013,14 +4086,9 @@ body {
     overscroll-behavior: contain;
   }
 
-  /* #88 AC3: Show filter toggle on mobile */
+  /* Show filter toggle on mobile */
   .filter-toggle {
     display: flex;
-  }
-
-  /* #88 AC3: Collapsed filter content hidden on mobile */
-  .filter-group-collapsed {
-    display: none;
   }
 
   /* #90 AC4: Share modal Add button meets 44px WCAG 2.5.8 touch target */

@@ -86,7 +86,6 @@ export function CardDetail() {
 
   const close = useCallback(() => {
     selectedItemId.value = null;
-    window.dispatchEvent(new Event('collapse-filters'));
   }, []);
 
   // Focus trap (AC3) + Escape to close (AC4)
