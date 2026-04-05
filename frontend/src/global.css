@@ -3829,22 +3829,22 @@ body {
 
 .filter-popup {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  inset: 0;
   z-index: 101;
   background: var(--color-surface);
-  border-radius: 16px 16px 0 0;
-  box-shadow: var(--shadow-lg);
-  max-height: 70vh;
   overflow-y: auto;
   overscroll-behavior: contain;
-  animation: filter-popup-slide-up 0.2s ease-out;
+  animation: filter-popup-fade-in 0.15s ease-out;
 }
 
-@keyframes filter-popup-slide-up {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+@keyframes filter-popup-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Mobile search in bar (hidden on desktop, search is in desktop inline chips) */
+.control-bar-mobile-search {
+  display: none;
 }
 
 .filter-popup-header {
@@ -3882,8 +3882,8 @@ body {
 .filter-popup-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 16px 20px 24px;
+  gap: 20px;
+  padding: 20px;
 }
 
 .filter-popup-body .filter-chip-group {
@@ -4016,6 +4016,11 @@ body {
   .filter-group-desktop,
   .control-bar-filter-desktop {
     display: none;
+  }
+
+  /* Show mobile search in bar */
+  .control-bar-mobile-search {
+    display: contents;
   }
 
   /* Show popup backdrop on mobile */

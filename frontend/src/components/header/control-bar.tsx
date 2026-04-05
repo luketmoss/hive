@@ -293,33 +293,34 @@ export function ControlBar() {
     );
   }
 
+  const searchInput = (
+    <div class="filter-search-wrapper" data-testid="filter-search-wrapper">
+      <input
+        ref={searchRef}
+        type="text"
+        class="filter-search-input"
+        placeholder="Search cards..."
+        aria-label="Search cards"
+        value={localSearch}
+        onInput={handleSearchInput}
+        onKeyDown={handleSearchKeyDown}
+        data-testid="filter-search-input"
+      />
+      {localSearch && (
+        <button
+          class="filter-search-clear"
+          aria-label="Clear search"
+          onClick={clearSearch}
+          data-testid="filter-search-clear"
+        >
+          &times;
+        </button>
+      )}
+    </div>
+  );
+
   const boardFilterChips = (
     <>
-      {/* AC1: Search input */}
-      <div class="filter-search-wrapper" data-testid="filter-search-wrapper">
-        <input
-          ref={searchRef}
-          type="text"
-          class="filter-search-input"
-          placeholder="Search cards..."
-          aria-label="Search cards"
-          value={localSearch}
-          onInput={handleSearchInput}
-          onKeyDown={handleSearchKeyDown}
-          data-testid="filter-search-input"
-        />
-        {localSearch && (
-          <button
-            class="filter-search-clear"
-            aria-label="Clear search"
-            onClick={clearSearch}
-            data-testid="filter-search-clear"
-          >
-            &times;
-          </button>
-        )}
-      </div>
-
       {/* AC4/AC5: Due date chips */}
       <div role="group" aria-label="Filter by due date" class="filter-chip-group" data-testid="filter-due-group">
         <span class="filter-chip-group-label">Due:</span>
@@ -388,6 +389,11 @@ export function ControlBar() {
 
       {/* Filters section */}
       <div class="control-bar-section control-bar-filters">
+        {/* Mobile: search always visible in bar (hidden on desktop via CSS) */}
+        <div class="control-bar-mobile-search">
+          {searchInput}
+        </div>
+
         {/* Mobile: Filters toggle */}
         <button
           class="filter-toggle"
@@ -399,12 +405,13 @@ export function ControlBar() {
           {activeCount > 0 && <span class="filter-badge">{activeCount}</span>}
         </button>
 
-        {/* Desktop: inline (always visible, toggle hidden via CSS) */}
+        {/* Desktop: inline chips (always visible, toggle hidden via CSS) */}
         <div class="control-bar-filter-content control-bar-filter-desktop" data-testid="control-bar-filter-content">
+          {searchInput}
           {boardFilterChips}
         </div>
 
-        {/* Mobile: bottom sheet popup */}
+        {/* Mobile: full-screen filter popup */}
         {renderFilterPopup(boardFilterChips)}
 
         {/* AC10: Live region for screen readers */}
