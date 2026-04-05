@@ -958,10 +958,30 @@ function SubtaskRow({ child, idx, allItems, isDone, editingSubtaskId, editingSub
     }
   };
 
+  // Cancel long-press on touch move (prevents conflict with drag reorder)
+  const handleTouchMoveLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
   const handleContextMenuEvent = (e: Event) => {
     e.preventDefault();
     setContextMenu(true);
   };
+
+  // Close context menu on outside click/touch (focusOut unreliable on mobile)
+  useEffect(() => {
+    if (!contextMenu) return;
+    const handleOutside = (e: Event) => {
+      if (contextRef.current && !contextRef.current.contains(e.target as Node)) {
+        setContextMenu(false);
+      }
+    };
+    document.addEventListener('pointerdown', handleOutside, true);
+    return () => document.removeEventListener('pointerdown', handleOutside, true);
+  }, [contextMenu]);
 
   const handlePromoteToItem = async () => {
     if (!token) return;
@@ -1025,7 +1045,7 @@ function SubtaskRow({ child, idx, allItems, isDone, editingSubtaskId, editingSub
         handleTouchStartLongPress(e as unknown as TouchEvent);
         if (!isDone && allItems.length > 1) handleTouchReorderStart(child.id, idx, e as unknown as TouchEvent);
       }}
-      onTouchMove={(e) => handleTouchReorderMove(e as unknown as TouchEvent)}
+      onTouchMove={(e) => { handleTouchMoveLongPress(); handleTouchReorderMove(e as unknown as TouchEvent); }}
       onTouchEnd={() => { handleTouchEndLongPress(); handleTouchReorderEnd(); }}
       onTouchCancel={() => { handleTouchEndLongPress(); handleTouchReorderEnd(); }}
     >
@@ -1081,6 +1101,8 @@ function SubtaskRow({ child, idx, allItems, isDone, editingSubtaskId, editingSub
       <button
         class="subtask-kebab-btn"
         aria-label="Sub-task options"
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
         onClick={(e) => { e.stopPropagation(); setContextMenu(!contextMenu); }}
       >&#8942;</button>
 
@@ -1089,11 +1111,6 @@ function SubtaskRow({ child, idx, allItems, isDone, editingSubtaskId, editingSub
         <div
           ref={contextRef}
           class="subtask-context-menu"
-          onFocusOut={(e: FocusEvent) => {
-            const related = e.relatedTarget as Node | null;
-            if (contextRef.current && related && contextRef.current.contains(related)) return;
-            setContextMenu(false);
-          }}
         >
           <button onClick={handlePromoteToItem}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17l9.2-9.2M17 17V7H7"/></svg>
