@@ -3847,13 +3847,13 @@ body {
   display: none;
 }
 
-.filter-popup-done {
+.filter-popup-apply {
   margin-top: 8px;
-  width: 100%;
-  min-height: 48px;
-  font-size: 16px;
+  align-self: center;
+  min-height: 44px;
+  padding: 0 32px;
+  font-size: 15px;
   font-weight: 600;
-  border: 2px solid var(--color-border);
   border-radius: var(--radius);
 }
 
