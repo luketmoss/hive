@@ -999,7 +999,7 @@ function SubtaskRow({ child, idx, allItems, isDone, editingSubtaskId, editingSub
 
   // Auto-resize textarea
   const autoResize = (el: HTMLTextAreaElement) => {
-    el.style.height = 'auto';
+    el.style.height = '0';
     el.style.height = el.scrollHeight + 'px';
   };
 
