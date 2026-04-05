@@ -1,8 +1,15 @@
-import { useState } from 'preact/hooks';
-import { filterOwner, filterLabel, groupBy, owners, labels as labelsStore } from '../../state/board-store';
+import { useState, useEffect } from 'preact/hooks';
+import { filterOwner, filterLabel, groupBy, owners, labels as labelsStore, selectedItemId } from '../../state/board-store';
 
 export function FilterBar() {
   const [collapsed, setCollapsed] = useState(true);
+
+  // Auto-collapse filters when opening an item detail (prevents filters
+  // staying open when returning to board from full-screen detail on mobile)
+  useEffect(() => {
+    if (selectedItemId.value) setCollapsed(true);
+  }, [selectedItemId.value]);
+
   const hasFilters = filterOwner.value || filterLabel.value;
   const hasGrouping = groupBy.value !== 'none';
   const showReset = hasFilters || hasGrouping;
