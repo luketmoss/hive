@@ -110,7 +110,31 @@ export const filterLabel = signal<string | null>(null);
 export const filterSearch = signal('');
 export type DueFilter = 'today' | 'this-week' | null;
 export const filterDue = signal<DueFilter>(null);
-export const groupBy = signal<'none' | 'owner' | 'label'>('none');
+export type GroupBy = 'none' | 'status' | 'label';
+
+function loadGroupBy(): GroupBy {
+  try {
+    const stored = localStorage.getItem('hive-group-by');
+    if (stored === 'none' || stored === 'status' || stored === 'label') return stored;
+    // Migration: if user had list view selected, map to status grouping
+    const oldViewMode = localStorage.getItem('hive-view-mode');
+    if (oldViewMode === 'list') {
+      localStorage.setItem('hive-group-by', 'status');
+      localStorage.removeItem('hive-view-mode');
+      return 'status';
+    }
+  } catch { /* localStorage unavailable */ }
+  return 'none';
+}
+
+export const groupBy = signal<GroupBy>(loadGroupBy());
+
+export function setGroupBy(mode: GroupBy) {
+  groupBy.value = mode;
+  try {
+    localStorage.setItem('hive-group-by', mode);
+  } catch { /* localStorage unavailable */ }
+}
 
 // --- Active view (Board vs Upcoming) ---
 export type ActiveView = 'board' | 'upcoming';
@@ -177,27 +201,6 @@ export const showCreateModal = signal(false);
 /** When set, the Create Item modal will pre-fill this status instead of the board's first column. */
 export const createModalInitialStatus = signal<string | null>(null);
 export const toastMessage = signal<{ text: string; type: 'success' | 'error'; action?: { label: string; fn: () => void }; duration?: number } | null>(null);
-
-// --- View mode (mobile list vs board) ---
-export type ViewMode = 'board' | 'list';
-
-function loadViewMode(): ViewMode {
-  try {
-    const stored = localStorage.getItem('hive-view-mode');
-    if (stored === 'list' || stored === 'board') return stored;
-  } catch { /* localStorage unavailable */ }
-  return 'board';
-}
-
-export const viewMode = signal<ViewMode>(loadViewMode());
-
-/** Toggle between board and list view, persisting to localStorage. */
-export function setViewMode(mode: ViewMode) {
-  viewMode.value = mode;
-  try {
-    localStorage.setItem('hive-view-mode', mode);
-  } catch { /* localStorage unavailable */ }
-}
 
 // --- Theme ---
 export type Theme = 'light' | 'dark' | 'system';
@@ -370,7 +373,7 @@ export const showDeleteBoardModal = signal(false);
 // --- UI state for move-to-board modal ---
 export const showMoveToBoardModal = signal(false);
 
-/** Switch to a different board. Resets filters and selection but preserves view mode. */
+/** Switch to a different board. Resets filters, grouping, and selection. */
 export function switchBoard(boardId: string) {
   activeBoardId.value = boardId;
   filterOwner.value = null;

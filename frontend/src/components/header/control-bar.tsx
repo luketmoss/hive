@@ -2,8 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'preact/hooks';
 import {
   boards, activeBoardId, switchBoard, showCreateBoardModal, showShareModal,
   accessibleBoards, userBoardRole,
-  viewMode, setViewMode,
-  filterLabel, filterSearch, filterDue, groupBy,
+  filterLabel, filterSearch, filterDue, groupBy, setGroupBy,
   boardLabels as labelsStore, rootItems,
   activeView,
   upcomingFilterSearch, upcomingFilterBoards, toggleUpcomingBoard,
@@ -182,8 +181,8 @@ export function ControlBar() {
     filterDue.value = filterDue.value === due ? null : due;
   };
 
-  const handleGroupClick = (mode: 'none' | 'label') => {
-    groupBy.value = mode;
+  const handleGroupClick = (mode: 'none' | 'status' | 'label') => {
+    setGroupBy(mode);
     setMenuOpen(false);
   };
 
@@ -453,28 +452,6 @@ export function ControlBar() {
             class="overflow-menu-dropdown"
             data-testid="overflow-menu-dropdown"
           >
-            <div class="overflow-menu-section-header" role="presentation">Views</div>
-            <button
-              role="menuitem"
-              class={`overflow-menu-item${viewMode.value === 'board' ? ' overflow-menu-item-checked' : ''}`}
-              aria-checked={viewMode.value === 'board'}
-              onClick={() => { setViewMode('board'); setMenuOpen(false); }}
-              data-testid="overflow-menu-view-board"
-            >
-              Board view
-            </button>
-            <button
-              role="menuitem"
-              class={`overflow-menu-item${viewMode.value === 'list' ? ' overflow-menu-item-checked' : ''}`}
-              aria-checked={viewMode.value === 'list'}
-              onClick={() => { setViewMode('list'); setMenuOpen(false); }}
-              data-testid="overflow-menu-view-list"
-            >
-              List view
-            </button>
-
-            <hr class="overflow-menu-divider" />
-
             {/* GROUPING section */}
             <div class="overflow-menu-section-header" role="presentation">Grouping</div>
             <button
@@ -485,6 +462,15 @@ export function ControlBar() {
               data-testid="overflow-menu-group-none"
             >
               None
+            </button>
+            <button
+              role="menuitemradio"
+              class={`overflow-menu-item${groupBy.value === 'status' ? ' overflow-menu-item-checked' : ''}`}
+              aria-checked={groupBy.value === 'status'}
+              onClick={() => handleGroupClick('status')}
+              data-testid="overflow-menu-group-status"
+            >
+              By Status
             </button>
             <button
               role="menuitemradio"

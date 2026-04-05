@@ -15,7 +15,7 @@ const mockState = {
   showArchiveDialog: false,
   selectedItem: null as any,
   accessibleBoards: [] as any[],
-  viewMode: 'board' as string,
+  groupByValue: 'none' as string,
 };
 
 const mockSwitchBoard = vi.fn();
@@ -33,7 +33,7 @@ afterEach(() => {
   mockState.showArchiveDialog = false;
   mockState.selectedItem = null;
   mockState.accessibleBoards = [];
-  mockState.viewMode = 'board';
+  mockState.groupByValue = 'none';
   mockSwitchBoard.mockClear();
   mockSwitchToUpcoming.mockClear();
   mockSwitchToBoard.mockClear();
@@ -64,15 +64,14 @@ vi.mock('../../state/board-store', () => ({
   },
   selectedItemId: { value: null },
   openDetailWithTitleEdit: { value: false },
-  groupBy: { value: 'none' },
+  groupBy: { get value() { return mockState.groupByValue; }, set value(v: string) { mockState.groupByValue = v; } },
   owners: { value: [] },
   boardLabels: { value: [] },
   filterOwner: { value: null },
   filterLabel: { value: null },
   loading: { value: false },
   getChildCount: () => ({ done: 0, total: 0 }),
-  viewMode: { get value() { return mockState.viewMode; } },
-  setViewMode: (v: string) => { mockState.viewMode = v; },
+  setGroupBy: (v: string) => { mockState.groupByValue = v; },
   allDoneItems: { value: [] },
   hasArchivedItems: { value: false },
   showArchiveDialog: {
@@ -539,7 +538,7 @@ describe('KanbanBoard logo in header (Issue #30 AC3)', () => {
   });
 });
 
-describe('List mode scroll — DOM structure (Issue #137)', () => {
+describe('Status grouping renders ListView (Issue #137)', () => {
   const sampleItem = {
     id: '1', title: 'Task A', description: '', status: 'To Do',
     owner: '', due_date: '', labels: '', parent_id: '',
@@ -547,11 +546,9 @@ describe('List mode scroll — DOM structure (Issue #137)', () => {
     sort_order: 1, created_by: '', board_id: '', sheetRow: 2,
   };
 
-  // AC1 / AC2: board-main must contain .list-view when in list mode so the
-  // CSS selector `.board-main:has(.list-view)` can set overflow-y: auto.
-  it('renders .list-view inside .board-main when viewMode is list', () => {
+  it('renders .list-view inside .board-main when groupBy is status', () => {
     mockState.items = [sampleItem];
-    mockState.viewMode = 'list';
+    mockState.groupByValue = 'status';
     const { container } = renderBoard();
     const boardMain = container.querySelector('.board-main');
     expect(boardMain).not.toBeNull();
@@ -559,10 +556,9 @@ describe('List mode scroll — DOM structure (Issue #137)', () => {
     expect(listView).not.toBeNull();
   });
 
-  // AC3: kanban mode must NOT have .list-view inside .board-main
-  it('does not render .list-view inside .board-main when viewMode is board', () => {
+  it('does not render .list-view inside .board-main when groupBy is none', () => {
     mockState.items = [sampleItem];
-    mockState.viewMode = 'board';
+    mockState.groupByValue = 'none';
     const { container } = renderBoard();
     const boardMain = container.querySelector('.board-main');
     expect(boardMain).not.toBeNull();

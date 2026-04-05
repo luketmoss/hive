@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, cleanup, fireEvent, act } from '@testing-library/preact';
 import { ControlBar } from './control-bar';
 
-const { mockState, mockSwitchBoard, mockSetViewMode, mockToggleUpcomingBoard } = vi.hoisted(() => ({
+const { mockState, mockSwitchBoard, mockSetGroupBy, mockToggleUpcomingBoard } = vi.hoisted(() => ({
   mockState: {
     boards: [{ id: 'b1', name: 'Work', icon: '' }] as any[],
     activeBoardId: 'b1',
@@ -12,7 +12,6 @@ const { mockState, mockSwitchBoard, mockSetViewMode, mockToggleUpcomingBoard } =
     ] as any[],
     activeBoard: { name: 'Work' } as any,
     userBoardRole: 'owner' as string | null,
-    viewMode: 'board' as string,
     activeView: 'board' as string,
     filterLabel: null as string | null,
     filterSearch: '',
@@ -33,7 +32,7 @@ const { mockState, mockSwitchBoard, mockSetViewMode, mockToggleUpcomingBoard } =
     upcomingFilterBoards: new Set(['b1', 'b2']) as Set<string>,
   },
   mockSwitchBoard: vi.fn(),
-  mockSetViewMode: vi.fn(),
+  mockSetGroupBy: vi.fn(),
   mockToggleUpcomingBoard: vi.fn(),
 }));
 
@@ -43,7 +42,6 @@ vi.mock('../../state/board-store', () => ({
   accessibleBoards: { get value() { return mockState.accessibleBoards; } },
   activeBoard: { get value() { return mockState.activeBoard; } },
   userBoardRole: { get value() { return mockState.userBoardRole; } },
-  viewMode: { get value() { return mockState.viewMode; } },
   filterLabel: {
     get value() { return mockState.filterLabel; },
     set value(v: string | null) { mockState.filterLabel = v; },
@@ -63,7 +61,7 @@ vi.mock('../../state/board-store', () => ({
   boardLabels: { get value() { return mockState.labels; } },
   rootItems: { get value() { return mockState.rootItems; } },
   switchBoard: (...args: any[]) => mockSwitchBoard(...args),
-  setViewMode: (...args: any[]) => mockSetViewMode(...args),
+  setGroupBy: (...args: any[]) => mockSetGroupBy(...args),
   showCreateBoardModal: {
     get value() { return mockState.showCreateBoardModal; },
     set value(v: boolean) { mockState.showCreateBoardModal = v; },
@@ -85,7 +83,7 @@ vi.mock('../../state/board-store', () => ({
 afterEach(() => {
   cleanup();
   mockSwitchBoard.mockClear();
-  mockSetViewMode.mockClear();
+  mockSetGroupBy.mockClear();
   mockToggleUpcomingBoard.mockClear();
   Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 0 });
 });
@@ -99,7 +97,6 @@ beforeEach(() => {
   ];
   mockState.activeBoard = { name: 'Work' };
   mockState.userBoardRole = 'owner';
-  mockState.viewMode = 'board';
   mockState.filterLabel = null;
   mockState.filterSearch = '';
   mockState.filterDue = null;
@@ -285,11 +282,11 @@ describe('ControlBar', () => {
       expect(groupSection).toBeNull();
     });
 
-    it('3-dot menu has Views section header', () => {
+    it('3-dot menu does not have Views section header', () => {
       const { container } = render(<ControlBar />);
       fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
       const headers = Array.from(container.querySelectorAll('.overflow-menu-section-header'));
-      expect(headers.some(h => h.textContent === 'Views')).toBe(true);
+      expect(headers.some(h => h.textContent === 'Views')).toBe(false);
     });
 
     it('3-dot menu has Grouping section header', () => {
@@ -330,11 +327,19 @@ describe('ControlBar', () => {
       expect(noneItem!.getAttribute('aria-checked')).toBe('true');
     });
 
-    it('clicking "By Label" sets groupBy to "label" and closes menu', () => {
+    it('clicking "By Status" calls setGroupBy("status") and closes menu', () => {
+      const { container } = render(<ControlBar />);
+      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
+      fireEvent.click(container.querySelector('[data-testid="overflow-menu-group-status"]') as HTMLElement);
+      expect(mockSetGroupBy).toHaveBeenCalledWith('status');
+      expect(container.querySelector('[data-testid="overflow-menu-dropdown"]')).toBeNull();
+    });
+
+    it('clicking "By Label" calls setGroupBy("label") and closes menu', () => {
       const { container } = render(<ControlBar />);
       fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
       fireEvent.click(container.querySelector('[data-testid="overflow-menu-group-label"]') as HTMLElement);
-      expect(mockState.groupBy).toBe('label');
+      expect(mockSetGroupBy).toHaveBeenCalledWith('label');
       expect(container.querySelector('[data-testid="overflow-menu-dropdown"]')).toBeNull();
     });
   });
@@ -436,22 +441,6 @@ describe('ControlBar', () => {
         fireEvent.mouseDown(document.body);
       });
       expect(container.querySelector('[data-testid="overflow-menu-dropdown"]')).toBeNull();
-    });
-  });
-
-  describe('View toggle (preserved)', () => {
-    it('clicking Board view calls setViewMode("board")', () => {
-      const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-view-board"]') as HTMLElement);
-      expect(mockSetViewMode).toHaveBeenCalledWith('board');
-    });
-
-    it('clicking List view calls setViewMode("list")', () => {
-      const { container } = render(<ControlBar />);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-btn"]') as HTMLElement);
-      fireEvent.click(container.querySelector('[data-testid="overflow-menu-view-list"]') as HTMLElement);
-      expect(mockSetViewMode).toHaveBeenCalledWith('list');
     });
   });
 

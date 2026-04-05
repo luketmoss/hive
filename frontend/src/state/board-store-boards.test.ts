@@ -89,19 +89,19 @@ describe('AC3: switchBoard resets filters but not view mode', () => {
     expect(selectedItemId.value).toBeNull();
   });
 
-  it('does NOT reset view mode when switching boards', async () => {
-    const { boards, activeBoardId, viewMode, setViewMode, switchBoard } = await import('./board-store');
+  it('resets groupBy to none when switching boards', async () => {
+    const { boards, activeBoardId, groupBy, setGroupBy, switchBoard } = await import('./board-store');
 
     boards.value = [
       { id: 'board-1', name: 'Family', created_at: '', created_by: '' },
       { id: 'board-2', name: 'Work', created_at: '', created_by: '' },
     ];
     activeBoardId.value = 'board-1';
-    setViewMode('list');
+    setGroupBy('label');
 
     switchBoard('board-2');
 
-    expect(viewMode.value).toBe('list');
+    expect(groupBy.value).toBe('none');
   });
 
   it('updates document title when switching boards', async () => {
