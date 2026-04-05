@@ -3829,12 +3829,16 @@ body {
 
 .filter-popup {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   z-index: 101;
   background: var(--color-surface);
   overflow-y: auto;
   overscroll-behavior: contain;
   animation: filter-popup-fade-in 0.15s ease-out;
+  box-sizing: border-box;
 }
 
 @keyframes filter-popup-fade-in {
@@ -3847,13 +3851,26 @@ body {
   display: none;
 }
 
-.filter-popup-apply {
+.filter-popup-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
   margin-top: 8px;
-  align-self: center;
+}
+
+.filter-popup-apply {
   min-height: 44px;
   padding: 0 32px;
   font-size: 15px;
   font-weight: 600;
+  border-radius: var(--radius);
+}
+
+.filter-popup-reset {
+  min-height: 44px;
+  padding: 0 24px;
+  font-size: 15px;
   border-radius: var(--radius);
 }
 

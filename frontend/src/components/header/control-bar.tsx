@@ -191,7 +191,7 @@ export function ControlBar() {
 
   // Upcoming view: show search + board chips only
   // Shared filter popup renderer (mobile bottom sheet)
-  const renderFilterPopup = (content: any) => (
+  const renderFilterPopup = (content: any, hasActive: boolean, onReset?: () => void) => (
     filtersExpanded ? (
       <div class="filter-popup-backdrop" onClick={closeFilters}>
         <div
@@ -208,9 +208,16 @@ export function ControlBar() {
           </div>
           <div class="filter-popup-body">
             {content}
-            <button class="btn btn-primary filter-popup-apply" onClick={closeFilters}>
-              Apply
-            </button>
+            <div class="filter-popup-actions">
+              {hasActive && onReset && (
+                <button class="btn btn-ghost filter-popup-reset" onClick={onReset}>
+                  Reset
+                </button>
+              )}
+              <button class="btn btn-primary filter-popup-apply" onClick={closeFilters}>
+                Apply
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -290,7 +297,7 @@ export function ControlBar() {
           </div>
 
           {/* Mobile: bottom sheet popup */}
-          {renderFilterPopup(upcomingFilterChips)}
+          {renderFilterPopup(upcomingFilterChips, upcomingActiveCount > 0)}
         </div>
       </div>
     );
@@ -415,7 +422,10 @@ export function ControlBar() {
         </div>
 
         {/* Mobile: full-screen filter popup */}
-        {renderFilterPopup(boardFilterChips)}
+        {renderFilterPopup(boardFilterChips, activeCount > 0, () => {
+          filterDue.value = null;
+          filterLabel.value = null;
+        })}
 
         {/* AC10: Live region for screen readers */}
         <div aria-live="polite" class="sr-only" data-testid="filter-live-region">
