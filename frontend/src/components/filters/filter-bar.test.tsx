@@ -404,10 +404,9 @@ describe('Group-by chip toggles (Issue #77)', () => {
   });
 });
 
-// --- Collapsible filter bar on mobile (Issue #88) ---
-describe('Collapsible filter bar (Issue #88)', () => {
-  // AC3: Toggle button with badge
-  describe('AC3: Collapsible filter bar toggle', () => {
+// --- Mobile filter popup (Issue #88 redesign) ---
+describe('Mobile filter popup', () => {
+  describe('Toggle button and badge', () => {
     it('renders a filter toggle button', () => {
       const { container } = render(<FilterBar />);
       const toggle = container.querySelector('.filter-toggle');
@@ -415,7 +414,7 @@ describe('Collapsible filter bar (Issue #88)', () => {
       expect(toggle!.textContent).toBe('Filters');
     });
 
-    it('toggle has aria-expanded="false" when collapsed', () => {
+    it('toggle has aria-expanded="false" when closed', () => {
       const { container } = render(<FilterBar />);
       const toggle = container.querySelector('.filter-toggle');
       expect(toggle!.getAttribute('aria-expanded')).toBe('false');
@@ -427,31 +426,62 @@ describe('Collapsible filter bar (Issue #88)', () => {
       expect(toggle!.getAttribute('aria-controls')).toBe('filter-content');
     });
 
-    it('filter content has collapsed class by default', () => {
+    it('popup not rendered by default', () => {
       const { container } = render(<FilterBar />);
-      const content = container.querySelector('#filter-content');
-      expect(content!.classList.contains('filter-group-collapsed')).toBe(true);
+      const popup = container.querySelector('.filter-popup');
+      expect(popup).toBeNull();
     });
 
-    it('clicking toggle expands the filter content', () => {
+    it('clicking toggle opens the popup', () => {
       const { container } = render(<FilterBar />);
       const toggle = container.querySelector('.filter-toggle') as HTMLButtonElement;
       fireEvent.click(toggle);
 
-      const content = container.querySelector('#filter-content');
-      expect(content!.classList.contains('filter-group-collapsed')).toBe(false);
+      const popup = container.querySelector('.filter-popup');
+      expect(popup).not.toBeNull();
       expect(toggle.getAttribute('aria-expanded')).toBe('true');
     });
 
-    it('clicking toggle again collapses the filter content', () => {
+    it('clicking toggle again closes the popup', () => {
       const { container } = render(<FilterBar />);
       const toggle = container.querySelector('.filter-toggle') as HTMLButtonElement;
-      fireEvent.click(toggle); // expand
-      fireEvent.click(toggle); // collapse
+      fireEvent.click(toggle); // open
+      fireEvent.click(toggle); // close
 
-      const content = container.querySelector('#filter-content');
-      expect(content!.classList.contains('filter-group-collapsed')).toBe(true);
+      const popup = container.querySelector('.filter-popup');
+      expect(popup).toBeNull();
       expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    });
+
+    it('clicking backdrop closes the popup', () => {
+      const { container } = render(<FilterBar />);
+      const toggle = container.querySelector('.filter-toggle') as HTMLButtonElement;
+      fireEvent.click(toggle);
+
+      const backdrop = container.querySelector('.filter-popup-backdrop') as HTMLElement;
+      fireEvent.click(backdrop);
+
+      expect(container.querySelector('.filter-popup')).toBeNull();
+    });
+
+    it('popup has close button', () => {
+      const { container } = render(<FilterBar />);
+      fireEvent.click(container.querySelector('.filter-toggle') as HTMLElement);
+
+      const closeBtn = container.querySelector('.filter-popup-close') as HTMLElement;
+      expect(closeBtn).not.toBeNull();
+      fireEvent.click(closeBtn);
+
+      expect(container.querySelector('.filter-popup')).toBeNull();
+    });
+
+    it('popup contains all chip groups', () => {
+      const { container } = render(<FilterBar />);
+      fireEvent.click(container.querySelector('.filter-toggle') as HTMLElement);
+
+      const popup = container.querySelector('.filter-popup')!;
+      const groups = popup.querySelectorAll('[role="group"]');
+      expect(groups.length).toBe(3); // Owner, Label, Group
     });
 
     it('shows badge with active filter count when owner filter active', () => {
@@ -478,15 +508,14 @@ describe('Collapsible filter bar (Issue #88)', () => {
     });
   });
 
-  // AC4: Desktop filter bar unchanged
-  describe('AC4: Desktop filter bar unchanged', () => {
-    it('filter content container exists with id for aria-controls', () => {
+  describe('Desktop filter bar unchanged', () => {
+    it('desktop filter content container exists with id for aria-controls', () => {
       const { container } = render(<FilterBar />);
       const content = container.querySelector('#filter-content');
       expect(content).not.toBeNull();
     });
 
-    it('all chip groups are rendered inside filter content', () => {
+    it('all chip groups are rendered inside desktop filter content', () => {
       const { container } = render(<FilterBar />);
       const content = container.querySelector('#filter-content')!;
       const groups = content.querySelectorAll('[role="group"]');
