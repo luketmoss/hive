@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, cleanup, fireEvent } from '@testing-library/preact';
 import { FilterBar } from './filter-bar';
 
-const { mockFilterOwner, mockFilterLabel, mockGroupBy, mockOwners, mockLabels, mockSelectedItemId } = vi.hoisted(() => ({
+const { mockFilterOwner, mockFilterLabel, mockGroupBy, mockOwners, mockLabels } = vi.hoisted(() => ({
   mockFilterOwner: { value: null as string | null },
   mockFilterLabel: { value: null as string | null },
   mockGroupBy: { value: 'none' },
@@ -14,7 +14,6 @@ const { mockFilterOwner, mockFilterLabel, mockGroupBy, mockOwners, mockLabels, m
     { label: 'Urgent', color: '#ff0000' },
     { label: 'Home', color: '#00cc00' },
   ]},
-  mockSelectedItemId: { value: null as string | null },
 }));
 
 vi.mock('../../state/board-store', () => ({
@@ -24,7 +23,6 @@ vi.mock('../../state/board-store', () => ({
   owners: mockOwners,
   labels: mockLabels,
   openDetailWithTitleEdit: { value: false },
-  selectedItemId: mockSelectedItemId,
 }));
 
 afterEach(() => {
@@ -35,7 +33,6 @@ beforeEach(() => {
   mockFilterOwner.value = null;
   mockFilterLabel.value = null;
   mockGroupBy.value = 'none';
-  mockSelectedItemId.value = null;
 });
 
 describe('FilterBar chip redesign (Issue #28)', () => {

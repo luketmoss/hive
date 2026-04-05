@@ -1,17 +1,15 @@
-import { useState, useRef } from 'preact/hooks';
-import { filterOwner, filterLabel, groupBy, owners, labels as labelsStore, selectedItemId } from '../../state/board-store';
+import { useState, useEffect } from 'preact/hooks';
+import { filterOwner, filterLabel, groupBy, owners, labels as labelsStore } from '../../state/board-store';
 
 export function FilterBar() {
   const [collapsed, setCollapsed] = useState(true);
 
-  // Auto-collapse filters whenever the detail panel opens or closes.
-  // Reading selectedItemId.value during render subscribes via @preact/signals.
-  const currentItemId = selectedItemId.value;
-  const prevItemIdRef = useRef(currentItemId);
-  if (currentItemId !== prevItemIdRef.current) {
-    prevItemIdRef.current = currentItemId;
-    if (!collapsed) setCollapsed(true);
-  }
+  // Collapse filters when detail panel opens or closes
+  useEffect(() => {
+    const handler = () => setCollapsed(true);
+    window.addEventListener('collapse-filters', handler);
+    return () => window.removeEventListener('collapse-filters', handler);
+  }, []);
 
   const hasFilters = filterOwner.value || filterLabel.value;
   const hasGrouping = groupBy.value !== 'none';
