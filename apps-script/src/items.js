@@ -140,15 +140,6 @@ function updateItem(id, changes, actor) {
       throw new Error('Invalid status: "' + changes.status + '"');
     }
 
-    var itemForValidation = changes.owner
-      ? Object.assign({}, item, { owner: changes.owner })
-      : item;
-
-    var validation = validateStatusTransition(itemForValidation, newStatus, allItems);
-    if (!validation.valid) {
-      throw new Error(validation.error);
-    }
-
     // Determine if target status is terminal
     var isTerminal = false;
     if (item.board_id) {

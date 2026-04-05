@@ -1,18 +1,5 @@
-// Business rule enforcement for status transitions and side effects.
-// IMPORTANT: This logic is duplicated in frontend/src/state/rules.ts. Keep in sync.
-
-// Status-specific business rules removed in #218. All validation is now dynamic per board.
-// These functions are kept for backward compatibility but return permissive defaults.
-
-function validateStatusTransition(item, newStatus, allItems) {
-  // All transitions allowed — per-column rules now managed via board settings
-  return { valid: true };
-}
-
-function validateOwnerChange(item, newOwner) {
-  // All owner changes allowed — per-column requirements now managed via board settings
-  return { valid: true };
-}
+// Business rule helpers.
+// applyStatusSideEffects is duplicated in frontend/src/state/rules.ts — keep in sync.
 
 function applyStatusSideEffects(item, newStatus, isTerminal) {
   var updated = {};
