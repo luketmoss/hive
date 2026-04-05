@@ -2494,7 +2494,7 @@ body {
 
 /* Edit textarea that replaces the title span */
 .subtask-title-input {
-  flex: 1;
+  width: 100%;
   min-width: 0;
   font-size: 14px;
   font-family: inherit;
