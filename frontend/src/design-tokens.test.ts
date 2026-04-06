@@ -401,3 +401,40 @@ describe('Design token: --color-primary-light (Issue #104)', () => {
     });
   });
 });
+
+describe('Column header text wrapping (Issue #232)', () => {
+  // Helper to extract a CSS rule block by selector
+  function extractRule(selector: string): string {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(escaped + '\\s*\\{([^}]*?)\\}');
+    const match = css.match(re);
+    return match ? match[1] : '';
+  }
+
+  it('AC1: .column-header-row uses align-items: flex-start for text wrapping', () => {
+    const rule = extractRule('.column-header-row');
+    expect(rule).toContain('align-items: flex-start');
+  });
+
+  it('AC1: .column-header h2 has flex sizing for wrapping', () => {
+    const rule = extractRule('.column-header h2');
+    expect(rule).toContain('flex: 1 1 0');
+    expect(rule).toContain('min-width: 0');
+    expect(rule).toContain('word-break: break-word');
+  });
+
+  it('AC2: .column-count has flex-shrink: 0', () => {
+    const rule = extractRule('.column-count');
+    expect(rule).toContain('flex-shrink: 0');
+  });
+
+  it('AC2: .column-add-btn has flex-shrink: 0', () => {
+    const rule = extractRule('.column-add-btn');
+    expect(rule).toContain('flex-shrink: 0');
+  });
+
+  it('AC2: .column-sort-select has flex-shrink: 0', () => {
+    const rule = extractRule('.column-sort-select');
+    expect(rule).toContain('flex-shrink: 0');
+  });
+});
