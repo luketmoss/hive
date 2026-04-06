@@ -185,10 +185,9 @@ describe('Card kebab menu integration', () => {
     });
   });
 
-  // AC7: Delete action
-  describe('AC7: Delete', () => {
-    it('clicking "Delete" calls onDelete with item id', () => {
-      const onDelete = vi.fn();
+  // AC1 (#231): Copy option shown between Move to bottom and Delete
+  describe('AC1 (#231): Copy menu item', () => {
+    it('"Copy" appears between "Move to bottom" and "Delete"', () => {
       const items = makeColumnItems(3);
       const { container } = render(
         <Card
@@ -196,16 +195,38 @@ describe('Card kebab menu integration', () => {
           columnItems={items}
           onMoveToTop={vi.fn()}
           onMoveToBottom={vi.fn()}
-          onDelete={onDelete}
+          onCopy={vi.fn()}
+          onDelete={vi.fn()}
         />
       );
       fireEvent.click(container.querySelector('.kebab-trigger')!);
       const menuItems = container.querySelectorAll('[role="menuitem"]');
-      fireEvent.click(menuItems[2]); // Delete is the third item
-      expect(onDelete).toHaveBeenCalledWith('item-1');
+      expect(menuItems[0].textContent).toBe('Move to top');
+      expect(menuItems[1].textContent).toBe('Move to bottom');
+      expect(menuItems[2].textContent).toBe('Copy');
+      expect(menuItems[3].textContent).toBe('Delete');
     });
 
-    it('"Delete" item has danger styling', () => {
+    it('clicking "Copy" calls onCopy with item id', () => {
+      const onCopy = vi.fn();
+      const items = makeColumnItems(3);
+      const { container } = render(
+        <Card
+          item={items[1]}
+          columnItems={items}
+          onMoveToTop={vi.fn()}
+          onMoveToBottom={vi.fn()}
+          onCopy={onCopy}
+          onDelete={vi.fn()}
+        />
+      );
+      fireEvent.click(container.querySelector('.kebab-trigger')!);
+      const menuItems = container.querySelectorAll('[role="menuitem"]');
+      fireEvent.click(menuItems[2]);
+      expect(onCopy).toHaveBeenCalledWith('item-1');
+    });
+
+    it('"Copy" is not shown when onCopy is not provided', () => {
       const items = makeColumnItems(3);
       const { container } = render(
         <Card
@@ -218,7 +239,47 @@ describe('Card kebab menu integration', () => {
       );
       fireEvent.click(container.querySelector('.kebab-trigger')!);
       const menuItems = container.querySelectorAll('[role="menuitem"]');
-      expect(menuItems[2].classList.contains('kebab-item-danger')).toBe(true);
+      expect(menuItems).toHaveLength(3); // Move to top, Move to bottom, Delete
+      expect(menuItems[2].textContent).toBe('Delete');
+    });
+  });
+
+  // AC7: Delete action
+  describe('AC7: Delete', () => {
+    it('clicking "Delete" calls onDelete with item id', () => {
+      const onDelete = vi.fn();
+      const items = makeColumnItems(3);
+      const { container } = render(
+        <Card
+          item={items[1]}
+          columnItems={items}
+          onMoveToTop={vi.fn()}
+          onMoveToBottom={vi.fn()}
+          onCopy={vi.fn()}
+          onDelete={onDelete}
+        />
+      );
+      fireEvent.click(container.querySelector('.kebab-trigger')!);
+      const menuItems = container.querySelectorAll('[role="menuitem"]');
+      fireEvent.click(menuItems[3]); // Delete is now the fourth item
+      expect(onDelete).toHaveBeenCalledWith('item-1');
+    });
+
+    it('"Delete" item has danger styling', () => {
+      const items = makeColumnItems(3);
+      const { container } = render(
+        <Card
+          item={items[1]}
+          columnItems={items}
+          onMoveToTop={vi.fn()}
+          onMoveToBottom={vi.fn()}
+          onCopy={vi.fn()}
+          onDelete={vi.fn()}
+        />
+      );
+      fireEvent.click(container.querySelector('.kebab-trigger')!);
+      const menuItems = container.querySelectorAll('[role="menuitem"]');
+      expect(menuItems[3].classList.contains('kebab-item-danger')).toBe(true);
     });
   });
 

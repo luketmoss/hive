@@ -461,6 +461,91 @@ export async function createItemWithSubtasks(
   }
 }
 
+export async function copyItem(
+  itemId: string,
+  actor: string,
+  token: string
+): Promise<string | null> {
+  const original = items.value.find(i => i.id === itemId);
+  if (!original) return null;
+
+  const now = new Date().toISOString();
+
+  // Calculate sort_order to place copy right after the original
+  const sameStatusItems = items.value
+    .filter(i => i.status === original.status && !i.parent_id)
+    .sort((a, b) => a.sort_order - b.sort_order);
+  const origIndex = sameStatusItems.findIndex(i => i.id === original.id);
+  const origOrder = original.sort_order;
+  const nextItem = sameStatusItems[origIndex + 1];
+  const copyOrder = nextItem ? (origOrder + nextItem.sort_order) / 2 : origOrder + 1;
+
+  const newParentId = generateUUID();
+  const parent: Item = {
+    id: newParentId,
+    title: `${original.title} (Copy)`,
+    description: original.description,
+    status: original.status,
+    owner: original.owner,
+    due_date: original.due_date,
+    labels: original.labels,
+    parent_id: '',
+    created_at: now,
+    updated_at: now,
+    completed_at: '',
+    sort_order: copyOrder,
+    created_by: actor,
+    board_id: original.board_id,
+  };
+
+  // Find and duplicate subtasks
+  const originalChildren = items.value
+    .filter(i => i.parent_id === itemId)
+    .sort((a, b) => a.sort_order - b.sort_order);
+
+  const children: Item[] = originalChildren.map((child, i) => ({
+    id: generateUUID(),
+    title: child.title,
+    description: child.description,
+    status: child.status,
+    owner: child.owner,
+    due_date: child.due_date,
+    labels: child.labels,
+    parent_id: newParentId,
+    created_at: now,
+    updated_at: now,
+    completed_at: '',
+    sort_order: i + 1,
+    created_by: actor,
+    board_id: child.board_id,
+  }));
+
+  // Optimistic update
+  const allNew: ItemWithRow[] = [parent, ...children].map(item => ({ ...item, sheetRow: -1 }));
+  items.value = [...items.value, ...allNew];
+
+  try {
+    await createItemRow(parent, token);
+    await appendAuditEntry(parent.id, 'created', '', '', parent.title, actor, token);
+
+    for (const child of children) {
+      await createItemRow(child, token);
+      await appendAuditEntry(child.id, 'created', '', '', child.title, actor, token);
+    }
+
+    await refreshItems(token);
+    return newParentId;
+  } catch (err: any) {
+    // Rollback
+    const ids = new Set(allNew.map(i => i.id));
+    items.value = items.value.filter(i => !ids.has(i.id));
+    if (!isReauthFailure(err)) {
+      showToast('Failed to copy item: ' + err.message, 'error');
+    }
+    return null;
+  }
+}
+
 export async function moveItem(
   itemId: string,
   newStatus: ItemStatus,
