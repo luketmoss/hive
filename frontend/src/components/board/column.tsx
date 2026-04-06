@@ -29,6 +29,8 @@ interface Props {
   onSortChange?: (mode: SortMode) => void;
   /** Called when the user clicks the "+" header button or the "Add item" hover row. */
   onAddItem?: () => void;
+  /** Kebab menu: copy an item */
+  onCopyItem?: (itemId: string) => void;
   /** Kebab menu: delete an item with undo */
   onDeleteItem?: (itemId: string) => void;
 }
@@ -62,7 +64,7 @@ function resolveColumnColor(color?: string): string {
   return COLOR_TO_CSS_VAR[color] || color;
 }
 
-export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact, color, isTerminal, allDoneCount, hasArchived, archiveTriggerRef, onOpenArchive, sortMode, onSortChange, onAddItem, onDeleteItem }: Props) {
+export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact, color, isTerminal, allDoneCount, hasArchived, archiveTriggerRef, onOpenArchive, sortMode, onSortChange, onAddItem, onCopyItem, onDeleteItem }: Props) {
   // Track the insertion indicator position for within-column reorder
   const [dropIndicator, setDropIndicator] = useState<{ index: number; position: 'above' | 'below' } | null>(null);
   // aria-live announcement text
@@ -395,6 +397,7 @@ export function Column({ status, items, onDrop, onReorder, onMoveStatus, compact
               columnItems={items}
               onMoveToTop={onReorder ? handleMoveToTop : undefined}
               onMoveToBottom={onReorder ? handleMoveToBottom : undefined}
+              onCopy={onCopyItem}
               onDelete={onDeleteItem}
             />
             {dropIndicator && dropIndicator.index === index && dropIndicator.position === 'below' && (

@@ -1,8 +1,8 @@
 import { useState, useCallback, useMemo, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, createModalInitialStatus, selectedItem, groupBy, rootItems, items, owners, boardLabels as labelsStore, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement, showToast, activeView, switchToUpcoming, switchToBoard, boardStatuses, isTerminalStatus } from '../../state/board-store';
+import { columns, showCreateModal, createModalInitialStatus, selectedItem, selectedItemId, groupBy, rootItems, items, owners, boardLabels as labelsStore, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement, showToast, activeView, switchToUpcoming, switchToBoard, boardStatuses, isTerminalStatus } from '../../state/board-store';
 import type { SortMode } from '../../state/board-store';
-import { moveItem, reorderItem, createItem, deleteItem } from '../../state/actions';
+import { moveItem, reorderItem, createItem, deleteItem, copyItem } from '../../state/actions';
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts';
 import type { Shortcut } from '../../hooks/use-keyboard-shortcuts';
 import { Column } from './column';
@@ -201,6 +201,16 @@ export function KanbanBoard() {
     }, 10100);
   }, [token, user]);
 
+  /** Kebab menu: copy task + subtasks, open detail view */
+  const handleCopyItem = useCallback(async (itemId: string) => {
+    if (!token) return;
+    const newId = await copyItem(itemId, user?.name || 'web', token);
+    if (newId) {
+      selectedItemId.value = newId;
+      showToast('Task copied');
+    }
+  }, [token, user]);
+
   const handleAddItemToColumn = useCallback((status: ItemStatus) => {
     createModalInitialStatus.value = status;
     showCreateModal.value = true;
@@ -228,6 +238,7 @@ export function KanbanBoard() {
               sortMode={columnSortModes.value[status.name]}
               onSortChange={(mode: SortMode) => setColumnSortMode(status.name, mode)}
               onAddItem={() => handleAddItemToColumn(status.name)}
+              onCopyItem={handleCopyItem}
               onDeleteItem={handleDeleteItem}
               {...(status.is_terminal ? {
                 allDoneCount: allDoneItems.value.length,

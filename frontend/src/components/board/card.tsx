@@ -17,11 +17,13 @@ interface Props {
   onMoveToTop?: (itemId: string) => void;
   /** Kebab menu: move to bottom of column */
   onMoveToBottom?: (itemId: string) => void;
+  /** Kebab menu: copy item */
+  onCopy?: (itemId: string) => void;
   /** Kebab menu: delete item */
   onDelete?: (itemId: string) => void;
 }
 
-export function Card({ item, onMoveStatus, onReorder, columnItems, onMoveToTop, onMoveToBottom, onDelete }: Props) {
+export function Card({ item, onMoveStatus, onReorder, columnItems, onMoveToTop, onMoveToBottom, onCopy, onDelete }: Props) {
   const childCount = getChildCount(item.id);
   const itemLabels = item.labels
     ? item.labels.split(',').map(l => l.trim()).filter(Boolean)
@@ -108,6 +110,12 @@ export function Card({ item, onMoveStatus, onReorder, columnItems, onMoveToTop, 
       label: 'Move to bottom',
       disabled: isLastInColumn,
       onAction: () => onMoveToBottom(item.id),
+    });
+  }
+  if (onCopy) {
+    kebabActions.push({
+      label: 'Copy',
+      onAction: () => onCopy(item.id),
     });
   }
   if (onDelete) {
