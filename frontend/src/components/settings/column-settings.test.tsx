@@ -1,20 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, cleanup, waitFor, act } from '@testing-library/preact';
-import { signal } from '@preact/signals';
 import type { BoardStatus, ItemWithRow } from '../../api/types';
 
-const { mockStatuses, mockItems } = vi.hoisted(() => {
-  const { signal } = require('@preact/signals');
+vi.mock('../../state/board-store', async () => {
+  const { signal } = await import('@preact/signals');
   return {
-    mockStatuses: signal([]),
-    mockItems: signal([]),
+    boardStatuses: signal([]),
+    boardItems: signal([]),
   };
 });
-
-vi.mock('../../state/board-store', () => ({
-  boardStatuses: mockStatuses,
-  boardItems: mockItems,
-}));
 
 const mockUpdateStatus = vi.fn().mockResolvedValue(undefined);
 
@@ -25,6 +19,8 @@ vi.mock('../../state/actions', () => ({
   deleteStatusWithMigration: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Import after mocks are set up
+import { boardStatuses, boardItems } from '../../state/board-store';
 import { ColumnSettings } from './column-settings';
 
 function makeStatus(overrides: Partial<BoardStatus> = {}): BoardStatus {
@@ -47,11 +43,11 @@ afterEach(() => {
 describe('ColumnSettings terminal toggle (Issue #234)', () => {
   beforeEach(() => {
     mockUpdateStatus.mockReset().mockResolvedValue(undefined);
-    mockItems.value = [];
+    (boardItems as any).value = [];
   });
 
   it('AC1: toggling a non-terminal column swaps it with the current terminal', async () => {
-    mockStatuses.value = [
+    (boardStatuses as any).value = [
       makeStatus({ id: 's1', name: 'To Do', is_terminal: false }),
       makeStatus({ id: 's2', name: 'In Progress', is_terminal: false }),
       makeStatus({ id: 's3', name: 'Done', is_terminal: true }),
@@ -75,7 +71,7 @@ describe('ColumnSettings terminal toggle (Issue #234)', () => {
   });
 
   it('AC2: clicking the current terminal column does nothing', () => {
-    mockStatuses.value = [
+    (boardStatuses as any).value = [
       makeStatus({ id: 's1', name: 'To Do', is_terminal: false }),
       makeStatus({ id: 's3', name: 'Done', is_terminal: true }),
     ];
@@ -83,16 +79,14 @@ describe('ColumnSettings terminal toggle (Issue #234)', () => {
     const { container } = render(<ColumnSettings token="test-token" />);
 
     const toggles = container.querySelectorAll('.column-settings-terminal-toggle input[type="checkbox"]');
-    // The terminal checkbox (Done, index 1) should be disabled
     expect((toggles[1] as HTMLInputElement).disabled).toBe(true);
 
-    // Firing change should not trigger updateStatus
     fireEvent.change(toggles[1]);
     expect(mockUpdateStatus).not.toHaveBeenCalled();
   });
 
   it('AC2: terminal toggle checkbox is disabled for the current completion column', () => {
-    mockStatuses.value = [
+    (boardStatuses as any).value = [
       makeStatus({ id: 's1', name: 'To Do', is_terminal: false }),
       makeStatus({ id: 's2', name: 'Done', is_terminal: true }),
     ];
@@ -100,14 +94,12 @@ describe('ColumnSettings terminal toggle (Issue #234)', () => {
     const { container } = render(<ColumnSettings token="test-token" />);
 
     const toggles = container.querySelectorAll('.column-settings-terminal-toggle input[type="checkbox"]');
-    // Non-terminal should be enabled
     expect((toggles[0] as HTMLInputElement).disabled).toBe(false);
-    // Terminal should be disabled
     expect((toggles[1] as HTMLInputElement).disabled).toBe(true);
   });
 
   it('shows descriptive tooltip on terminal column', () => {
-    mockStatuses.value = [
+    (boardStatuses as any).value = [
       makeStatus({ id: 's1', name: 'To Do', is_terminal: false }),
       makeStatus({ id: 's2', name: 'Done', is_terminal: true }),
     ];
