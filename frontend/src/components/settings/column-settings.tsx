@@ -85,11 +85,16 @@ export function ColumnSettings({ token }: ColumnSettingsProps) {
     await updateStatus(col.id, { color: newColor }, token);
   };
 
-  // --- Terminal toggle ---
+  // --- Terminal toggle (#234: swap — exactly one completion column) ---
   const handleTerminalToggle = async (col: BoardStatus) => {
-    const terminalCount = columns.filter(c => c.is_terminal).length;
-    if (col.is_terminal && terminalCount <= 1) return;
-    await updateStatus(col.id, { is_terminal: !col.is_terminal }, token);
+    // If already terminal, do nothing (user must pick a different column to swap)
+    if (col.is_terminal) return;
+    // Turn off existing terminal column(s), then turn on the new one
+    const currentTerminals = columns.filter(c => c.is_terminal);
+    for (const t of currentTerminals) {
+      await updateStatus(t.id, { is_terminal: false }, token);
+    }
+    await updateStatus(col.id, { is_terminal: true }, token);
   };
 
   // --- Reorder ---
@@ -230,12 +235,12 @@ export function ColumnSettings({ token }: ColumnSettingsProps) {
               <span class="column-settings-count">{itemCount}</span>
 
               {/* Terminal toggle */}
-              <label class="column-settings-terminal-toggle" title="Completion column">
+              <label class="column-settings-terminal-toggle" title={col.is_terminal ? 'Completion column — click another column to change' : 'Set as completion column'}>
                 <input
                   type="checkbox"
                   checked={col.is_terminal}
                   onChange={() => handleTerminalToggle(col)}
-                  disabled={col.is_terminal && terminalCount <= 1}
+                  disabled={col.is_terminal}
                 />
                 <span class="column-settings-terminal-icon">{col.is_terminal ? '\u2713' : ''}</span>
               </label>

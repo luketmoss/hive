@@ -919,7 +919,7 @@ body {
 
 .column-header-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
 }
 
@@ -969,6 +969,7 @@ body {
   cursor: pointer;
   min-height: 24px;
   font-family: inherit;
+  flex-shrink: 0;
 }
 
 .column-sort-select:disabled {
@@ -987,6 +988,9 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--color-text-secondary);
+  flex: 1 1 0;
+  min-width: 0;
+  word-break: break-word;
 }
 
 .column-sort-select {
@@ -1029,6 +1033,7 @@ body {
   padding: 4px 8px;
   border-radius: 10px;
   margin-left: 6px;
+  flex-shrink: 0;
 }
 
 /* Header "+" button — always visible in board view */
@@ -1036,6 +1041,7 @@ body {
   margin-left: auto;
   width: 28px;
   height: 28px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;

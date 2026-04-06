@@ -1490,6 +1490,98 @@ describe('CardDetail expand panel (Issue #206)', () => {
   });
 });
 
+describe('CardDetail expand default on desktop (Issue #233)', () => {
+  beforeEach(() => {
+    mockSelectedItemId = 'detail-test-1';
+    mockChildren = [];
+    mockItems = [];
+  });
+
+  it('AC1: opens expanded on desktop viewport (matchMedia matches)', () => {
+    // Mock matchMedia to return true for desktop breakpoint
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = (query: string) => ({
+      matches: query === '(min-width: 769px)',
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    } as unknown as MediaQueryList);
+
+    const { container } = renderCardDetail();
+    expect(container.querySelector('.detail-panel-expanded')).not.toBeNull();
+    expect(container.querySelector('[aria-label="Collapse panel"]')).not.toBeNull();
+
+    window.matchMedia = originalMatchMedia;
+  });
+
+  it('AC2: opens collapsed on mobile viewport (matchMedia does not match)', () => {
+    // Default stub returns matches: false — simulates mobile
+    const { container } = renderCardDetail();
+    expect(container.querySelector('.detail-panel-expanded')).toBeNull();
+    expect(container.querySelector('[aria-label="Expand panel"]')).not.toBeNull();
+  });
+
+  it('AC3: user can still toggle manually on desktop', () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = (query: string) => ({
+      matches: query === '(min-width: 769px)',
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    } as unknown as MediaQueryList);
+
+    const { container } = renderCardDetail();
+    // Starts expanded on desktop
+    expect(container.querySelector('.detail-panel-expanded')).not.toBeNull();
+
+    // Click collapse
+    const collapseBtn = container.querySelector('[aria-label="Collapse panel"]') as HTMLElement;
+    fireEvent.click(collapseBtn);
+    expect(container.querySelector('.detail-panel-expanded')).toBeNull();
+
+    window.matchMedia = originalMatchMedia;
+  });
+
+  it('AC4: desktop default reapplied when switching tasks', () => {
+    const originalMatchMedia = window.matchMedia;
+    window.matchMedia = (query: string) => ({
+      matches: query === '(min-width: 769px)',
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    } as unknown as MediaQueryList);
+
+    const { container, rerender } = renderCardDetail();
+    // Manually collapse
+    const collapseBtn = container.querySelector('[aria-label="Collapse panel"]') as HTMLElement;
+    fireEvent.click(collapseBtn);
+    expect(container.querySelector('.detail-panel-expanded')).toBeNull();
+
+    // Switch to different item — should re-expand
+    mockSelectedItemId = 'detail-test-2';
+    rerender(
+      <AuthContext.Provider value={mockAuth}>
+        <CardDetail />
+      </AuthContext.Provider>
+    );
+    expect(container.querySelector('.detail-panel-expanded')).not.toBeNull();
+
+    window.matchMedia = originalMatchMedia;
+  });
+});
+
 describe('CardDetail clear date button (Issue #207)', () => {
   beforeEach(() => {
     mockSelectedItemId = 'detail-test-1';

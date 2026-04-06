@@ -64,11 +64,12 @@ export function CardDetail() {
   const incompleteChildren = children.filter(c => !isTerminalStatus(c.status));
   const doneChildren = children.filter(c => isTerminalStatus(c.status));
 
-  // #206: Expand/collapse panel state
-  const [expanded, setExpanded] = useState(false);
+  // #206: Expand/collapse panel state — #233: default expanded on desktop
+  const isDesktop = () => window.matchMedia('(min-width: 769px)').matches;
+  const [expanded, setExpanded] = useState(isDesktop);
   // Reset expanded state when item changes (AC4)
   useEffect(() => {
-    setExpanded(false);
+    setExpanded(isDesktop());
   }, [item.id]);
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
