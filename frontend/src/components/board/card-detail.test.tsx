@@ -957,29 +957,30 @@ describe('CardDetail — Touch reorder (Issue #88)', () => {
     mockItems = [...mockChildren];
   });
 
-  // AC5: Drag reorder via draggable attribute on <li>
+  // AC5: Drag reorder via draggable attribute on the handle (moved off the row in #237)
   describe('AC5: Touch-friendly sub-task reorder', () => {
-    it('incomplete sub-tasks have draggable="true" when 2+ incomplete children exist', () => {
+    it('incomplete sub-tasks have a draggable="true" handle when 2+ incomplete children exist', () => {
       const { container } = renderCardDetail();
-      const draggable = container.querySelectorAll('.subtask-item[draggable="true"]');
+      const draggable = container.querySelectorAll('.subtask-handle[draggable="true"]');
       // Only incomplete items (2 of 3) are draggable
       expect(draggable.length).toBe(2);
     });
 
-    it('done sub-tasks are not draggable', () => {
+    it('done sub-tasks do not have a draggable handle', () => {
       const { container } = renderCardDetail();
       const doneItems = container.querySelectorAll('.subtask-done');
       expect(doneItems.length).toBe(1);
-      expect((doneItems[0] as HTMLElement).getAttribute('draggable')).not.toBe('true');
+      const handle = doneItems[0].querySelector('.subtask-handle') as HTMLElement;
+      expect(handle.getAttribute('draggable')).not.toBe('true');
     });
 
-    it('does not make items draggable when only 1 sub-task exists', () => {
+    it('does not make the handle draggable when only 1 sub-task exists', () => {
       mockChildren = [
         { id: 'child-1', title: 'Sub A', status: 'To Do', owner: 'Luke', parent_id: 'detail-test-1', sort_order: 1 },
       ];
       mockItems = [...mockChildren];
       const { container } = renderCardDetail();
-      const draggable = container.querySelectorAll('.subtask-item[draggable="true"]');
+      const draggable = container.querySelectorAll('.subtask-handle[draggable="true"]');
       expect(draggable.length).toBe(0);
     });
 
@@ -988,6 +989,53 @@ describe('CardDetail — Touch reorder (Issue #88)', () => {
       const live = container.querySelector('[aria-live="polite"]');
       expect(live).not.toBeNull();
       expect(live!.getAttribute('role')).toBe('status');
+    });
+  });
+
+  // #237: Drag initiation scoped to handle, row stays scrollable/tappable
+  describe('Issue #237: Subtask drag handle', () => {
+    it('renders a labeled grab handle on each subtask row', () => {
+      const { container } = renderCardDetail();
+      const handles = container.querySelectorAll('.subtask-handle');
+      expect(handles.length).toBe(mockChildren.length);
+      handles.forEach(h => expect(h.getAttribute('aria-label')).toBe('Reorder subtask'));
+    });
+
+    it('the row itself is not draggable — only the handle is', () => {
+      const { container } = renderCardDetail();
+      const rows = container.querySelectorAll('.subtask-item');
+      rows.forEach(row => {
+        expect(row.getAttribute('draggable')).toBeNull();
+      });
+    });
+
+    it('touching the row outside the handle does not arm touch-reorder (preventDefault is not called)', () => {
+      const { container } = renderCardDetail();
+      const row = container.querySelector('.subtask-item') as HTMLElement;
+
+      const touchStart = new Event('touchstart', { bubbles: true, cancelable: true });
+      Object.assign(touchStart, { touches: [{ clientY: 0 }] });
+      row.dispatchEvent(touchStart);
+
+      const touchMove = new Event('touchmove', { bubbles: true, cancelable: true });
+      Object.assign(touchMove, { touches: [{ clientY: 20 }] });
+      const prevented = !row.dispatchEvent(touchMove);
+      expect(prevented).toBe(false);
+    });
+
+    it('touching the handle arms touch-reorder (preventDefault is called on subsequent move)', () => {
+      const { container } = renderCardDetail();
+      const handle = container.querySelector('.subtask-handle') as HTMLElement;
+      const row = container.querySelector('.subtask-item') as HTMLElement;
+
+      const touchStart = new Event('touchstart', { bubbles: true, cancelable: true });
+      Object.assign(touchStart, { touches: [{ clientY: 0 }] });
+      handle.dispatchEvent(touchStart);
+
+      const touchMove = new Event('touchmove', { bubbles: true, cancelable: true });
+      Object.assign(touchMove, { touches: [{ clientY: 20 }] });
+      const prevented = !row.dispatchEvent(touchMove);
+      expect(prevented).toBe(true);
     });
   });
 });
