@@ -1036,12 +1036,12 @@ function SubtaskRow({ child, idx, allItems, isDone, editingSubtaskId, editingSub
       onTouchEnd={() => { handleTouchEndLongPress(); handleTouchReorderEnd(); }}
       onTouchCancel={() => { handleTouchEndLongPress(); handleTouchReorderEnd(); }}
     >
-      {/* #237: Grab handle — sole drag/reorder initiator, keeps rest of row scrollable/tappable */}
-      <button
-        type="button"
+      {/* #237: Grab handle — sole drag/reorder initiator, keeps rest of row scrollable/tappable.
+          Not a real button: it isn't keyboard-operable (no keyboard reorder yet), so it's
+          hidden from assistive tech rather than exposed as a control that does nothing on activation. */}
+      <span
         class="subtask-handle"
-        aria-label="Reorder subtask"
-        tabIndex={-1}
+        aria-hidden="true"
         draggable={!isDone && allItems.length > 1}
         onDragStart={(e) => {
           if (isDone) return;
@@ -1062,7 +1062,7 @@ function SubtaskRow({ child, idx, allItems, isDone, editingSubtaskId, editingSub
           <circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/>
           <circle cx="5" cy="13" r="1.3"/><circle cx="11" cy="13" r="1.3"/>
         </svg>
-      </button>
+      </span>
 
       {/* Rounded square checkbox */}
       <button class="check-icon" onClick={() => toggleChildStatus(child.id, child.status)} aria-label={child.title}>

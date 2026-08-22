@@ -994,11 +994,11 @@ describe('CardDetail — Touch reorder (Issue #88)', () => {
 
   // #237: Drag initiation scoped to handle, row stays scrollable/tappable
   describe('Issue #237: Subtask drag handle', () => {
-    it('renders a labeled grab handle on each subtask row', () => {
+    it('renders a grab handle on each subtask row, hidden from assistive tech (not keyboard-operable)', () => {
       const { container } = renderCardDetail();
       const handles = container.querySelectorAll('.subtask-handle');
       expect(handles.length).toBe(mockChildren.length);
-      handles.forEach(h => expect(h.getAttribute('aria-label')).toBe('Reorder subtask'));
+      handles.forEach(h => expect(h.getAttribute('aria-hidden')).toBe('true'));
     });
 
     it('the row itself is not draggable — only the handle is', () => {
