@@ -1009,17 +1009,6 @@ function SubtaskRow({ child, idx, allItems, isDone, editingSubtaskId, editingSub
       key={child.id}
       class={`subtask-item${isDone ? ' subtask-done' : ''}`}
       style={{ position: 'relative' }}
-      draggable={!isDone && allItems.length > 1}
-      onDragStart={(e) => {
-        if (isDone) return;
-        (e as DragEvent).dataTransfer!.effectAllowed = 'move';
-        (e as DragEvent).dataTransfer!.setData('text/plain', child.id);
-        (e.currentTarget as HTMLElement).classList.add('subtask-dragging');
-      }}
-      onDragEnd={(e) => {
-        (e.currentTarget as HTMLElement).classList.remove('subtask-dragging');
-        document.querySelectorAll('.subtask-drop-target').forEach(el => el.classList.remove('subtask-drop-target'));
-      }}
       onDragOver={(e) => {
         e.preventDefault();
         (e as DragEvent).dataTransfer!.dropEffect = 'move';
@@ -1042,14 +1031,39 @@ function SubtaskRow({ child, idx, allItems, isDone, editingSubtaskId, editingSub
         }
       }}
       onContextMenu={handleContextMenuEvent}
-      onTouchStart={(e) => {
-        handleTouchStartLongPress(e as unknown as TouchEvent);
-        if (!isDone && allItems.length > 1) handleTouchReorderStart(child.id, idx, e as unknown as TouchEvent);
-      }}
+      onTouchStart={(e) => handleTouchStartLongPress(e as unknown as TouchEvent)}
       onTouchMove={(e) => { handleTouchMoveLongPress(); handleTouchReorderMove(e as unknown as TouchEvent); }}
       onTouchEnd={() => { handleTouchEndLongPress(); handleTouchReorderEnd(); }}
       onTouchCancel={() => { handleTouchEndLongPress(); handleTouchReorderEnd(); }}
     >
+      {/* #237: Grab handle — sole drag/reorder initiator, keeps rest of row scrollable/tappable.
+          Not a real button: it isn't keyboard-operable (no keyboard reorder yet), so it's
+          hidden from assistive tech rather than exposed as a control that does nothing on activation. */}
+      <span
+        class="subtask-handle"
+        aria-hidden="true"
+        draggable={!isDone && allItems.length > 1}
+        onDragStart={(e) => {
+          if (isDone) return;
+          (e as DragEvent).dataTransfer!.effectAllowed = 'move';
+          (e as DragEvent).dataTransfer!.setData('text/plain', child.id);
+          (e.currentTarget as HTMLElement).closest('.subtask-item')?.classList.add('subtask-dragging');
+        }}
+        onDragEnd={(e) => {
+          (e.currentTarget as HTMLElement).closest('.subtask-item')?.classList.remove('subtask-dragging');
+          document.querySelectorAll('.subtask-drop-target').forEach(el => el.classList.remove('subtask-drop-target'));
+        }}
+        onTouchStart={(e) => {
+          if (!isDone && allItems.length > 1) handleTouchReorderStart(child.id, idx, e as unknown as TouchEvent);
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <circle cx="5" cy="3" r="1.3"/><circle cx="11" cy="3" r="1.3"/>
+          <circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/>
+          <circle cx="5" cy="13" r="1.3"/><circle cx="11" cy="13" r="1.3"/>
+        </svg>
+      </span>
+
       {/* Rounded square checkbox */}
       <button class="check-icon" onClick={() => toggleChildStatus(child.id, child.status)} aria-label={child.title}>
         <span class={`check-box${isTerminalStatus(child.status) ? ' checked' : ''}`}>

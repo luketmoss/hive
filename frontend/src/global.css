@@ -3918,10 +3918,31 @@ body {
 }
 
 /* === Sub-task drag-and-drop (#220 follow-up) === */
-.subtask-item[draggable="true"] {
+/* #237: Grab handle — drag/reorder initiation moved off the row onto this element */
+.subtask-handle {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border: none;
+  background: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  align-self: center;
+  transition: background var(--transition-fast);
+}
+.subtask-handle:hover {
+  background: var(--overlay-xs);
+  color: var(--color-text);
+}
+.subtask-handle[draggable="true"] {
   cursor: grab;
 }
-.subtask-item[draggable="true"]:active {
+.subtask-handle[draggable="true"]:active {
   cursor: grabbing;
 }
 .subtask-dragging {
@@ -4091,6 +4112,13 @@ body {
   .subtask-kebab-btn {
     width: 44px;
     height: 44px;
+  }
+
+  /* #237: Subtask drag handle meets 44px min touch target on mobile */
+  .subtask-handle {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
   }
 
   /* Creation row on mobile */
