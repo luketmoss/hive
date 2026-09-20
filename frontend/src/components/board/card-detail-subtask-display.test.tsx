@@ -253,27 +253,36 @@ describe('Issue #204: Sub-item display improvements', () => {
   // `.subtask-handle`, which is what this asserts against.
   describe('AC3: Drag reorder only available for incomplete items', () => {
     it('incomplete items are draggable, done items are not', () => {
+      // Two done children, not one: SubtaskRow receives the per-section list as
+      // `allItems` (incompleteChildren / doneChildren), and the handle is only
+      // draggable when that list has more than one entry. With a single done
+      // child the length check alone would make it inert, and this test would
+      // pass even if the `!isDone` guard were deleted.
       mockChildren = [
         makeChild({ id: 'c1', title: 'Incomplete A', status: 'To Do', sort_order: 1 }),
         makeChild({ id: 'c2', title: 'Incomplete B', status: 'To Do', sort_order: 2 }),
         makeChild({ id: 'c3', title: 'Done C', status: 'Done', sort_order: 3 }),
+        makeChild({ id: 'c4', title: 'Done D', status: 'Done', sort_order: 4 }),
       ];
 
       const { container } = renderDetail();
-      // All 3 items visible (flat list)
+      // All 4 items visible (flat list)
       const subtaskItems = container.querySelectorAll('.subtask-item');
-      expect(subtaskItems.length).toBe(3);
+      expect(subtaskItems.length).toBe(4);
 
       // Every row gets a grab handle, but only the incomplete ones are draggable
-      expect(container.querySelectorAll('.subtask-handle').length).toBe(3);
+      expect(container.querySelectorAll('.subtask-handle').length).toBe(4);
       const draggableHandles = container.querySelectorAll('.subtask-handle[draggable="true"]');
       expect(draggableHandles.length).toBe(2);
 
-      // The done row's handle is present but inert
-      const doneRow = Array.from(subtaskItems).find(el =>
-        el.textContent?.includes('Done C')
-      )!;
-      expect(doneRow.querySelector('.subtask-handle')!.getAttribute('draggable')).not.toBe('true');
+      // Both done rows have a handle, and neither is draggable
+      const doneRows = Array.from(subtaskItems).filter(el =>
+        el.textContent?.includes('Done C') || el.textContent?.includes('Done D')
+      );
+      expect(doneRows.length).toBe(2);
+      doneRows.forEach(row => {
+        expect(row.querySelector('.subtask-handle')!.getAttribute('draggable')).not.toBe('true');
+      });
 
       // The row itself is no longer the drag initiator (#238)
       expect(container.querySelectorAll('.subtask-item[draggable="true"]').length).toBe(0);
