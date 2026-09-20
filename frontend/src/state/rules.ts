@@ -4,14 +4,28 @@
 
 import type { Item, ItemStatus } from '../api/types';
 
-export function applyStatusSideEffects(item: Item, newStatus: ItemStatus, isTerminal?: boolean): Item {
+/**
+ * #252: `isTerminal` is required, and the second branch is a plain `else if`.
+ *
+ * Both are deliberate. The parameter arrived in #219 as an optional bolted onto
+ * a two-argument signature, and `isTerminal === false` was the scaffolding that
+ * let the not-yet-updated callers through — so a missing argument meant "leave
+ * completed_at alone" here while the Apps Script copy read it as non-terminal
+ * and cleared the field. Two doors into one sheet, disagreeing about a move.
+ *
+ * Every caller now passes an explicit boolean, so the scaffolding is gone: the
+ * argument is required, and anything falsy means non-terminal on both copies —
+ * which is what the sibling rule below has always done. Do not re-tighten this
+ * to `=== false`; `apps-script/tests/rules-parity.test.ts` fails if you do.
+ */
+export function applyStatusSideEffects(item: Item, newStatus: ItemStatus, isTerminal: boolean): Item {
   const now = new Date().toISOString();
 
   let completed_at = item.completed_at;
   if (isTerminal) {
     // Moving to a terminal column — set completed_at
     completed_at = now;
-  } else if (item.completed_at && isTerminal === false) {
+  } else if (item.completed_at) {
     // Moving away from a terminal column — clear completed_at
     completed_at = '';
   }
