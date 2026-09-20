@@ -6,6 +6,8 @@
 //   ?action=getOwners
 //   ?action=getItems&status=To+Do&owner=Luke
 //   ?action=getItems&due_after=2026-09-01&due_before=2026-09-30
+//   ?action=getAuditLog&from=2026-09-12&to=2026-09-12
+//   ?action=getAuditLog&from=2026-09-12&to=2026-09-12&audit_action=completed
 //
 // Write examples:
 //   ?action=createItem&payload={"data":{"title":"Test","owner":"Luke"},"actor":"smoke-test"}
@@ -75,6 +77,21 @@ function doGet(e) {
 
       case 'getBoards':
         result = { success: true, data: getBoards() };
+        break;
+
+      // #239: Audit Log reader for cross-app day queries.
+      // `from`/`to` are inclusive local calendar dates (AUDIT_TIMEZONE),
+      // formatted YYYY-MM-DD. The action filter is `audit_action`, not
+      // `action` — `action` is already the dispatch parameter.
+      case 'getAuditLog':
+        result = {
+          success: true,
+          data: getAuditLog({
+            from: e.parameter.from,
+            to: e.parameter.to,
+            action: e.parameter.audit_action,
+          }),
+        };
         break;
 
       case 'getStatuses':

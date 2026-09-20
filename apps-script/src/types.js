@@ -37,3 +37,20 @@ var STATUS_COLUMN_COUNT = 7;
 
 // Deprecated: Statuses are now per-board in the Statuses sheet. Keep for fallback validation.
 var VALID_STATUSES = ['To Do', 'In Progress', 'Done'];
+
+// Column indices for the Audit Log sheet (0-based). Append-only forensic trail.
+var AUDIT_COL = {
+  TIMESTAMP: 0,
+  ITEM_ID: 1,
+  ACTION: 2,
+  FIELD: 3,
+  OLD_VALUE: 4,
+  NEW_VALUE: 5,
+  ACTOR: 6,
+};
+
+var AUDIT_COLUMN_COUNT = 7;
+
+// #239: the cross-app join key is the local calendar date in this zone,
+// formatted YYYY-MM-DD. No code path may slice an ISO timestamp to get a date.
+var AUDIT_TIMEZONE = 'America/Denver';

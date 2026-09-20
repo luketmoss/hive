@@ -52,6 +52,75 @@ export function makeSheet(rows: CellValue[][], columnCount?: number) {
   };
 }
 
+/**
+ * A fake Sheet that can also be written to — `setValues` and `appendRow`.
+ * `rows` is the live backing array, so a test can assert against it after a
+ * write. Reads go through the same surface `makeSheet` exposes.
+ */
+export function makeWritableSheet(rows: CellValue[][], columnCount?: number) {
+  const lastColumn = columnCount ?? (rows.length ? rows[0].length : 0);
+  return {
+    rows,
+    getLastRow() {
+      return rows.length + 1; // +1 for the header row
+    },
+    getLastColumn() {
+      return lastColumn;
+    },
+    appendRow(row: CellValue[]) {
+      rows.push(row);
+    },
+    getRange(startRow: number, startCol: number, numRows: number, numCols: number) {
+      return {
+        getValues() {
+          return rows
+            .slice(startRow - 2, startRow - 2 + numRows)
+            .map((r) => r.slice(startCol - 1, startCol - 1 + numCols));
+        },
+        setValues(values: CellValue[][]) {
+          for (let i = 0; i < numRows; i++) {
+            const target = startRow - 2 + i;
+            if (!rows[target]) rows[target] = [];
+            for (let c = 0; c < numCols; c++) {
+              rows[target][startCol - 1 + c] = values[i][c];
+            }
+          }
+        },
+      };
+    },
+  };
+}
+
+/**
+ * `Utilities` stub covering the surface the sources use.
+ *
+ * `formatDate` is the load-bearing one (#239): the real Apps Script method
+ * resolves a named IANA zone including its DST transitions, so the stub does
+ * the same through `Intl` rather than hard-coding an offset — a fixed -6 or -7
+ * would make the MDT/MST boundary test pass for the wrong reason.
+ */
+export function makeUtilities(uuids: string[] = []) {
+  let nextUuid = 0;
+  return {
+    getUuid() {
+      return uuids[nextUuid++] ?? 'uuid-' + nextUuid;
+    },
+    formatDate(date: Date, timeZone: string, format: string) {
+      if (format !== 'yyyy-MM-dd') {
+        throw new Error('Utilities.formatDate stub only supports yyyy-MM-dd, got: ' + format);
+      }
+      // 'en-CA' renders as YYYY-MM-DD, which is the format Apps Script's
+      // 'yyyy-MM-dd' produces.
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(date);
+    },
+  };
+}
+
 /** ContentService stub — captures the text passed to `createTextOutput`. */
 export function makeContentService() {
   return {
@@ -129,18 +198,33 @@ export interface ApiItem {
   [field: string]: CellValue;
 }
 
-/** The envelope every `doGet` action returns. `data` is absent on failure. */
-export interface ApiResponse {
+/** An Audit Log row as `rowToAuditEntry` returns it over the API. */
+export interface AuditEntry {
+  timestamp: string;
+  item_id: string;
+  action: string;
+  field: string;
+  old_value: string;
+  new_value: string;
+  actor: string;
+}
+
+/**
+ * The envelope every `doGet` action returns. `data` is absent on failure.
+ * The payload type varies by action, so it is a parameter with the Items
+ * read path — by far the most common caller — as the default.
+ */
+export interface ApiResponse<T = ApiItem[]> {
   success: boolean;
-  data: ApiItem[];
+  data: T;
   error?: string;
 }
 
 /** Call the sandbox's `doGet` with `params` and return the parsed JSON body. */
-export function callDoGet(
+export function callDoGet<T = ApiItem[]>(
   sandbox: Sandbox,
   params: Record<string, string | undefined>,
-): ApiResponse {
+): ApiResponse<T> {
   const output = sandbox.doGet({ parameter: { ...params } });
-  return JSON.parse(output.getContent()) as ApiResponse;
+  return JSON.parse(output.getContent()) as ApiResponse<T>;
 }

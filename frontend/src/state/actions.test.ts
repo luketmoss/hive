@@ -82,7 +82,7 @@ vi.mock('../demo/mock-api', () => ({
 }));
 
 import { loadBoard, NotAllowedError, deleteSubtask, reorderSubtasks, createItemWithSubtasks, reorderItem, moveItem } from './actions';
-import { owners, loading, items, activeBoardId, permissions, currentUserEmail, toastMessage } from './board-store';
+import { owners, loading, items, activeBoardId, permissions, currentUserEmail, toastMessage, statuses } from './board-store';
 import * as sheetsApi from '../api/sheets';
 import type { ItemWithRow } from '../api/types';
 
@@ -650,9 +650,12 @@ describe('moveItem #162: parent status cascades to children', () => {
     expect(mockUpdateItemRow.mock.calls[0][1].id).toBe('c1');
     expect(mockUpdateItemRow.mock.calls[0][1].status).toBe('Done');
 
-    // Only 1 audit entry for the child
-    expect(mockAppendAuditEntry).toHaveBeenCalledTimes(1);
+    // Audit entries for the child only — no sibling, no parent. Done is
+    // terminal, so #239 adds a `completed` row beside the `status_changed` one.
+    expect(mockAppendAuditEntry).toHaveBeenCalledTimes(2);
+    expect(mockAppendAuditEntry.mock.calls.every(c => c[0] === 'c1')).toBe(true);
     expect(mockAppendAuditEntry).toHaveBeenCalledWith('c1', 'status_changed', 'status', 'To Do', 'Done', 'web', 'test-token');
+    expect(mockAppendAuditEntry).toHaveBeenCalledWith('c1', 'completed', 'status', 'To Do', 'Done', 'web', 'test-token');
   });
 
   // AC5: Toast omits cascade count when parent has no children
@@ -735,5 +738,191 @@ describe('moveItem #162: parent status cascades to children', () => {
     const childCall = mockUpdateItemRow.mock.calls[2][1];
     expect(childCall.id).toBe('c1');
     expect(childCall.status).toBe('In Progress');
+  });
+});
+
+// #239 AC1/AC2 — the SPA half of the durable completion trail.
+//
+// `moveItem` branches on whether a `targetIndex` was supplied, and **each
+// branch writes its own audit pair** — four write sites, not two. The
+// no-targetIndex branch is what the detail panel's status pipeline uses and
+// what `updateItem` delegates to, so it is plausibly the more common way an
+// item gets completed. Covering only the drag branch would leave dragging a
+// card to Done emitting `completed` while completing the same card from its
+// detail panel does not — a silent hole in exactly the data the Journal reads.
+//
+// Both branches are therefore driven through the same cases below.
+describe('#239: completed / reopened audit rows on status change', () => {
+  const COMPLETED_AT = '2026-09-12T16:00:00.000Z';
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUpdateItemRow.mockResolvedValue(undefined);
+    mockFetchAllItems.mockResolvedValue([]);
+    activeBoardId.value = '';
+    statuses.value = [];
+    items.value = [];
+  });
+
+  /** The audit actions logged for one item, in call order. */
+  function actionsFor(itemId: string): string[] {
+    return mockAppendAuditEntry.mock.calls
+      .filter(c => c[0] === itemId)
+      .map(c => c[1] as string);
+  }
+
+  // Each case runs against both branches: `undefined` is the detail-panel /
+  // updateItem path, `0` is a drag to a specific position.
+  const BRANCHES: Array<[string, number | undefined]> = [
+    ['without targetIndex (detail panel / updateItem)', undefined],
+    ['with targetIndex (drag to a position)', 0],
+  ];
+
+  for (const [label, targetIndex] of BRANCHES) {
+    describe(label, () => {
+      it('AC1: writes `completed` alongside `status_changed` entering a terminal column', async () => {
+        const item = makeItem({ id: 'a', status: 'In Progress', sheetRow: 2 });
+        items.value = [item];
+        mockFetchAllItems.mockResolvedValue([item]);
+
+        await moveItem('a', 'Done', 'web', 'test-token', targetIndex);
+
+        // Order matters: the completion row sits beside the status_changed row.
+        expect(actionsFor('a')).toEqual(['status_changed', 'completed']);
+        expect(mockAppendAuditEntry).toHaveBeenCalledWith(
+          'a', 'completed', 'status', 'In Progress', 'Done', 'web', 'test-token');
+      });
+
+      it('AC1: the `completed` row carries the same item id and actor as the row beside it', async () => {
+        const item = makeItem({ id: 'a', status: 'To Do', sheetRow: 2 });
+        items.value = [item];
+        mockFetchAllItems.mockResolvedValue([item]);
+
+        await moveItem('a', 'Done', 'luke@example.com', 'test-token', targetIndex);
+
+        const calls = mockAppendAuditEntry.mock.calls.filter(c => c[0] === 'a');
+        const [changed, completed] = calls;
+        expect(completed[0]).toBe(changed[0]);
+        expect(completed[5]).toBe(changed[5]);
+        expect(completed[5]).toBe('luke@example.com');
+        expect(completed[3]).toBe(changed[3]); // old_value
+        expect(completed[4]).toBe(changed[4]); // new_value
+      });
+
+      it('AC1: writes one `completed` row per cascaded child (#162)', async () => {
+        const parent = makeItem({ id: 'p', status: 'In Progress', sheetRow: 2 });
+        const c1 = makeItem({ id: 'c1', status: 'To Do', parent_id: 'p', sheetRow: 3 });
+        const c2 = makeItem({ id: 'c2', status: 'In Progress', parent_id: 'p', sheetRow: 4 });
+        items.value = [parent, c1, c2];
+        mockFetchAllItems.mockResolvedValue([parent, c1, c2]);
+
+        await moveItem('p', 'Done', 'web', 'test-token', targetIndex);
+
+        expect(actionsFor('p')).toEqual(['status_changed', 'completed']);
+        expect(actionsFor('c1')).toEqual(['status_changed', 'completed']);
+        expect(actionsFor('c2')).toEqual(['status_changed', 'completed']);
+      });
+
+      it('AC1: writes no completion row moving between two non-terminal columns', async () => {
+        const item = makeItem({ id: 'a', status: 'To Do', sheetRow: 2 });
+        items.value = [item];
+        mockFetchAllItems.mockResolvedValue([item]);
+
+        await moveItem('a', 'In Progress', 'web', 'test-token', targetIndex);
+
+        expect(actionsFor('a')).toEqual(['status_changed']);
+      });
+
+      it('AC2: writes `reopened` leaving a terminal column', async () => {
+        const item = makeItem({ id: 'a', status: 'Done', completed_at: COMPLETED_AT, sheetRow: 2 });
+        items.value = [item];
+        mockFetchAllItems.mockResolvedValue([item]);
+
+        await moveItem('a', 'In Progress', 'web', 'test-token', targetIndex);
+
+        expect(actionsFor('a')).toEqual(['status_changed', 'reopened']);
+        expect(mockAppendAuditEntry).toHaveBeenCalledWith(
+          'a', 'reopened', 'status', 'Done', 'In Progress', 'web', 'test-token');
+      });
+
+      it('AC2: the verdict is taken before applyStatusSideEffects clears completed_at', async () => {
+        // The ordering trap. `completed_at` is blanked on the way out of a
+        // terminal column, so reading it after the transform silently loses
+        // every `reopened` row — while the clearing itself still has to happen.
+        const item = makeItem({ id: 'a', status: 'Done', completed_at: COMPLETED_AT, sheetRow: 2 });
+        items.value = [item];
+        mockFetchAllItems.mockResolvedValue([item]);
+
+        await moveItem('a', 'To Do', 'web', 'test-token', targetIndex);
+
+        expect(actionsFor('a')).toContain('reopened');
+        const persisted = mockUpdateItemRow.mock.calls.find(c => c[1].id === 'a')!;
+        expect(persisted[1].completed_at).toBe(''); // AC5: still cleared
+      });
+
+      it('AC2: writes `completed` again moving between two terminal columns', async () => {
+        activeBoardId.value = 'b1';
+        statuses.value = [
+          { id: 's1', board_id: 'b1', name: 'To Do', sort_order: 1, color: '#eee', is_terminal: false, created_at: '' },
+          { id: 's2', board_id: 'b1', name: 'Done', sort_order: 2, color: '#eee', is_terminal: true, created_at: '' },
+          { id: 's3', board_id: 'b1', name: 'Shipped', sort_order: 3, color: '#eee', is_terminal: true, created_at: '' },
+        ];
+        const item = makeItem({ id: 'a', status: 'Done', completed_at: COMPLETED_AT, sheetRow: 2 });
+        items.value = [item];
+        mockFetchAllItems.mockResolvedValue([item]);
+
+        await moveItem('a', 'Shipped', 'web', 'test-token', targetIndex);
+
+        expect(actionsFor('a')).toEqual(['status_changed', 'completed']);
+      });
+
+      it('AC1: completion follows is_terminal, never the column being named Done', async () => {
+        // A board whose terminal column is "Shipped" and whose "Done" column is
+        // not terminal — the inversion CLAUDE.md's invariant exists to protect.
+        activeBoardId.value = 'b1';
+        statuses.value = [
+          { id: 's1', board_id: 'b1', name: 'To Do', sort_order: 1, color: '#eee', is_terminal: false, created_at: '' },
+          { id: 's2', board_id: 'b1', name: 'Done', sort_order: 2, color: '#eee', is_terminal: false, created_at: '' },
+          { id: 's3', board_id: 'b1', name: 'Shipped', sort_order: 3, color: '#eee', is_terminal: true, created_at: '' },
+        ];
+        const a = makeItem({ id: 'a', status: 'To Do', sheetRow: 2 });
+        const b = makeItem({ id: 'b', status: 'To Do', sheetRow: 3 });
+        items.value = [a, b];
+        mockFetchAllItems.mockResolvedValue([a, b]);
+
+        await moveItem('a', 'Shipped', 'web', 'test-token', targetIndex);
+        expect(actionsFor('a')).toEqual(['status_changed', 'completed']);
+
+        await moveItem('b', 'Done', 'web', 'test-token', targetIndex);
+        expect(actionsFor('b')).toEqual(['status_changed']);
+      });
+
+      it('AC2: cascaded children are judged on their own prior state, not the parent one', async () => {
+        const parent = makeItem({ id: 'p', status: 'Done', completed_at: COMPLETED_AT, sheetRow: 2 });
+        const done = makeItem({ id: 'c1', status: 'Done', parent_id: 'p', completed_at: COMPLETED_AT, sheetRow: 3 });
+        const never = makeItem({ id: 'c2', status: 'To Do', parent_id: 'p', sheetRow: 4 });
+        items.value = [parent, done, never];
+        mockFetchAllItems.mockResolvedValue([parent, done, never]);
+
+        await moveItem('p', 'In Progress', 'web', 'test-token', targetIndex);
+
+        expect(actionsFor('p')).toEqual(['status_changed', 'reopened']);
+        expect(actionsFor('c1')).toEqual(['status_changed', 'reopened']);
+        // c2 was never completed, so nothing about it was reopened.
+        expect(actionsFor('c2')).toEqual(['status_changed']);
+      });
+    });
+  }
+
+  it('AC5: a failed write rolls back and leaves no completion row behind', async () => {
+    const item = makeItem({ id: 'a', status: 'To Do', sheetRow: 2 });
+    items.value = [item];
+    mockUpdateItemRow.mockRejectedValueOnce(new Error('boom'));
+
+    const ok = await moveItem('a', 'Done', 'web', 'test-token');
+
+    expect(ok).toBe(false);
+    expect(mockAppendAuditEntry).not.toHaveBeenCalled();
+    expect(items.value.find(i => i.id === 'a')!.status).toBe('To Do');
   });
 });

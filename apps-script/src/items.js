@@ -149,8 +149,14 @@ function updateItem(id, changes, actor) {
     }
 
     var oldStatus = item.status;
+    // #239: the verdict must be taken before applyStatusSideEffects, which
+    // clears completed_at — `item` is reassigned over on the next line.
+    var completionAction = statusTransitionAuditAction(item, isTerminal);
     item = applyStatusSideEffects(item, newStatus, isTerminal);
     writeAuditEntry(id, 'status_changed', 'status', oldStatus, newStatus, actor);
+    if (completionAction) {
+      writeAuditEntry(id, completionAction, 'status', oldStatus, newStatus, actor);
+    }
   }
 
   // Apply other field changes
@@ -189,12 +195,17 @@ function updateItem(id, changes, actor) {
           var childTargetStatus = childBoardStatuses.find(function(s) { return s.name === changes.status; });
           childIsTerminal = childTargetStatus ? childTargetStatus.is_terminal : false;
         }
+        // #239: as above — the verdict is taken from the pre-update child.
+        var childCompletionAction = statusTransitionAuditAction(child, childIsTerminal);
         var updatedChild = applyStatusSideEffects(child, changes.status, childIsTerminal);
         updatedChild.updated_at = isoNow();
         var childRowNum = findRowByItemId(sheet, child.id);
         if (childRowNum !== -1) {
           sheet.getRange(childRowNum, 1, 1, ITEM_COLUMN_COUNT).setValues([itemToRow(updatedChild)]);
           writeAuditEntry(child.id, 'status_changed', 'status', childOldStatus, changes.status, actor);
+          if (childCompletionAction) {
+            writeAuditEntry(child.id, childCompletionAction, 'status', childOldStatus, changes.status, actor);
+          }
         }
       }
     }

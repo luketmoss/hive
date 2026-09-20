@@ -1,5 +1,6 @@
 // Business rule helpers.
-// applyStatusSideEffects is duplicated in frontend/src/state/rules.ts — keep in sync.
+// applyStatusSideEffects and statusTransitionAuditAction are duplicated in
+// frontend/src/state/rules.ts — keep in sync.
 
 function applyStatusSideEffects(item, newStatus, isTerminal) {
   var updated = {};
@@ -18,6 +19,31 @@ function applyStatusSideEffects(item, newStatus, isTerminal) {
   }
 
   return updated;
+}
+
+/**
+ * #239: The durable completion event for a status change, or null if the move
+ * is neither a completion nor a reopening.
+ *
+ * The branches mirror applyStatusSideEffects exactly — that is the point.
+ * `completed_at` records whether an item is *currently* done and is cleared on
+ * the way out; the Audit Log records that it *was* done on a given day and
+ * never changes. Emitting the verdict as its own action keeps it self-describing:
+ * an audit row stores a status name, and `is_terminal` is a mutable per-board
+ * flag, so a consumer inferring completion from a historical status name would
+ * silently reinterpret history whenever a column is reconfigured.
+ *
+ * MUST be called with the item as it was *before* applyStatusSideEffects, which
+ * clears completed_at.
+ *
+ * @param {Object} item - the item before the status change
+ * @param {boolean} isTerminal - whether the target status is terminal
+ * @returns {string|null} 'completed', 'reopened', or null
+ */
+function statusTransitionAuditAction(item, isTerminal) {
+  if (isTerminal) return 'completed';
+  if (item.completed_at) return 'reopened';
+  return null;
 }
 
 /**

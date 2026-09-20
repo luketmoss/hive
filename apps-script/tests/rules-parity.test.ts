@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadSources } from './apps-script-sandbox';
-import { applyStatusSideEffects as frontendApply } from '../../frontend/src/state/rules';
+import {
+  applyStatusSideEffects as frontendApply,
+  statusTransitionAuditAction as frontendAuditAction,
+} from '../../frontend/src/state/rules';
 import type { Item } from '../../frontend/src/api/types';
 
 // #243 / AC4: `applyStatusSideEffects` is duplicated by design across
@@ -23,13 +26,23 @@ const EARLIER = '2026-04-01T09:00:00.000Z';
  * `node:vm` context has its own intrinsics, which vitest's fake timers do not
  * reach — without it the two sides would be read off two different clocks.
  */
+function loadAppsScriptRules() {
+  return loadSources(['utils.js', 'rules.js'], { Date: globalThis.Date });
+}
+
 function loadAppsScriptApply() {
-  const sandbox = loadSources(['utils.js', 'rules.js'], { Date: globalThis.Date });
-  return sandbox.applyStatusSideEffects as (
+  return loadAppsScriptRules().applyStatusSideEffects as (
     item: Item,
     newStatus: string,
     isTerminal: boolean,
   ) => Item;
+}
+
+function loadAppsScriptAuditAction() {
+  return loadAppsScriptRules().statusTransitionAuditAction as (
+    item: Item,
+    isTerminal: boolean,
+  ) => string | null;
 }
 
 function makeItem(overrides: Partial<Item> = {}): Item {
@@ -120,5 +133,35 @@ describe('applyStatusSideEffects parity: apps-script/src/rules.js vs frontend/sr
         f.completed_at,
       ]);
     }
+  });
+});
+
+// #239: `statusTransitionAuditAction` is the second rule duplicated across the
+// two doors, and it is the one the Journal's completion history depends on.
+// Its branches mirror `applyStatusSideEffects` on purpose, so it is driven over
+// the same CASES — if one copy drifts, the two doors disagree about whether a
+// move was a completion, and the forensic trail gains a hole on one side only.
+describe('statusTransitionAuditAction parity: apps-script/src/rules.js vs frontend/src/state/rules.ts', () => {
+  for (const { name, item, isTerminal } of CASES) {
+    it(`agrees on ${name}`, () => {
+      const appsScriptAuditAction = loadAppsScriptAuditAction();
+      expect(appsScriptAuditAction({ ...item }, isTerminal))
+        .toBe(frontendAuditAction({ ...item }, isTerminal));
+    });
+  }
+
+  it('agrees that a never-completed item moving to a non-terminal column is neither', () => {
+    const appsScriptAuditAction = loadAppsScriptAuditAction();
+    const item = makeItem({ status: 'To Do', completed_at: '' });
+    expect(appsScriptAuditAction({ ...item }, false)).toBeNull();
+    expect(frontendAuditAction({ ...item }, false)).toBeNull();
+  });
+
+  it('agrees the verdict tracks is_terminal, not the completed_at already there', () => {
+    const appsScriptAuditAction = loadAppsScriptAuditAction();
+    const stale = makeItem({ status: 'Done', completed_at: EARLIER });
+    // Still entering a terminal column — completed again, not reopened.
+    expect(appsScriptAuditAction({ ...stale }, true)).toBe('completed');
+    expect(frontendAuditAction({ ...stale }, true)).toBe('completed');
   });
 });
