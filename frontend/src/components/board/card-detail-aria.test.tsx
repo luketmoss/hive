@@ -200,6 +200,79 @@ describe('CardDetail ARIA labels (Issue #7)', () => {
     });
   });
 
+  // #242: focus must enter the dialog even when its first focusable child is
+  // hidden, and must be restored to the card that opened it on close.
+  describe('Focus management (#242)', () => {
+    let card: HTMLElement;
+
+    beforeEach(() => {
+      // jsdom has no layout, so the hook sees every element as unrendered.
+      // Simulate a viewport ≤768px, where global.css hides the #206 expand
+      // button, by giving that one button zero boxes and everything else a box.
+      const visible = (el: HTMLElement) => !el.classList.contains('detail-expand-btn');
+      vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function (this: HTMLElement) {
+        return visible(this) ? 100 : 0;
+      });
+      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+        return visible(this) ? 40 : 0;
+      });
+      vi.spyOn(HTMLElement.prototype, 'getClientRects').mockImplementation(function (this: HTMLElement) {
+        return (visible(this) ? [{ width: 100, height: 40 }] : []) as unknown as DOMRectList;
+      });
+
+      // A Kanban card, as rendered by card.tsx — not natively focusable
+      card = document.createElement('div');
+      card.className = 'card';
+      card.setAttribute('data-item-id', 'aria-test-1');
+      document.body.appendChild(card);
+      (document.activeElement as HTMLElement | null)?.blur?.();
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      card.remove();
+    });
+
+    // AC1 + AC2: focus enters the dialog, so the container's Escape handler is reachable
+    it('focuses the first rendered control, skipping the hidden expand button', () => {
+      const { container } = renderCardDetail();
+      const expandBtn = container.querySelector('.detail-expand-btn') as HTMLElement;
+      const closeBtn = container.querySelector('.detail-header [aria-label="Close"]') as HTMLElement;
+
+      expect(document.activeElement).not.toBe(expandBtn);
+      expect(document.activeElement).toBe(closeBtn);
+      expect(container.querySelector('.detail-overlay')!.contains(document.activeElement)).toBe(true);
+    });
+
+    // AC3: focus returns to the card, not to document.body
+    it('restores focus to the card that opened the detail', () => {
+      const { unmount } = renderCardDetail();
+      expect(document.activeElement).not.toBe(document.body);
+
+      unmount();
+
+      expect(document.activeElement).toBe(card);
+      // #6 stays out of scope: the card is a programmatic target, not a tab stop
+      expect(card.getAttribute('tabindex')).toBe('-1');
+    });
+
+    // AC4: no card in the DOM at all — the cold deep-link arrival of #240
+    it('falls back to the board when the opening card is not present', () => {
+      card.remove();
+      const boardMain = document.createElement('main');
+      boardMain.className = 'board-main';
+      document.body.appendChild(boardMain);
+
+      const { unmount } = renderCardDetail();
+      unmount();
+
+      expect(document.activeElement).toBe(boardMain);
+      expect(document.activeElement).not.toBe(document.body);
+
+      boardMain.remove();
+    });
+  });
+
   // Dialog role (already existed, verify it's still present)
   describe('Dialog role and aria-modal', () => {
     it('detail overlay has role="dialog" and aria-modal="true"', () => {
