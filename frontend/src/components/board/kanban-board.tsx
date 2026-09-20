@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, createModalInitialStatus, selectedItem, selectedItemId, groupBy, rootItems, items, owners, boardLabels as labelsStore, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement, showToast, activeView, switchToUpcoming, switchToBoard, boardStatuses, isTerminalStatus } from '../../state/board-store';
+import { columns, showCreateModal, createModalInitialStatus, selectedItem, selectItem, groupBy, rootItems, items, owners, boardLabels as labelsStore, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement, showToast, activeView, switchToUpcoming, switchToBoard, boardStatuses, isTerminalStatus } from '../../state/board-store';
 import type { SortMode } from '../../state/board-store';
 import { moveItem, reorderItem, createItem, deleteItem, copyItem } from '../../state/actions';
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts';
@@ -206,7 +206,7 @@ export function KanbanBoard() {
     if (!token) return;
     const newId = await copyItem(itemId, user?.name || 'web', token);
     if (newId) {
-      selectedItemId.value = newId;
+      selectItem(newId);
       showToast('Task copied');
     }
   }, [token, user]);

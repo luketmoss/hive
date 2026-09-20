@@ -1,4 +1,4 @@
-import { selectedItemId, getChildCount, openDetailWithTitleEdit, boardStatuses, isTerminalStatus } from '../../state/board-store';
+import { selectItem, getChildCount, openDetailWithTitleEdit, boardStatuses, isTerminalStatus } from '../../state/board-store';
 import { labels as labelsStore } from '../../state/board-store';
 import type { ItemWithRow, ItemStatus } from '../../api/types';
 import { LabelBadge } from '../shared/label-badge';
@@ -52,14 +52,14 @@ export function Card({ item, onMoveStatus, onReorder, columnItems, onMoveToTop, 
     // If the click originated from the title button, let its own handler deal with it
     if ((e.target as HTMLElement).closest('.card-title')) return;
     openDetailWithTitleEdit.value = false;
-    selectedItemId.value = item.id;
+    selectItem(item.id);
   };
 
   /** Click on the title button opens detail (edit title from inside the panel) */
   const handleTitleClick = (e: MouseEvent) => {
     e.stopPropagation();
     openDetailWithTitleEdit.value = false;
-    selectedItemId.value = item.id;
+    selectItem(item.id);
   };
 
   /** Keyboard handler on the title button — the sole tab stop per card */
@@ -67,7 +67,7 @@ export function Card({ item, onMoveStatus, onReorder, columnItems, onMoveToTop, 
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       openDetailWithTitleEdit.value = false;
-      selectedItemId.value = item.id;
+      selectItem(item.id);
       return;
     }
 

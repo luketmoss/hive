@@ -1,4 +1,4 @@
-import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl, initActiveViewFromUrl, initUpcomingBoardFilter, permissions, currentUserEmail, selectedItemId, boardItems as boardItemsComputed, statuses, isTerminalStatus, defaultStatusName, boardStatuses } from './board-store';
+import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl, initActiveViewFromUrl, initSelectedItemFromUrl, initUpcomingBoardFilter, permissions, currentUserEmail, selectItem, clearSelectedItem, boardItems as boardItemsComputed, statuses, isTerminalStatus, defaultStatusName, boardStatuses } from './board-store';
 import { applyStatusSideEffects, statusTransitionAuditAction } from './rules';
 import {
   fetchAllItems as sheetsFetchAllItems,
@@ -288,6 +288,8 @@ export async function loadBoard(token: string, user?: UserInfo | null) {
       initActiveBoardFromUrl();
       initUpcomingBoardFilter();
       initActiveViewFromUrl();
+      // #240: last — board and view resolution both clear the selection.
+      initSelectedItemFromUrl();
     }
 
     // Allowlist check: the Owners sheet is the source of truth for who can
@@ -1346,7 +1348,7 @@ export async function moveItemToBoard(
   });
 
   // Close the detail panel
-  selectedItemId.value = null;
+  clearSelectedItem();
 
   const targetBoard = boards.value.find(b => b.id === targetBoardId);
   const targetName = targetBoard?.name || 'another board';
@@ -1364,7 +1366,7 @@ export async function moveItemToBoard(
   } catch (err: any) {
     // Rollback
     items.value = oldItems;
-    selectedItemId.value = itemId;
+    selectItem(itemId);
     if (!isReauthFailure(err)) {
       showToast('Failed to move item: ' + err.message, 'error');
     }

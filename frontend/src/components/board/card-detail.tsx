@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { selectedItemId, selectedItem, childrenOfSelected, items, owners, labels as labelsStore, showToast, openDetailWithTitleEdit, accessibleBoards, activeBoardId, showMoveToBoardModal, boardStatuses, isTerminalStatus, defaultStatusName, terminalStatusName } from '../../state/board-store';
+import { clearSelectedItem, selectedItem, childrenOfSelected, items, owners, labels as labelsStore, showToast, openDetailWithTitleEdit, accessibleBoards, activeBoardId, showMoveToBoardModal, boardStatuses, isTerminalStatus, defaultStatusName, terminalStatusName } from '../../state/board-store';
 import { updateItem, deleteItem, deleteSubtask, createItem, moveItem, reorderSubtasks } from '../../state/actions';
 import { LabelBadge } from '../shared/label-badge';
 import { LabelPickerManager } from '../labels/label-picker-manager';
@@ -86,7 +86,7 @@ export function CardDetail() {
   const subtaskTitleRef = useRef('');
 
   const close = useCallback(() => {
-    selectedItemId.value = null;
+    clearSelectedItem();
   }, []);
 
   // #242: A card is not natively focusable, so clicking one leaves focus on
@@ -121,7 +121,7 @@ export function CardDetail() {
   const confirmDelete = () => {
     if (token) {
       deleteItem(item.id, actor, token);
-      selectedItemId.value = null;
+      clearSelectedItem();
     }
     setConfirmingDelete(false);
   };

@@ -19,6 +19,8 @@ vi.mock('../../state/board-store', () => ({
     },
   },
   selectedItemId: mockSelectedItemId,
+  selectItem: (id: string) => { mockSelectedItemId.value = id; },
+  clearSelectedItem: () => { mockSelectedItemId.value = null; },
   openDetailWithTitleEdit: { value: false },
   labels: { value: [] },
   getChildCount: () => ({ done: 0, total: 0 }),

@@ -195,6 +195,96 @@ export function toggleUpcomingBoard(boardId: string) {
 
 // --- UI state ---
 export const selectedItemId = signal<string | null>(null);
+
+/**
+ * #240: the message shown when a deep-linked item cannot be opened. Deliberately
+ * one string for every cause — not found, deleted, or on a board the user has no
+ * permission for — so an inaccessible item is indistinguishable from a deleted
+ * one and nothing about it is revealed.
+ */
+export const ITEM_UNAVAILABLE_MESSAGE = 'That item is no longer available';
+
+/**
+ * #240: write (or remove) the `item` query param. `replaceState` matches how
+ * `board` and `view` are handled — selection is not a history entry, so the back
+ * button still steps out of the app rather than back through selections (AC3).
+ */
+function syncSelectedItemParam(id: string | null) {
+  const url = new URL(window.location.href);
+  if (id) {
+    url.searchParams.set('item', id);
+  } else {
+    url.searchParams.delete('item');
+  }
+  window.history.replaceState(null, '', url.toString());
+}
+
+/** The title to show when no item detail is open. */
+function contextTitle(): string {
+  if (activeView.value === 'upcoming') return 'Hive — Upcoming';
+  const board = boards.value.find(b => b.id === activeBoardId.value);
+  return board ? `Hive — ${board.name}` : 'Hive';
+}
+
+/**
+ * #240: open an item's detail. The single entry point for selection — every
+ * call site routes through here so the URL and document title cannot drift out
+ * of sync with `selectedItemId`.
+ */
+export function selectItem(id: string) {
+  selectedItemId.value = id;
+  syncSelectedItemParam(id);
+  const item = items.value.find(i => i.id === id);
+  document.title = item ? `Hive — ${item.title}` : contextTitle();
+}
+
+/** #240: close the item detail, dropping the `item` param and restoring the title. */
+export function clearSelectedItem() {
+  selectedItemId.value = null;
+  syncSelectedItemParam(null);
+  document.title = contextTitle();
+}
+
+/**
+ * #240: read `item` from the URL on cold load.
+ *
+ * Must run *after* `initActiveBoardFromUrl()` and `initActiveViewFromUrl()`:
+ * board resolution clears the selection, so applying the selection first would
+ * silently close the detail it just opened.
+ *
+ * An item is reachable only if it exists and sits on a board in the accessible
+ * set. Anything else clears the param and shows the neutral toast (AC4).
+ */
+export function initSelectedItemFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const itemParam = params.get('item');
+  if (!itemParam) return;
+
+  const item = items.value.find(i => i.id === itemParam);
+  const reachable = !!item && accessibleBoards.value.some(b => b.id === item.board_id);
+
+  if (!item || !reachable) {
+    syncSelectedItemParam(null);
+    showToast(ITEM_UNAVAILABLE_MESSAGE, 'error');
+    return;
+  }
+
+  // AC2: the item's own board wins over whatever `board` named, or its absence.
+  // AC5: in the Upcoming view this is state only — the `board` param stays
+  // deleted and the view is not forced back to the board.
+  if (item.board_id && item.board_id !== activeBoardId.value) {
+    activeBoardId.value = item.board_id;
+    if (activeView.value !== 'upcoming') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('board', item.board_id);
+      window.history.replaceState(null, '', url.toString());
+    }
+  }
+
+  selectedItemId.value = item.id;
+  document.title = `Hive — ${item.title}`;
+}
+
 /** When true, CardDetail opens with the title EditableField in edit mode. */
 export const openDetailWithTitleEdit = signal(false);
 export const showCreateModal = signal(false);
@@ -383,9 +473,11 @@ export function switchBoard(boardId: string) {
   groupBy.value = 'none';
   selectedItemId.value = null;
 
-  // Update URL with board param
+  // Update URL with board param. The `item` deep link belongs to the board we
+  // are leaving, so it goes with the selection it described (#240, AC3).
   const url = new URL(window.location.href);
   url.searchParams.set('board', boardId);
+  url.searchParams.delete('item');
   window.history.replaceState(null, '', url.toString());
 
   // Update document title
