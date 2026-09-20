@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { loadReadPath, callDoGet } from './apps-script-sandbox';
+import { loadReadPath, callDoGet, type ApiItem, type ApiResponse } from './apps-script-sandbox';
 
 // #241 — `getItems()` implements due_after/due_before, but the `getItems` case
 // in `doGet` did not forward them, so the filter was unreachable over the API.
@@ -47,8 +47,8 @@ const ROWS = [
   itemRow({ id: '6', due_date: '', sort_order: 6, owner: 'Luke' }),
 ];
 
-function ids(response: any) {
-  return response.data.map((i: any) => i.id);
+function ids(response: ApiResponse) {
+  return response.data.map((i) => i.id);
 }
 
 function getItemsRequest(params: Record<string, string | undefined> = {}) {
@@ -154,6 +154,7 @@ describe('AC4: the test drives the real dispatch layer', () => {
     expect(typeof sandbox.doGet).toBe('function');
     expect(typeof sandbox.getItems).toBe('function');
     expect(sandbox.ITEM_COLUMN_COUNT).toBe(14);
-    expect(sandbox.getItems({ due_after: '2026-10-01' }).map((i: any) => i.id)).toEqual(['5']);
+    const filtered = sandbox.getItems({ due_after: '2026-10-01' }) as ApiItem[];
+    expect(filtered.map((i) => i.id)).toEqual(['5']);
   });
 });

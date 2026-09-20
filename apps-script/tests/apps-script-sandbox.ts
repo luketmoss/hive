@@ -21,10 +21,17 @@ import { fileURLToPath } from 'node:url';
 
 const SRC_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'src');
 
+// The sandbox is a `node:vm` context holding the globals the `.js` sources
+// declared. Its shape is only knowable at runtime — the sources are plain
+// Apps Script JS with no types to import — so `any` is the honest type here
+// rather than a shortcut, and callers narrow at the point of use.
 export type Sandbox = Record<string, any>;
 
+/** A value as a Sheets range hands it back. */
+export type CellValue = string | number | boolean | Date;
+
 /** A fake Sheet covering the surface `utils.js` actually uses. */
-export function makeSheet(rows: any[][], columnCount?: number) {
+export function makeSheet(rows: CellValue[][], columnCount?: number) {
   const lastColumn = columnCount ?? (rows.length ? rows[0].length : 0);
   return {
     getLastRow() {
@@ -99,7 +106,7 @@ export function loadSources(files: string[], globals: Sandbox = {}): Sandbox {
  * Load the read path (`types`, `utils`, `items`, `main`) with the Google
  * globals stubbed and the Items sheet backed by `itemRows`.
  */
-export function loadReadPath(itemRows: any[][], apiKey = 'test-key'): Sandbox {
+export function loadReadPath(itemRows: CellValue[][], apiKey = 'test-key'): Sandbox {
   const sandbox = loadSources(['types.js', 'utils.js', 'items.js', 'main.js'], {
     ContentService: makeContentService(),
     PropertiesService: makePropertiesService({ API_KEY: apiKey, SPREADSHEET_ID: 'sheet-id' }),
@@ -116,8 +123,24 @@ export function loadReadPath(itemRows: any[][], apiKey = 'test-key'): Sandbox {
   return sandbox;
 }
 
+/** An Items row as `rowToItem` returns it over the API. */
+export interface ApiItem {
+  id: string;
+  [field: string]: CellValue;
+}
+
+/** The envelope every `doGet` action returns. `data` is absent on failure. */
+export interface ApiResponse {
+  success: boolean;
+  data: ApiItem[];
+  error?: string;
+}
+
 /** Call the sandbox's `doGet` with `params` and return the parsed JSON body. */
-export function callDoGet(sandbox: Sandbox, params: Record<string, string | undefined>) {
+export function callDoGet(
+  sandbox: Sandbox,
+  params: Record<string, string | undefined>,
+): ApiResponse {
   const output = sandbox.doGet({ parameter: { ...params } });
-  return JSON.parse(output.getContent());
+  return JSON.parse(output.getContent()) as ApiResponse;
 }

@@ -9,7 +9,8 @@
   },
   "devDependencies": {
     "@types/google-apps-script": "^1.0.83",
-    "vitest": "^3.0.0",
-    "typescript": "^5.7.0"
+    "@types/node": "^20.19.43",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
   }
 }
