@@ -9,5 +9,5 @@
     "skipLibCheck": true,
     "types": ["google-apps-script"]
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.config.ts"]
 }
