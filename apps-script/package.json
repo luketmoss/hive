@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/google-apps-script": "^1.0.83",
