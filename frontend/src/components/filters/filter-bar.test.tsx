@@ -207,16 +207,40 @@ describe('FilterBar chip redesign (Issue #28)', () => {
   });
 });
 
-describe('Group-by chip toggles (Issue #77)', () => {
+// #246: These were written for the #77 chip set, which included an "Owner"
+// grouping mode and picked chips positionally. `GroupBy` in board-store is now
+// `'none' | 'status' | 'label'` — there is no owner grouping any more — so the
+// assertions below name the mode they mean and select chips by their visible
+// name, not by index.
+describe('Group-by chip toggles (#77, updated for the current GroupBy modes)', () => {
+  /** Select a group chip by its visible name rather than its position. */
+  const groupChip = (container: Element, name: string): HTMLButtonElement => {
+    const groupSection = container.querySelector('[aria-label="Group by"]')!;
+    const chips = Array.from(groupSection.querySelectorAll('button.filter-chip'));
+    const chip = chips.find(c => c.textContent?.trim() === name);
+    if (!chip) {
+      throw new Error(
+        `No group chip named "${name}". Found: ${chips.map(c => c.textContent?.trim()).join(', ')}`
+      );
+    }
+    return chip as HTMLButtonElement;
+  };
+
   // AC1: Group-by rendered as chip toggles
   describe('AC1: Group-by rendered as chip toggles', () => {
-    it('renders "Owner" and "Label" group chips (not a select)', () => {
+    it('renders "Status" and "Label" group chips (not a select)', () => {
       const { container } = render(<FilterBar />);
       const groupSection = container.querySelector('[aria-label="Group by"]')!;
       const chips = groupSection.querySelectorAll('button.filter-chip');
-      expect(chips.length).toBe(2);
-      expect(chips[0].textContent).toBe('Owner');
-      expect(chips[1].textContent).toBe('Label');
+      expect(Array.from(chips).map(c => c.textContent?.trim())).toEqual(['Status', 'Label']);
+    });
+
+    it('renders no chip for a grouping mode GroupBy does not define', () => {
+      const { container } = render(<FilterBar />);
+      const groupSection = container.querySelector('[aria-label="Group by"]')!;
+      const names = Array.from(groupSection.querySelectorAll('button.filter-chip'))
+        .map(c => c.textContent?.trim());
+      expect(names).not.toContain('Owner');
     });
 
     it('renders no <select> element', () => {
@@ -242,61 +266,49 @@ describe('Group-by chip toggles (Issue #77)', () => {
 
   // AC2: Single-click toggle activates grouping
   describe('AC2: Single-click toggle activates grouping', () => {
-    it('clicking "Owner" group chip sets groupBy to "owner"', () => {
+    it('clicking "Status" group chip sets groupBy to "status"', () => {
       const { container } = render(<FilterBar />);
-      const groupSection = container.querySelector('[aria-label="Group by"]')!;
-      const ownerChip = groupSection.querySelectorAll('button.filter-chip')[0] as HTMLElement;
-      fireEvent.click(ownerChip);
-      expect(mockGroupBy.value).toBe('owner');
+      fireEvent.click(groupChip(container, 'Status'));
+      expect(mockGroupBy.value).toBe('status');
     });
 
     it('active group chip has filter-chip-active class', () => {
-      mockGroupBy.value = 'owner';
+      mockGroupBy.value = 'status';
       const { container } = render(<FilterBar />);
-      const groupSection = container.querySelector('[aria-label="Group by"]')!;
-      const ownerChip = groupSection.querySelectorAll('button.filter-chip')[0];
-      expect(ownerChip.classList.contains('filter-chip-active')).toBe(true);
+      expect(groupChip(container, 'Status').classList.contains('filter-chip-active')).toBe(true);
     });
   });
 
   // AC3: Clicking active group chip deselects grouping
   describe('AC3: Clicking active group chip deselects grouping', () => {
     it('clicking the active group chip resets groupBy to "none"', () => {
-      mockGroupBy.value = 'owner';
+      mockGroupBy.value = 'status';
       const { container } = render(<FilterBar />);
-      const groupSection = container.querySelector('[aria-label="Group by"]')!;
-      const ownerChip = groupSection.querySelectorAll('button.filter-chip')[0] as HTMLElement;
-      fireEvent.click(ownerChip);
+      fireEvent.click(groupChip(container, 'Status'));
       expect(mockGroupBy.value).toBe('none');
     });
 
     it('deselected chip loses filter-chip-active class', () => {
       mockGroupBy.value = 'none';
       const { container } = render(<FilterBar />);
-      const groupSection = container.querySelector('[aria-label="Group by"]')!;
-      const ownerChip = groupSection.querySelectorAll('button.filter-chip')[0];
-      expect(ownerChip.classList.contains('filter-chip-active')).toBe(false);
+      expect(groupChip(container, 'Status').classList.contains('filter-chip-active')).toBe(false);
     });
   });
 
   // AC4: Only one group chip active at a time (radio behavior)
   describe('AC4: Only one group chip active at a time (radio behavior)', () => {
-    it('clicking Label while Owner is active switches to label grouping', () => {
-      mockGroupBy.value = 'owner';
+    it('clicking Label while Status is active switches to label grouping', () => {
+      mockGroupBy.value = 'status';
       const { container } = render(<FilterBar />);
-      const groupSection = container.querySelector('[aria-label="Group by"]')!;
-      const labelChip = groupSection.querySelectorAll('button.filter-chip')[1] as HTMLElement;
-      fireEvent.click(labelChip);
+      fireEvent.click(groupChip(container, 'Label'));
       expect(mockGroupBy.value).toBe('label');
     });
 
     it('only the active group chip has filter-chip-active', () => {
       mockGroupBy.value = 'label';
       const { container } = render(<FilterBar />);
-      const groupSection = container.querySelector('[aria-label="Group by"]')!;
-      const chips = groupSection.querySelectorAll('button.filter-chip');
-      expect(chips[0].classList.contains('filter-chip-active')).toBe(false); // Owner
-      expect(chips[1].classList.contains('filter-chip-active')).toBe(true);  // Label
+      expect(groupChip(container, 'Status').classList.contains('filter-chip-active')).toBe(false);
+      expect(groupChip(container, 'Label').classList.contains('filter-chip-active')).toBe(true);
     });
   });
 
@@ -318,11 +330,10 @@ describe('Group-by chip toggles (Issue #77)', () => {
     });
 
     it('active group chip has aria-pressed="true"', () => {
-      mockGroupBy.value = 'owner';
+      mockGroupBy.value = 'status';
       const { container } = render(<FilterBar />);
-      const groupSection = container.querySelector('[aria-label="Group by"]')!;
-      const ownerChip = groupSection.querySelectorAll('button.filter-chip')[0];
-      expect(ownerChip.getAttribute('aria-pressed')).toBe('true');
+      expect(groupChip(container, 'Status').getAttribute('aria-pressed')).toBe('true');
+      expect(groupChip(container, 'Label').getAttribute('aria-pressed')).toBe('false');
     });
   });
 
@@ -359,7 +370,7 @@ describe('Group-by chip toggles (Issue #77)', () => {
     });
 
     it('shows "Reset all" when grouping is active', () => {
-      mockGroupBy.value = 'owner';
+      mockGroupBy.value = 'status';
       const { container } = render(<FilterBar />);
       const btn = container.querySelector('.btn-ghost');
       expect(btn).not.toBeNull();
@@ -368,7 +379,7 @@ describe('Group-by chip toggles (Issue #77)', () => {
 
     it('shows "Reset all" when both filters and grouping are active', () => {
       mockFilterOwner.value = 'Luke';
-      mockGroupBy.value = 'owner';
+      mockGroupBy.value = 'status';
       const { container } = render(<FilterBar />);
       const btn = container.querySelector('.btn-ghost');
       expect(btn!.textContent).toBe('Reset all');
@@ -383,7 +394,7 @@ describe('Group-by chip toggles (Issue #77)', () => {
     it('clicking Reset all clears filters and grouping', () => {
       mockFilterOwner.value = 'Luke';
       mockFilterLabel.value = 'Urgent';
-      mockGroupBy.value = 'owner';
+      mockGroupBy.value = 'status';
       const { container } = render(<FilterBar />);
       const btn = container.querySelector('.btn-ghost') as HTMLElement;
       fireEvent.click(btn);
@@ -495,7 +506,7 @@ describe('Mobile filter popup', () => {
     it('shows badge count including all active filters and grouping', () => {
       mockFilterOwner.value = 'Luke';
       mockFilterLabel.value = 'Urgent';
-      mockGroupBy.value = 'owner';
+      mockGroupBy.value = 'status';
       const { container } = render(<FilterBar />);
       const badge = container.querySelector('.filter-badge');
       expect(badge!.textContent).toBe('3');

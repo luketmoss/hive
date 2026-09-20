@@ -248,6 +248,9 @@ describe('Issue #204: Sub-item display improvements', () => {
   });
 
   // --- AC3: Drag reorder only for incomplete items (arrow buttons removed) ---
+  // #246: #238 moved reorder onto a dedicated grab handle, so the row itself is
+  // no longer draggable. The #204 AC3 rule still holds — it is now carried by
+  // `.subtask-handle`, which is what this asserts against.
   describe('AC3: Drag reorder only available for incomplete items', () => {
     it('incomplete items are draggable, done items are not', () => {
       mockChildren = [
@@ -261,9 +264,19 @@ describe('Issue #204: Sub-item display improvements', () => {
       const subtaskItems = container.querySelectorAll('.subtask-item');
       expect(subtaskItems.length).toBe(3);
 
-      // Incomplete items have draggable="true", done items do not
-      const draggableItems = container.querySelectorAll('.subtask-item[draggable="true"]');
-      expect(draggableItems.length).toBe(2);
+      // Every row gets a grab handle, but only the incomplete ones are draggable
+      expect(container.querySelectorAll('.subtask-handle').length).toBe(3);
+      const draggableHandles = container.querySelectorAll('.subtask-handle[draggable="true"]');
+      expect(draggableHandles.length).toBe(2);
+
+      // The done row's handle is present but inert
+      const doneRow = Array.from(subtaskItems).find(el =>
+        el.textContent?.includes('Done C')
+      )!;
+      expect(doneRow.querySelector('.subtask-handle')!.getAttribute('draggable')).not.toBe('true');
+
+      // The row itself is no longer the drag initiator (#238)
+      expect(container.querySelectorAll('.subtask-item[draggable="true"]').length).toBe(0);
     });
   });
 
