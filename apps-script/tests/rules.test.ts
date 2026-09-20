@@ -218,10 +218,3 @@ describe('checkParentCompletion', () => {
     expect(checkParentCompletion(child1, allItems)).toBeNull();
   });
 });
-
-// TEMPORARY CI PROBE — verifies AC3. Reverted in the next commit.
-describe('ci probe', () => {
-  it('fails deliberately', () => {
-    expect(1).toBe(2);
-  });
-});
