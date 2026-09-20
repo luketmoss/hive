@@ -12,7 +12,11 @@
 // Write examples:
 //   ?action=createItem&payload={"data":{"title":"Test","owner":"Luke"},"actor":"smoke-test"}
 //   ?action=updateItem&payload={"id":"uuid","changes":{"status":"Done"},"actor":"smoke-test"}
+//
+// Delete is dry-run by default (#244). The first call reports the whole
+// cascade and writes nothing; the second must carry the token it returned:
 //   ?action=deleteItem&payload={"id":"uuid","actor":"smoke-test"}
+//   ?action=deleteItem&payload={"id":"uuid","confirm":true,"token":"a1b2c3d4","actor":"smoke-test"}
 
 function validateApiKey(key) {
   var expected = PropertiesService.getScriptProperties().getProperty('API_KEY');
@@ -123,13 +127,21 @@ function doGet(e) {
         result = { success: true, data: updateItem(payload.id, payload.changes, payload.actor || 'api') };
         break;
 
+      // #244: dry-run by default. No `confirm` returns the full cascade that
+      // would be removed, plus a token, and writes nothing. `confirm` must
+      // carry that token back or the call is refused.
       case 'deleteItem':
         if (!payload.id) {
           result = { success: false, error: 'payload.id field required' };
           break;
         }
-        deleteItem(payload.id, payload.actor || 'api');
-        result = { success: true };
+        result = {
+          success: true,
+          data: deleteItem(payload.id, payload.actor || 'api', {
+            confirm: payload.confirm,
+            token: payload.token,
+          }),
+        };
         break;
 
       case 'createLabel':
@@ -174,6 +186,11 @@ function doGet(e) {
     }
   } catch (err) {
     result = { success: false, error: err.message || String(err) };
+    // #244: a rejected confirm carries the fresh preview, so the caller can see
+    // what changed and retry without a second round trip.
+    if (err && err.preview) {
+      result.data = err.preview;
+    }
   }
 
   return ContentService
@@ -219,13 +236,16 @@ function doPost(e) {
         result = { success: true, data: updateItem(body.id, body.changes, actor) };
         break;
 
+      // #244: same dry-run contract as doGet — no `confirm`, no write.
       case 'deleteItem':
         if (!body.id) {
           result = { success: false, error: 'id field required' };
           break;
         }
-        deleteItem(body.id, actor);
-        result = { success: true };
+        result = {
+          success: true,
+          data: deleteItem(body.id, actor, { confirm: body.confirm, token: body.token }),
+        };
         break;
 
       default:
@@ -233,6 +253,9 @@ function doPost(e) {
     }
   } catch (err) {
     result = { success: false, error: err.message || String(err) };
+    if (err && err.preview) {
+      result.data = err.preview;
+    }
   }
 
   return ContentService
