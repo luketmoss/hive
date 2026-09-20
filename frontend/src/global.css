@@ -199,6 +199,11 @@ body {
   font-size: 14px;
   font-weight: 600;
   min-height: 48px;
+  /* #255: WCAG 2.5.5 touch target floor. min-height alone left icon-only buttons
+     (Close "✕", the overflow "More options" glyph) at 37-43px wide. The 16px
+     horizontal padding already puts every text button far past 44px, so this
+     floor only ever widens a glyph-narrow button. .btn-sm opts out below. */
+  min-width: 44px;
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -227,6 +232,10 @@ body {
   padding: 4px 10px;
   font-size: 13px;
   min-height: auto;
+  /* #255: the compact variant opts out of the .btn touch-target floor, the same
+     way it already opts out of min-height. It lives in dense rows (share member
+     list, label manager, column settings) where a 44px floor would reflow them. */
+  min-width: auto;
 }
 
 /* === Login Screen === */
