@@ -38,17 +38,10 @@ describe('Responsive CSS (Issue #10)', () => {
     expect(mobileBlock.length).toBeGreaterThan(0);
   });
 
-  // AC1: Filter selects have proper touch targets on mobile
-  describe('AC1: Filter selects have 44px height and 16px font on mobile', () => {
-    it('mobile media query sets min-height: 44px on filter-bar select', () => {
-      expect(mobileBlock).toContain('.filter-bar select');
-      expect(mobileBlock).toContain('min-height: 44px');
-    });
-
-    it('mobile media query sets font-size: 16px on filter-bar select', () => {
-      expect(mobileBlock).toContain('font-size: 16px');
-    });
-  });
+  // AC1 removed in #248: it asserted the mobile block contained '.filter-bar select',
+  // a rule already deleted in #77. The assertion only still matched the leftover
+  // comment naming it, so it guarded nothing. The live touch-target rules for the
+  // ControlBar chips are covered below and in control-bar.test.tsx.
 
   // AC2: Columns fill available desktop width
   describe('AC2: Columns fill available desktop width', () => {
