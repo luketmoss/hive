@@ -1,5 +1,5 @@
 import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl, initActiveViewFromUrl, initUpcomingBoardFilter, permissions, currentUserEmail, selectedItemId, boardItems as boardItemsComputed, statuses, isTerminalStatus, defaultStatusName, boardStatuses } from './board-store';
-import { applyStatusSideEffects } from './rules';
+import { applyStatusSideEffects, statusTransitionAuditAction } from './rules';
 import {
   fetchAllItems as sheetsFetchAllItems,
   fetchOwners as sheetsFetchOwners,
@@ -560,6 +560,9 @@ export async function moveItem(
   const oldItem = { ...item };
   const oldItems = [...items.value];
   const terminal = isTerminalStatus(newStatus);
+  // #239: the durable completion event, taken from the item as it was before
+  // applyStatusSideEffects clears completed_at. Both branches below use it.
+  const completionAction = statusTransitionAuditAction(oldItem, terminal);
 
   // Get destination column items (root items only, sorted by sort_order)
   const destColumnItems = items.value
@@ -618,12 +621,21 @@ export async function moveItem(
         await updateItemRow(u.sheetRow, u, token);
       }
       await appendAuditEntry(itemId, 'status_changed', 'status', oldItem.status, newStatus, actor, token);
+      if (completionAction) {
+        await appendAuditEntry(itemId, completionAction, 'status', oldItem.status, newStatus, actor, token);
+      }
 
       // #162: Persist cascade
       for (const child of cascadedChildren) {
         await updateItemRow(child.sheetRow, child, token);
+        const oldChild = childrenToUpdate.find(c => c.id === child.id)!;
         await appendAuditEntry(child.id, 'status_changed', 'status',
-          childrenToUpdate.find(c => c.id === child.id)!.status, newStatus, actor, token);
+          oldChild.status, newStatus, actor, token);
+        // #239: one completion row per cascaded child, from its own prior state
+        const childAction = statusTransitionAuditAction(oldChild, terminal);
+        if (childAction) {
+          await appendAuditEntry(child.id, childAction, 'status', oldChild.status, newStatus, actor, token);
+        }
       }
 
       await refreshItems(token);
@@ -669,12 +681,21 @@ export async function moveItem(
   try {
     await updateItemRow(item.sheetRow, updated, token);
     await appendAuditEntry(itemId, 'status_changed', 'status', oldItem.status, newStatus, actor, token);
+    if (completionAction) {
+      await appendAuditEntry(itemId, completionAction, 'status', oldItem.status, newStatus, actor, token);
+    }
 
     // #162: Persist cascade
     for (const child of cascadedChildren) {
       await updateItemRow(child.sheetRow, child, token);
+      const oldChild = childrenToUpdate.find(c => c.id === child.id)!;
       await appendAuditEntry(child.id, 'status_changed', 'status',
-        childrenToUpdate.find(c => c.id === child.id)!.status, newStatus, actor, token);
+        oldChild.status, newStatus, actor, token);
+      // #239: one completion row per cascaded child, from its own prior state
+      const childAction = statusTransitionAuditAction(oldChild, terminal);
+      if (childAction) {
+        await appendAuditEntry(child.id, childAction, 'status', oldChild.status, newStatus, actor, token);
+      }
     }
 
     await refreshItems(token);
