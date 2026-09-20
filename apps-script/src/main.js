@@ -5,6 +5,7 @@
 // Read examples:
 //   ?action=getOwners
 //   ?action=getItems&status=To+Do&owner=Luke
+//   ?action=getItems&due_after=2026-09-01&due_before=2026-09-30
 //
 // Write examples:
 //   ?action=createItem&payload={"data":{"title":"Test","owner":"Luke"},"actor":"smoke-test"}
@@ -45,6 +46,8 @@ function doGet(e) {
             parent_id: e.parameter.parent_id,
             board_id: e.parameter.board_id,
             roots_only: e.parameter.roots_only,
+            due_after: e.parameter.due_after,
+            due_before: e.parameter.due_before,
           }),
         };
         break;
