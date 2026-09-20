@@ -92,6 +92,13 @@ describe('applyStatusSideEffects', () => {
     expect(result.completed_at).toBe('');
   });
 
+  // The fixture's empty `completed_at` is the point of this case, not an
+  // oversight. The rule only sees the *target* status's `is_terminal`, never
+  // the one it came from, so "leaving a terminal status" and "moving between
+  // two non-terminal statuses" are one code path; which branch runs is decided
+  // by whether `completed_at` was already set. An item sitting in a
+  // non-terminal column has none, which is the state modelled here. Populate it
+  // and the value is cleared instead — see the preceding test.
   it('leaves completed_at untouched between two non-terminal statuses', () => {
     const { applyStatusSideEffects } = loadRules();
     const item = makeItem({ status: 'To Do' });
