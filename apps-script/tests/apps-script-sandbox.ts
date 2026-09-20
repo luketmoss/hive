@@ -70,6 +70,12 @@ export function makeWritableSheet(rows: CellValue[][], columnCount?: number) {
     appendRow(row: CellValue[]) {
       rows.push(row);
     },
+    // #244: 1-based sheet row, header included — `deleteRow(2)` removes the
+    // first data row. Modelling the shift is the point: a delete that re-used
+    // a stale row number would silently hit the wrong record here too.
+    deleteRow(rowNum: number) {
+      rows.splice(rowNum - 2, 1);
+    },
     getRange(startRow: number, startCol: number, numRows: number, numCols: number) {
       return {
         getValues() {
@@ -190,6 +196,34 @@ export function loadReadPath(itemRows: CellValue[][], apiKey = 'test-key'): Sand
   };
 
   return sandbox;
+}
+
+/**
+ * #244: Load the write path for deletes — `types`, `utils`, `audit`, `items`,
+ * `main` — with the Items and Audit Log tabs backed by writable fake sheets.
+ *
+ * Both backing arrays are returned live, so a test asserts on what the sheet
+ * holds afterward rather than on what the code claims it did.
+ */
+export function loadDeletePath(itemRows: CellValue[][], apiKey = 'test-key') {
+  const sandbox = loadSources(['types.js', 'utils.js', 'audit.js', 'items.js', 'main.js'], {
+    ContentService: makeContentService(),
+    PropertiesService: makePropertiesService({ API_KEY: apiKey, SPREADSHEET_ID: 'sheet-id' }),
+    Utilities: makeUtilities(),
+    Date: globalThis.Date,
+  });
+
+  const items = makeWritableSheet(itemRows, sandbox.ITEM_COLUMN_COUNT);
+  const auditRows: CellValue[][] = [];
+  const audit = makeWritableSheet(auditRows, 7);
+
+  sandbox.getSheet = (name: string) => {
+    if (name === 'Items') return items;
+    if (name === 'Audit Log') return audit;
+    throw new Error('Sheet "' + name + '" not stubbed');
+  };
+
+  return { sandbox, itemRows, auditRows };
 }
 
 /** An Items row as `rowToItem` returns it over the API. */
