@@ -386,11 +386,14 @@ function deleteItem(id, actor, options) {
     deleted.push(entry);
   }
 
+  // `items` is what was actually removed, not what was previewed — the two
+  // agree unless a row vanished mid-loop, and in that case the result should
+  // say what happened rather than repeat the plan.
   return {
     dry_run: false,
-    root: cascade.length ? { id: cascade[0].id, title: cascade[0].title } : null,
+    root: { id: cascade[0].id, title: cascade[0].title },
     count: deleted.length,
-    items: cascade,
+    items: deleted,
     token: token,
   };
 }
