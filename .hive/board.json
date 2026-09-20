@@ -1,0 +1,18 @@
+{
+  "repo": "luketmoss/hive",
+  "owner": "luketmoss",
+  "projectNumber": 2,
+  "projectId": "PVT_kwHOAJR9ys4BQe_8",
+  "statusFieldId": "PVTSSF_lAHOAJR9ys4BQe_8zg-lvnE",
+  "statuses": {
+    "To Do": "2ed3c08e",
+    "PM Refining": "60b38b8d",
+    "UX": "0c810f0f",
+    "Refined": "9e0d0478",
+    "In Development": "cedf160f",
+    "Testing": "1bd1ca27",
+    "Code Review": "2e7d4fd2",
+    "Ready to Ship": "b9d77a66",
+    "Done": "2aaa3a20"
+  }
+}

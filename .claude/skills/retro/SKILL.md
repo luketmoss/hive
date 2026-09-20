@@ -18,28 +18,34 @@ Pipeline coach. Compares what happened in this session against CLAUDE.md and ski
 
 ## What to Analyze
 
-From conversation context: pipeline flow/order, unintended stops between stages, user interventions, command failures, skill output quality, handoff problems.
+From conversation context: which runs were invoked, unintended stops between stages, user interventions, command failures, skill output quality, handoff problems.
 
-From GitHub: `gh issue view <N> --comments`, `gh pr view <PR> --comments`, board state via `gh project item-list`.
+From GitHub: `gh issue view <N> --comments`, `gh pr view <PR> --comments`, board state via `node .hive/board.mjs show <N>`.
 
-Reference: `CLAUDE.md` (Pipeline Orchestration) and `.claude/skills/*/SKILL.md`.
+Reference: `CLAUDE.md` (The Two Runs, Halting) and `.claude/skills/*/SKILL.md`.
 
 ## Finding Types
 
-- **STALL** — pipeline stopped, user had to nudge
-- **SKIPPED** — stage should have run but didn't
-- **INCOMPLETE** — stage ran but output missing required elements
-- **DEVIATION** — contradicts CLAUDE.md or skill instructions
-- **QUALITY GAP** — something pipeline should have caught
+- **STALL** — a run stopped between stages and the user had to nudge it
+- **HAND-CHAINED** — stages were run inline instead of invoking `/refine` or `/finish`
+- **SKIPPED** — a stage should have run but didn't
+- **INCOMPLETE** — a stage ran but its output was missing required elements
+- **DEVIATION** — contradicts CLAUDE.md or a skill's instructions
+- **FALSE HALT** — a run stopped for something that wasn't a listed halt condition
+- **GATE BYPASS** — refinement ran into delivery without the design gate, or `/ship` merged past one of its refusals
+- **QUALITY GAP** — something a stage should have caught
 - **EFFICIENCY** — redundant work or wasted effort
-- **ERROR** — command/tool failure and how it was handled
-- **PATTERN** — recurring issue from previous retros
+- **ERROR** — a command/tool failure and how it was handled
+- **PATTERN** — a recurring issue from previous retros
+
+A run that halted for a listed reason is **not** a finding. Note it under Clean
+Passes — stopping correctly is the system working.
 
 ## Process
 
 1. **Review session** — analyze flow, stops, errors, interventions from conversation context
-2. **Verify GitHub artifacts** — spot-check: PM (ACs in issue body), UX (comment), Dev (PR with Closes #N), QA (report comment), Review (comment)
-3. **Read expected behavior** — CLAUDE.md pipeline section + relevant skill files
+2. **Verify GitHub artifacts** — spot-check: PM (ACs in issue body), UX (comment), Dev (draft PR with `Closes #N`), QA (report comment, PR taken out of draft), Review (comment with a verdict), Ship (`## Results` in the issue body, local branch deleted)
+3. **Read expected behavior** — CLAUDE.md's board table and runs + the relevant skill files
 4. **Check previous retros** in `.claude/retrospectives/` (exclude `Reviewed/`) for recurring patterns
 5. **Write report** to `.claude/retrospectives/retro-<date>.md` (append counter if exists):
 

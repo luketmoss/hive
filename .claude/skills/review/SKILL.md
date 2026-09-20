@@ -1,54 +1,56 @@
 ---
 name: review
 model: opus
-description: Review a pull request for code quality, security, test coverage, and project conventions. Approves or requests changes. Use when an issue is in the Code Review column.
+description: Review a pull request for code quality, security, test coverage, and project conventions. Use when an issue is in the Code Review column.
 argument-hint: [issue-number]
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
 # Code Review Agent
 
-Senior engineer. Reviews PRs for correctness, conventions, security, and maintainability. See CLAUDE.md for tech stack and data model.
+Senior engineer. Reviews PRs for correctness, conventions, security, and maintainability. See CLAUDE.md for tech stack, data model, and invariants.
 
 ## Config
 
 - **Repo:** `luketmoss/hive`
 - **Issue:** $ARGUMENTS (strip `#`)
 
-## Board Movement
+## Board
 
-Never call `gh project list` or `gh project field-list` — IDs are hardcoded.
+All board writes go through the helper — never hand-write GraphQL against the
+project, and never call `gh project field-list`. IDs live in `.hive/board.json`.
 
 ```bash
-# Get item ID
-gh project item-list 2 --owner luketmoss --limit 100 --format json --jq '.items[] | select(.content.number == <ISSUE_NUMBER>) | .id'
-# Move column
-gh api graphql -f query='mutation { updateProjectV2ItemFieldValue(input: { projectId: "PVT_kwHOAJR9ys4BQe_8" itemId: "ITEM_ID" fieldId: "PVTSSF_lAHOAJR9ys4BQe_8zg-lvnE" value: { singleSelectOptionId: "OPTION_ID" } }) { projectV2Item { id } } }'
+node .hive/board.mjs show <issue>
+node .hive/board.mjs set <issue> --status "Ready to Ship"
+node .hive/board.mjs set <issue> --status "In Development"
 ```
-
-| Column | Option ID |
-|--------|-----------|
-| In Development | `cedf160f` |
-| Done | `2aaa3a20` |
 
 ## Conventions (violations = blocking)
 
 - **Preact** (NOT React) — imports from `preact/hooks`, NOT `react`
 - **@preact/signals** for shared state — `signal()`, `computed()` at module level. `useState` only for component-local state
-- **CSS** custom properties in `global.css` — no frameworks, no modules. Touch targets ≥ 44×44px
-- **API:** direct `fetch()` to Sheets REST API. All entities carry `sheetRow`. Row deletion bottom-to-top
-- **Security:** Sheets formula injection prevention (prefix `'` if input starts with `=+\-@\t`). No secrets in client code
+- **CSS** custom properties in `global.css` — no frameworks, no modules. Touch targets ≥ 44×44px. No color literals
+- **API:** direct `fetch()` to the Sheets REST API, every call wrapped in `withReauth()`. All entities carry `sheetRow`. Row deletion bottom-to-top
+- **Demo mode** is gated at the app/state layer, not inside each API function — a new API function does not need an `isDemo()` branch, but a new *action* does
+- **Rules sync:** `frontend/src/state/rules.ts` matches `apps-script/src/rules.js`; `frontend/src/api/types.ts` matches `apps-script/src/types.js`
+- **Apps Script:** `.js` files (not TS). All ops through `doGet()` with the `payload` query param
 - **Quality:** TypeScript strict, no `any` unless documented. No `console.log`. No dead code
-- **Rules sync:** `frontend/src/state/rules.ts` and `apps-script/src/rules.js` must match. Same for `types.ts`/`types.js`
-- **Apps Script:** `.js` files (not TS). All ops through `doGet()` with `payload` query param
+- **Security:** no secrets in client code. Watch for XSS in anything rendering user text
+
+**Not a blocker:** Hive has no formula-injection sanitizer — nothing prefixes
+`'` to input starting with `=`, `+`, `-`, `@` or tab. That is a known gap, not
+a regression this PR introduced. Raise it on #87 (API security hardening); do
+not block a PR for missing a convention the project does not have.
 
 ## Process
 
 1. **Find PR:** `gh issue view <N>` → `gh pr list --search "Closes #<N>"` → `gh pr diff <PR_N>`
-2. **Read changed files in full** (not just diff) — check patterns, ripple effects
-3. **Review checklist per file:** Correctness (ACs, edge cases, errors) · Conventions (above) · Security (injection, XSS, credentials) · Performance (re-renders, N+1) · Tests (per AC, meaningful, error paths) · Maintainability (naming, DRY, no dead code)
-4. **Build verification:** If QA already passed on this branch, just run `cd frontend && npm test && cd ../apps-script && npm test`. Otherwise full suite including `tsc --noEmit` and `npm run build`
-5. **Submit review:**
+2. **Read changed files in full** (not just the diff) — check patterns, ripple effects
+3. **Review checklist per file:** Correctness (ACs, edge cases, errors) · Conventions (above) · Security (XSS, credentials) · Performance (re-renders, N+1 fetches) · Tests (per AC, meaningful, error paths) · Maintainability (naming, DRY, no dead code)
+4. **Build verification:** if `/qa` already passed on this commit, just re-run the test suites. Otherwise run the full set including `tsc --noEmit` and `npm run build`
+5. **Confirm CI is green** on the PR head before approving — `gh pr view <PR_N> --json statusCheckRollup`
+6. **Submit the review:**
 
 ```bash
 gh pr review <PR_N> --repo luketmoss/hive --comment --body "$(cat <<'EOF'
@@ -64,14 +66,19 @@ EOF
 )"
 ```
 
-**Note:** Use `--comment` (not `--approve`) because GitHub does not allow approving your own PRs. For CHANGES REQUESTED, clearly state blocking issues.
-
-6. **Move issue:** APPROVED → no move needed · CHANGES REQUESTED → In Development
+Use `--comment`, never `--approve`: GitHub rejects approving your own PR and
+this is a single-author repo. The verdict lives in the body.
 
 **Severity:** Blocking (must fix) · Suggestion (recommended) · Nit (preference)
 
+Suggestions and nits do not block. If something is worth doing but not here,
+file it with `/idea` and say so in the review rather than holding the PR.
+
 ## Handoff
 
-> Review complete — PR #X for issue #N: APPROVED/CHANGES REQUESTED (<blocking> blocking, <suggestions> suggestions).
+On APPROVED: move the issue to **Ready to Ship**. `/ship` merges — this skill
+never does. Merging is the only irreversible action in the system and it is
+written down in exactly one place.
 
-Do NOT suggest next steps. The orchestrator decides.
+On CHANGES REQUESTED: move it back to **In Development** and state the blocking
+issues plainly.

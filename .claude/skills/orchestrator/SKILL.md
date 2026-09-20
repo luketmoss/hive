@@ -1,69 +1,77 @@
 ---
 name: orchestrator
 model: sonnet
-description: Batch-process all children of a parent issue through the development pipeline. Use when the user wants to process multiple sub-issues at once (e.g., "#3 children" or "process all children of #3").
+description: Batch-process all children of a parent issue through the refinement and delivery runs. Use when the user wants to process multiple sub-issues at once (e.g., "#3 children" or "process all children of #3").
 argument-hint: [#parent-number children]
 allowed-tools: Bash, Read, Grep, Glob, Task, TodoWrite, AskUserQuestion
 ---
 
 # Batch Orchestrator
 
-Batch coordinator that processes all sub-issues of a parent through the pipeline. For single-issue orchestration, the main Claude instance handles that via CLAUDE.md — this skill is only for batch operations.
+Takes every sub-issue of a parent through the runs. It is a loop around
+`/refine` and `/finish`, not a third pipeline — it does not chain stages itself
+and it does not merge. For a single issue, invoke the run directly; this skill
+is only for batches.
 
 ## Config
 
 - **Repo:** `luketmoss/hive`
-- **Input:** $ARGUMENTS — parse parent issue number
+- **Input:** $ARGUMENTS — parse the parent issue number
 
-## Board Movement
+## Board
 
-Never call `gh project list` or `gh project field-list` — IDs are hardcoded.
+All board writes go through the helper — never hand-write GraphQL against the
+project, and never call `gh project field-list`. IDs live in `.hive/board.json`.
 
 ```bash
-# Get item ID
-gh project item-list 2 --owner luketmoss --limit 100 --format json --jq '.items[] | select(.content.number == <ISSUE_NUMBER>) | .id'
-# Move column
-gh api graphql -f query='mutation { updateProjectV2ItemFieldValue(input: { projectId: "PVT_kwHOAJR9ys4BQe_8" itemId: "ITEM_ID" fieldId: "PVTSSF_lAHOAJR9ys4BQe_8zg-lvnE" value: { singleSelectOptionId: "OPTION_ID" } }) { projectV2Item { id } } }'
+node .hive/board.mjs children <parent>   # sub-issues with their board status
+node .hive/board.mjs show <issue>
 ```
 
-| Column | Option ID |
-|--------|-----------|
-| To Do | `2ed3c08e` |
-| In Development | `cedf160f` |
-| Testing | `1bd1ca27` |
-| Code Review | `2e7d4fd2` |
-| Done | `2aaa3a20` |
-| Refined | `9e0d0478` |
-| Pick Up | `b9d77a66` |
-
-## How to Spawn Agents
-
-Use **Task tool** with `subagent_type: "general-purpose"`. Read the corresponding skill file and pass its full content as the prompt, plus specific context (issue number, instructions).
+The runs move the cards. This skill does not.
 
 ## Process
 
-1. **Fetch sub-issues:**
-```bash
-gh api graphql -f query='query { repository(owner: "luketmoss", name: "hive") { issue(number: <N>) { title subIssues(first: 50) { nodes { number title state } } } } }'
-```
+1. **List the children** with `board.mjs children <parent>`. Skip anything
+   CLOSED or in Done.
 
-2. **Get board state** for each child: `gh project item-list 2 --owner luketmoss --limit 100 --format json --jq '.items[] | select(.content.number == <N>) | .status'`
+2. **Sort by pipeline proximity** — closest to Done first: Ready to Ship >
+   Code Review > Testing > In Development > Refined > UX > PM Refining > To Do.
+   Finishing what's nearly done first means a context blowout costs the least.
+   Put them in a TodoWrite checklist.
 
-3. **Sort:** Skip Done/CLOSED. Sort by pipeline proximity: In Review > Testing > In Development > Ready > Refining > To Do. Create TodoWrite checklist.
+3. **Refine everything that needs it.** For each child at or before UX, invoke
+   `/refine`. Do not stop between issues — a halted `/refine` is one line in the
+   summary, not a reason to end the batch.
 
-4. **Process each child sequentially** from its current board state:
-   - **To Do / Refining**: PM → UX → PM (negotiate) → mark refined
-   - **Ready / In Development**: Dev agent
-   - **Testing**: QA. If FAIL → Dev + QA retry. 2nd fail → mark stuck, move on
-   - **In Review**: Review (no merge). If CHANGES REQUESTED → Dev + Review retry. 2nd fail → mark stuck, move on
+4. **One design gate for the batch.** Present a table: issue, title, complexity,
+   AC count, and any that halted with the reason. Then ask — approve all,
+   approve a subset, or send some back. This is the same gate `/refine` stops
+   at, asked once instead of N times.
 
-5. **Batch approval gate** — present summary table of completed/stuck/skipped. Ask user: approve all, approve specific, or request changes.
+5. **Deliver the approved ones.** For each, invoke `/finish`. It resumes from
+   whatever column the issue is in and merges through `/ship`. An issue that
+   halts stays where it stopped; note it and continue to the next.
 
-6. **Batch merge** (for each approved):
-```bash
-gh pr review <pr> --repo luketmoss/hive --approve --body "Batch: all agents passed, user approved."
-gh pr merge <pr> --repo luketmoss/hive --squash --delete-branch
-git checkout main && git pull origin main
-```
+6. **Report:** a table of merged / halted / skipped, with the reason for each
+   halt and the PR or issue link. Close the parent only if every child merged;
+   otherwise leave it open and say what's left.
 
-7. **Close parent** if all children merged. If some stuck, leave parent open and report.
+## Context budget
+
+Three or more issues through the full delivery run will exhaust the context
+window — this is the failure mode the retros keep finding. Prefer one of:
+
+- refine the whole batch in this session, then deliver them one per session
+- or deliver at most two per session and hand the rest back with a list
+
+Say which you chose in the report. Running out of context mid-`/finish` is worse
+than stopping early on purpose, because it can strand an issue between a merge
+and its board move.
+
+## What this skill does not do
+
+- It does not run stages inline. Every issue goes through `/refine` or `/finish`
+- It does not merge. `/ship`, inside `/finish`, is the only thing that merges
+- It never runs `gh pr review --approve` — GitHub rejects approving your own PR
+- It does not create issues directly. Deferred work goes through `/idea`

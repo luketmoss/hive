@@ -1,104 +1,180 @@
-# Hive - Kanban Board
+# Hive — Family Kanban Board
 
 ## Project Overview
-Task management system using Google Sheets as data layer.
-- **apps-script/**: Google Apps Script API (deployed via clasp) — serves voice/AI agents
-- **frontend/**: Preact SPA (built with Vite) — deployed to GitHub Pages, reads/writes Sheets API directly
+Task management for two people, using a Google Sheet as the data layer.
+- **frontend/**: Preact SPA (Vite) — deployed to GitHub Pages, reads/writes the Sheets REST API directly
+- **apps-script/**: Google Apps Script API (clasp) — a second door into the same sheet, for voice and AI agents that have no browser OAuth token
+
+Business rules live in both places and must agree: `frontend/src/state/rules.ts`
+and `apps-script/src/rules.js`, `frontend/src/api/types.ts` and
+`apps-script/src/types.js`. Change them together or the two doors disagree about
+what a move means.
 
 ## Key Commands
-- `cd apps-script && npm test` — run Apps Script unit tests (vitest)
-- `cd apps-script && clasp push` — deploy Apps Script code
-- `cd frontend && npm run dev` — start Vite dev server (localhost:5173)
-- `cd frontend && npm run build` — production build to frontend/dist/
-- `cd frontend && npm test` — run frontend tests (vitest)
+- `cd frontend && npm run dev` — Vite dev server (localhost:5173/hive/)
+- `cd frontend && npm test` — frontend tests (vitest)
+- `cd frontend && npx tsc --noEmit` — type check
+- `cd frontend && npm run build` — production build to `frontend/dist/`
+- `cd apps-script && npm test` — Apps Script unit tests (vitest)
+- `cd apps-script && clasp push --force` — push to Google, then cut a new version in the editor UI (a push alone does not move the deployment)
 
 ## Environment
-- **Windows machine** — `jq` is NOT available. Use `gh` built-in `--jq` flags. Never pipe to standalone `jq`.
+- **Windows machine** — `jq` is NOT available. Use `gh`'s built-in `--jq` flag. Never pipe to a standalone `jq`.
+- Node 20+, npm
 
 ## Architecture Notes
-- Frontend uses direct `fetch()` to Google Sheets REST API (not gapi.client)
-- Auth: Google Identity Services (GIS) token model
-- State: @preact/signals
-- Drag and drop: HTML5 native drag-and-drop (no library)
-- Business rules duplicated in `apps-script/src/rules.js` and `frontend/src/state/rules.ts` — keep in sync
-- CSS custom properties in `global.css` (no CSS framework)
-- Apps Script uses `.js` (not TypeScript) — all ops through `doGet()` with `payload` query param
+- Frontend uses direct `fetch()` to the Sheets REST API (not gapi.client)
+- Auth: Google Identity Services (GIS) token model; `withReauth()` wraps every Sheets call and retries once on an expired token
+- State: @preact/signals — module-level `signal()`/`computed()`. `useState` only for component-local state
+- Demo mode is gated at the app/state layer (`frontend/src/demo/`, `app.tsx`, `auth-provider.tsx`, `state/actions-*`), **not** inside each API function
+- Drag and drop: HTML5 native, no library
+- Styling: CSS custom properties in `global.css`. No framework, no CSS modules. Breakpoints at 768px, 600px and 480px; `data-theme="dark"` for dark mode
+- Apps Script is `.js`, not TypeScript — clasp's transpilation was unreliable. All operations go through `doGet()` with a `payload` query param, because POST is broken for anonymous callers
+- Always online, no offline cache. 30-second poll for sync (`app.tsx`), which is enough for two users
 
 ## Preview & Demo Mode
-- For preview testing, use **demo mode**: `http://localhost:5173/hive/?demo=true`
-- After `preview_start`, check URL with `preview_eval` and navigate to demo if needed
-- Demo mode: fake user, no Google auth, changes not persisted
+`preview_start` with the **`frontend`** launch config, then navigate to
+`http://localhost:5173/hive/?demo=true`.
+
+Demo mode needs both `VITE_DEMO_MODE=true` (build-time, already in
+`.env.local`) and `?demo=true` (runtime). Both are checked in
+`is-demo-mode.ts`, which is why leaving the env var on permanently is safe.
+
+It auto-authenticates — no login screen, no OAuth popup. Changes are not
+persisted; reloading restores the original demo set.
+
+### Driving the preview
+- Prefer `read_page` or `javascript_tool` over screenshots when checking a specific element or a computed value — a screenshot cannot tell you a contrast ratio
+- `computer` clicks are unreliable on signal-driven components; use `javascript_tool` with `.click()` instead
+- Native input value setters do not trigger signal updates; use `form_input`
+- Batch DOM checks into one `javascript_tool` IIFE rather than many calls
+- `computer` with `action: "screenshot"` for visual evidence, `resize_window` for the 375px breakpoint
+- Enumerating CSS media queries from JS fails under Vite's bundling — read the CSS instead
 
 ## Data Model
-Google Sheet "Hive Board" with 6 tabs: Items, Owners, Labels, Boards, Permissions, Audit Log.
+Google Sheet "Hive Board", 7 tabs. Row 1 is headers everywhere; reads start at
+`A2`. Every entity carries the `sheetRow` it came from, which is how updates and
+deletes find it again.
 
-## Agent Routing
+- **Items** (`A:N`, 14 columns): id, title, description, status, owner, due_date,
+  labels, parent_id, created_at, updated_at, completed_at, sort_order,
+  created_by, board_id
+- **Owners** (`A:B`): name, email
+- **Labels** (`A:C`): label, color, board_id
+- **Boards** (`A:F`): ID, Name, Created At, Created By, Color, Icon
+- **Permissions** (`A:C`): Board ID, User Email, Role
+- **Statuses** (`A:G`): id, board_id, name, sort_order, color, is_terminal, created_at
+- **Audit Log** (`A:G`, append-only): timestamp, item_id, action, field, old_value, new_value, actor
 
-**Issue tracker: GitHub only.** All issue references mean GitHub issues in `luketmoss/hive`. Never use Atlassian/Jira MCP tools — use `gh` CLI exclusively.
+### Invariants
+- **Row deletion runs bottom-to-top.** Deleting top-down shifts every row beneath
+  it and the next delete hits the wrong record. `sheets.ts` sorts descending
+  before deleting — keep it that way.
+- **Columns are per-board rows in `Statuses`, not an enum.** The `VALID_STATUSES`
+  constant and `STATUS_COL` comment in `apps-script/src/types.js` say
+  "deprecated"; the sheet is still read and written at `Statuses!A2:G` and is the
+  live source. Treat the comment as stale, not the tab.
+- **`completed_at` is driven by `is_terminal`, never by a column's name.**
+  `applyStatusSideEffects` sets it entering a terminal column and clears it
+  leaving one. A board can call its terminal column anything.
+- **The Audit Log is append-only** and nothing reads it in the frontend today.
+  That is a deliberate forensic trail, not dead weight to be tidied away. Issue
+  #239 is the read path.
+- **`parent_id` makes sub-items**, and a sub-item lives in the same `Items` tab
+  as its parent. There is no separate sheet.
+- **No formula-injection sanitizer exists yet.** Nothing prefixes `'` to input
+  starting with `=`, `+`, `-`, `@` or tab. Issue #87 tracks hardening. Do not
+  block a PR for missing a convention the project does not have — raise it on
+  #87 instead.
 
-Auto-invoke skills when request matches:
-- Bug/feature/idea → `/idea` · UX audit → `/ux` · CI/CD issue → `/devops` · Batch children → `/orchestrator`
+## UX Design Decisions
+Respected by every agent. Add to this list when a decision gets made, so it
+stops being re-litigated three issues later.
 
-**When user references an issue number** → always start the Full Pipeline (checks board state, picks up from right stage). Only exception: user explicitly invokes a slash command or says to skip stages.
+- **Desktop-first Kanban**, responsive down to 375px — the inverse of a
+  mobile-first app, because the board is the primary surface
+- **Native HTML5 drag and drop** on desktop; touch drag is a separate concern
+  (#122) and not a reason to add a library
+- **Touch targets ≥ 44×44px** — WCAG 2.5.5
+- **Light and dark** via `data-theme`; every new color goes through a custom
+  property in `global.css`, never a literal
+- **Grouping is one menu**, not a view toggle (#230)
+- **Per-board columns** — boards define their own statuses (#218)
 
-**When user says "approve #N"** → find PR, approve + squash-merge + delete branch + move to Done.
+## The Board
 
-## Board Columns
+**Issue tracker: GitHub only.** Every issue reference means a GitHub issue in
+`luketmoss/hive`; use the `gh` CLI. Never use Atlassian/Jira MCP tools.
+Project #2, `https://github.com/users/luketmoss/projects/2`.
 
-| Column | Option ID |
-|---|---|
-| To Do | `2ed3c08e` |
-| PM Refining | `60b38b8d` |
-| UX | `0c810f0f` |
-| Refined | `9e0d0478` |
-| Pick Up | `b9d77a66` |
-| In Development | `cedf160f` |
-| Testing | `1bd1ca27` |
-| Code Review | `2e7d4fd2` |
-| Done | `2aaa3a20` |
+**All board writes go through `node .hive/board.mjs`** — never hand-write
+GraphQL against the project, and never call `gh project field-list`. IDs live in
+`.hive/board.json`; `board.mjs sync` refreshes them if a column is added or
+renamed.
 
 ```bash
-# Move issue (replace ITEM_ID and OPTION_ID)
-gh api graphql -f query='mutation { updateProjectV2ItemFieldValue(input: { projectId: "PVT_kwHOAJR9ys4BQe_8" itemId: "ITEM_ID" fieldId: "PVTSSF_lAHOAJR9ys4BQe_8zg-lvnE" value: { singleSelectOptionId: "OPTION_ID" } }) { projectV2Item { id } } }'
+node .hive/board.mjs show <issue>
+node .hive/board.mjs set <issue> --status "In Development"
+node .hive/board.mjs list --status Refined
+node .hive/board.mjs children <issue>
 ```
 
-## Pipeline Orchestration
+| Stage | Skill | Gate |
+|---|---|---|
+| To Do | `/idea` | |
+| PM Refining | `/pm` | |
+| UX | `/ux` | |
+| Refined | — | **agree with the spec?** |
+| In Development | `/dev` | |
+| Testing | `/qa` | |
+| Code Review | `/review` | |
+| Ready to Ship | `/ship` | **agree with the implementation?** |
+| Done | — | |
 
-**You are the orchestrator.** Invoke skills in order, pass results between them. Skills do their one job and return — they do NOT call each other.
+Each skill owns its own column moves. A stage skill is a step, not a stopping
+point — each one names the skill that moves the work on.
 
-### Board State Routing
+## The Two Runs
 
-- **To Do / PM Refining / UX** → Refinement Pipeline (pauses at Refined for user review)
-- **Refined / Pick Up / In Development / Testing / Code Review** → Dev Pipeline (fully autonomous)
+Work moves through the board in **runs**, not stage by stage. A run chains its
+stages back to back in one pass and does not check in between them.
 
-### Refinement Pipeline
+- **`/refine`** — To Do → Refined. "Get #42 ready for dev", "refine this",
+  "spec it out". Chains `/idea` (if the issue doesn't exist) → `/pm` → `/ux` →
+  `/pm`, and stops at the design gate.
+- **`/finish`** — Refined → Done. "Finish #42", "ship it", "build it out".
+  Chains `/dev` → `/qa` → `/review` → `/ship`, resuming from whatever column the
+  issue is actually in.
 
-Steps 1–4 autonomous. Only pause: presenting final ACs at step 5.
+The two runs are deliberately separate. Running them back to back skips the
+design gate, which is the only review of the spec.
 
-1. Move to **PM Refining**. Invoke `/pm`. Collect ACs.
-2. Move to **UX**. Invoke `/ux` with ACs. Post findings as issue comment.
-3. Invoke `/pm` again with UX findings (accept/defer/reject).
-4. Move to **Refined**.
-5. Present final ACs to user (**design gate**).
+**Do not chain the stages by hand.** If the request is a run, invoke the run
+skill; it owns the sequence, the halt conditions, and the report. When the user
+names an issue number without naming a stage, read the board and start the run
+that column belongs to.
 
-### Dev Pipeline
+Outside the runs: `/orchestrator` to take a parent issue's children through the
+runs in a batch, `/devops` for CI/CD and deployment problems, `/ux` on its own
+for a standalone audit, `/retro` at the end of a session that ran a pipeline.
 
-Fully autonomous. Auto-merges on pass. Resumes from any mid-flight column.
+## Halting
 
-1. **Dev**: Move to In Development. Invoke `/dev`. Do NOT verify visually — that's QA's job.
-2. **QA**: Move to Testing. Invoke `/qa`. If FAIL → `/dev` + `/qa` retry. If AC_PROBLEM → `/pm` negotiate, then `/dev` + `/qa`. 2nd fail → stop.
-3. **Review**: Move to Code Review. Invoke `/review` (verdict only, no merge). If CHANGES REQUESTED → `/dev` + `/review` retry. 2nd fail → stop.
-4. **Merge**: `gh pr review --approve`, `gh pr merge --squash --delete-branch`, `gh issue close`. Move to Done.
-5. **Post final report** to issue: Dev summary, QA results, Review verdict, Deferred items, Links.
+A run stops early only for the conditions its skill lists — an open product
+question, a failed criterion with no clear fix, a blocking review, a red check.
+Two attempts at a failing stage, then stop.
 
-### Deferred Items
+**A halted run is a success.** Report where it stopped and why; do not work
+around a gate, and do not guess at an answer to a question you raised.
 
-Use `/idea` to create deferred issues. Comment on original: `Deferred to #<new>: <desc>`.
+## Deferred Items
 
-### Conflict Resolution
+Anything worth doing that is out of scope becomes its own issue via `/idea` —
+never a raw `gh issue create`, which skips classification, dedup and the board.
+Comment on the original: `Deferred to #<new>: <description>`.
 
-2 attempts per failing stage max. After 2nd failure → stop, post comment, tell user.
+## Context Compaction
 
-### Context Compaction Recovery
-
-If context compacted mid-pipeline, continue invoking skills normally. Do NOT run stages inline.
+If the context is compacted mid-run, keep invoking skills. Do **not** finish the
+remaining stages inline in the main conversation — a stage run by hand skips the
+skill's checks and its board move, and the retro will find it.
