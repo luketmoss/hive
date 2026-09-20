@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'preact/hooks';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
-import { allDoneItemsSorted, showArchiveDialog, selectedItemId } from '../../state/board-store';
+import { allDoneItemsSorted, showArchiveDialog, selectItem } from '../../state/board-store';
 import { LabelBadge } from '../shared/label-badge';
 import type { ItemWithRow } from '../../api/types';
 
@@ -29,7 +29,7 @@ export function ArchiveDialog({ onClose }: ArchiveDialogProps) {
   };
 
   const handleItemClick = (item: ItemWithRow) => {
-    selectedItemId.value = item.id;
+    selectItem(item.id);
   };
 
   const handleSearchInput = (e: Event) => {

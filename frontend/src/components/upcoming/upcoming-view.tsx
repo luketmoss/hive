@@ -2,7 +2,7 @@ import { useCallback } from 'preact/hooks';
 import {
   upcomingBuckets,
   boards,
-  selectedItemId,
+  selectItem,
   openDetailWithTitleEdit,
   getChildCount,
 } from '../../state/board-store';
@@ -15,7 +15,7 @@ export function UpcomingView() {
 
   const handleCardClick = useCallback((item: ItemWithRow) => {
     openDetailWithTitleEdit.value = false;
-    selectedItemId.value = item.id;
+    selectItem(item.id);
   }, []);
 
   if (buckets.length === 0) {
@@ -88,13 +88,13 @@ function UpcomingCard({ item, onClick }: UpcomingCardProps) {
           onClick={(e) => {
             e.stopPropagation();
             openDetailWithTitleEdit.value = true;
-            selectedItemId.value = item.id;
+            selectItem(item.id);
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               openDetailWithTitleEdit.value = true;
-              selectedItemId.value = item.id;
+              selectItem(item.id);
             }
           }}
         >

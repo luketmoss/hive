@@ -21,6 +21,8 @@ vi.mock('../../state/board-store', () => ({
     get value() { return mockSelectedItemId; },
     set value(v: string | null) { mockSelectedItemId = v; },
   },
+  selectItem: (id: string) => { mockSelectedItemId = id; },
+  clearSelectedItem: () => { mockSelectedItemId = null; },
   openDetailWithTitleEdit: { value: false },
   selectedItem: {
     get value() {

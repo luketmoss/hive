@@ -5,8 +5,12 @@ import { selectedItemId } from '../../state/board-store';
 import type { ItemWithRow } from '../../api/types';
 
 // Mock board-store to avoid signal dependency issues
+const mockSelectedItemId = vi.hoisted(() => ({ value: null as string | null }));
+
 vi.mock('../../state/board-store', () => ({
-  selectedItemId: { value: null },
+  selectedItemId: mockSelectedItemId,
+  selectItem: (id: string) => { mockSelectedItemId.value = id; },
+  clearSelectedItem: () => { mockSelectedItemId.value = null; },
   openDetailWithTitleEdit: { value: false },
   labels: { value: [] },
   getChildCount: () => ({ done: 0, total: 0 }),
