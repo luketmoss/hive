@@ -134,6 +134,66 @@ describe('applyStatusSideEffects parity: apps-script/src/rules.js vs frontend/sr
       ]);
     }
   });
+
+  // #252: the gap the CASES table above cannot see. Every case in it passes an
+  // explicit boolean, which is exactly where the two copies agreed — they
+  // disagreed only when the argument never arrived. Apps Script cleared
+  // `completed_at` on any falsy `isTerminal`; the frontend cleared it only on an
+  // explicit `false`. Both now read the missing argument as non-terminal.
+  //
+  // AC3 makes `isTerminal` a required `boolean` on the frontend, so a plain
+  // two-argument call no longer type checks. The cast below is the point of the
+  // test rather than a way around the types: it models a caller that omits the
+  // argument — the JS one Apps Script actually has, and the one the `?` used to
+  // invite — and pins what both copies do with it.
+  type LooseApply = (item: Item, newStatus: string, isTerminal?: boolean) => Item;
+
+  const OMITTED_CASES: Array<{ name: string; item: Item; newStatus: string }> = [
+    {
+      name: 'a completed item moved with the argument omitted',
+      item: makeItem({ status: 'Done', completed_at: EARLIER }),
+      newStatus: 'To Do',
+    },
+    {
+      name: 'a never-completed item moved with the argument omitted',
+      item: makeItem({ status: 'To Do', completed_at: '' }),
+      newStatus: 'In Progress',
+    },
+  ];
+
+  for (const { name, item, newStatus } of OMITTED_CASES) {
+    it(`agrees on ${name}`, () => {
+      const appsScriptApply = loadAppsScriptApply() as unknown as LooseApply;
+      const frontendLoose = frontendApply as unknown as LooseApply;
+
+      const fromAppsScript = appsScriptApply({ ...item }, newStatus);
+      const fromFrontend = frontendLoose({ ...item }, newStatus);
+
+      expect(fromAppsScript).toEqual(fromFrontend);
+    });
+
+    it(`agrees on ${name}, passed as an explicit undefined`, () => {
+      const appsScriptApply = loadAppsScriptApply() as unknown as LooseApply;
+      const frontendLoose = frontendApply as unknown as LooseApply;
+
+      const fromAppsScript = appsScriptApply({ ...item }, newStatus, undefined);
+      const fromFrontend = frontendLoose({ ...item }, newStatus, undefined);
+
+      expect(fromAppsScript).toEqual(fromFrontend);
+    });
+  }
+
+  it('reads a missing isTerminal as non-terminal on both copies', () => {
+    const appsScriptApply = loadAppsScriptApply() as unknown as LooseApply;
+    const frontendLoose = frontendApply as unknown as LooseApply;
+    const completed = makeItem({ status: 'Done', completed_at: EARLIER });
+
+    // Not just equal to each other — equal to the agreed answer. Two copies
+    // that both *kept* `completed_at` would satisfy the parity assertion above
+    // while contradicting the invariant that `is_terminal` drives the field.
+    expect(appsScriptApply({ ...completed }, 'To Do').completed_at).toBe('');
+    expect(frontendLoose({ ...completed }, 'To Do').completed_at).toBe('');
+  });
 });
 
 // #239: `statusTransitionAuditAction` is the second rule duplicated across the
