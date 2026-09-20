@@ -239,6 +239,139 @@ describe('useFocusTrap', () => {
     expect(onEscape2).toHaveBeenCalledTimes(1);
   });
 
+  // #242 — the hook must not hand focus to an element that is not rendered
+  describe('#242: hidden focusable elements', () => {
+    /**
+     * jsdom reports no layout, so the hook's rendered-element filter finds
+     * nothing and falls back to the unfiltered list. Give elements marked
+     * `data-hidden` zero boxes and everything else a box, which is what a
+     * `display: none` media query produces in a real browser.
+     */
+    function mockLayout() {
+      const visible = (el: HTMLElement) => !el.hasAttribute('data-hidden');
+      vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockImplementation(function (this: HTMLElement) {
+        return visible(this) ? 100 : 0;
+      });
+      vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function (this: HTMLElement) {
+        return visible(this) ? 40 : 0;
+      });
+      vi.spyOn(HTMLElement.prototype, 'getClientRects').mockImplementation(function (this: HTMLElement) {
+        return (visible(this) ? [{ width: 100, height: 40 }] : []) as unknown as DOMRectList;
+      });
+    }
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    function HiddenFirstHarness({ onEscape }: { onEscape?: () => void }) {
+      const ref = useFocusTrap(onEscape);
+      return (
+        <div ref={ref} data-testid="trap-container">
+          <button data-testid="btn-hidden" data-hidden>Expand</button>
+          <button data-testid="btn-close">Close</button>
+          <input data-testid="input-middle" type="text" />
+        </div>
+      );
+    }
+
+    // AC5 — fails if the rendered-element check is removed from the hook
+    it('focuses the first rendered element when the first focusable child is hidden', () => {
+      mockLayout();
+      const { getByTestId } = render(<HiddenFirstHarness />);
+
+      expect(document.activeElement).toBe(getByTestId('btn-close'));
+      expect(document.activeElement).not.toBe(getByTestId('btn-hidden'));
+    });
+
+    // AC2 — Escape is registered on the container, so it only works once focus is inside
+    it('Escape closes once focus has entered the container', () => {
+      mockLayout();
+      const onEscape = vi.fn();
+      const { getByTestId } = render(<HiddenFirstHarness onEscape={onEscape} />);
+
+      expect(getByTestId('trap-container').contains(document.activeElement)).toBe(true);
+      fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+
+      expect(onEscape).toHaveBeenCalledTimes(1);
+    });
+
+    it('wraps Tab past the hidden element rather than into it', () => {
+      mockLayout();
+      const { getByTestId } = render(<HiddenFirstHarness />);
+      const container = getByTestId('trap-container');
+
+      getByTestId('input-middle').focus();
+      fireEvent.keyDown(container, { key: 'Tab' });
+
+      expect(document.activeElement).toBe(getByTestId('btn-close'));
+    });
+  });
+
+  // #242 — restoring focus when the trigger cannot take it back
+  describe('#242: focus restoration fallback', () => {
+    function FallbackHarness({ restoreFocusTo }: { restoreFocusTo?: () => HTMLElement | null }) {
+      const ref = useFocusTrap(undefined, { restoreFocusTo });
+      return (
+        <div ref={ref} data-testid="trap-container">
+          <button data-testid="btn-first">First</button>
+        </div>
+      );
+    }
+
+    // AC3 — the opener was a non-focusable card, so the captured trigger is `body`
+    it('restores to the fallback when the trigger was document.body', () => {
+      (document.activeElement as HTMLElement | null)?.blur?.();
+      const cardEl = document.createElement('div');
+      cardEl.setAttribute('data-item-id', 'x1');
+      document.body.appendChild(cardEl);
+
+      const { unmount } = render(<FallbackHarness restoreFocusTo={() => cardEl} />);
+      unmount();
+
+      expect(document.activeElement).toBe(cardEl);
+      cardEl.remove();
+    });
+
+    it('gives a non-focusable fallback a temporary tabindex and drops it on blur', () => {
+      (document.activeElement as HTMLElement | null)?.blur?.();
+      const cardEl = document.createElement('div');
+      document.body.appendChild(cardEl);
+
+      const { unmount } = render(<FallbackHarness restoreFocusTo={() => cardEl} />);
+      unmount();
+
+      expect(cardEl.getAttribute('tabindex')).toBe('-1');
+      cardEl.blur();
+      expect(cardEl.hasAttribute('tabindex')).toBe(false);
+
+      cardEl.remove();
+    });
+
+    it('prefers a real trigger element over the fallback', () => {
+      const trigger = document.createElement('button');
+      document.body.appendChild(trigger);
+      trigger.focus();
+
+      const fallback = document.createElement('div');
+      document.body.appendChild(fallback);
+
+      const { unmount } = render(<FallbackHarness restoreFocusTo={() => fallback} />);
+      unmount();
+
+      expect(document.activeElement).toBe(trigger);
+      trigger.remove();
+      fallback.remove();
+    });
+
+    // AC4 — nothing to restore to at all: focus is left alone, not thrown at a stale node
+    it('does not throw when the fallback resolves to null', () => {
+      (document.activeElement as HTMLElement | null)?.blur?.();
+      const { unmount } = render(<FallbackHarness restoreFocusTo={() => null} />);
+      expect(() => unmount()).not.toThrow();
+    });
+  });
+
   describe('Scroll lock — AC1: Background scroll prevented', () => {
     it('sets overflow hidden on body when modal opens (non-iOS)', () => {
       render(<TestHarness />);

@@ -89,8 +89,20 @@ export function CardDetail() {
     selectedItemId.value = null;
   }, []);
 
+  // #242: A card is not natively focusable, so clicking one leaves focus on
+  // `body` and the trap has nothing to restore to. Name the card explicitly,
+  // falling back to the board itself for a detail opened with no trigger at
+  // all (the cold deep-link case, #240).
+  const restoreFocusTo = useCallback((): HTMLElement | null => {
+    const id = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(item.id) : item.id;
+    return (
+      document.querySelector<HTMLElement>(`[data-item-id="${id}"]`) ??
+      document.querySelector<HTMLElement>('.board-main')
+    );
+  }, [item.id]);
+
   // Focus trap (AC3) + Escape to close (AC4)
-  const panelRef = useFocusTrap(close);
+  const panelRef = useFocusTrap(close, { restoreFocusTo });
 
   const save = async (field: string, value: string): Promise<boolean> => {
     if (!token) return false;
