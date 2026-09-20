@@ -563,6 +563,55 @@ describe('ControlBar', () => {
     });
   });
 
+  // Ported from the deleted filter-bar.test.tsx (#248). ControlBar still renders
+  // label chips and still closes its filter popup on Escape; those two behaviours
+  // were only covered against the dead FilterBar, so they move here.
+  describe('#248: coverage ported from FilterBar', () => {
+    it('renders one label chip per board label, in a labeled group', () => {
+      const { container } = render(<ControlBar />);
+      const group = container.querySelector('[aria-label="Filter by label"]');
+      expect(group).not.toBeNull();
+      expect(group!.getAttribute('role')).toBe('group');
+      const chips = group!.querySelectorAll('button.filter-chip-label');
+      expect(chips.length).toBe(2);
+      expect(Array.from(chips).map(c => c.textContent)).toEqual(['Urgent', 'Home']);
+    });
+
+    it('clicking a label chip sets filterLabel and marks it active', () => {
+      const { container } = render(<ControlBar />);
+      const group = container.querySelector('[aria-label="Filter by label"]')!;
+      const chip = Array.from(group.querySelectorAll('button')).find(
+        b => b.textContent === 'Urgent',
+      ) as HTMLElement;
+      expect(chip.getAttribute('aria-pressed')).toBe('false');
+      fireEvent.click(chip);
+      expect(mockState.filterLabel).toBe('Urgent');
+    });
+
+    it('clicking the active label chip clears filterLabel', () => {
+      mockState.filterLabel = 'Urgent';
+      const { container } = render(<ControlBar />);
+      const group = container.querySelector('[aria-label="Filter by label"]')!;
+      const chip = Array.from(group.querySelectorAll('button')).find(
+        b => b.textContent === 'Urgent',
+      ) as HTMLElement;
+      expect(chip.getAttribute('aria-pressed')).toBe('true');
+      expect(chip.className).toContain('filter-chip-active');
+      fireEvent.click(chip);
+      expect(mockState.filterLabel).toBeNull();
+    });
+
+    it('pressing Escape closes the mobile filter popup', () => {
+      const { container } = render(<ControlBar />);
+      const toggle = container.querySelector('[data-testid="control-bar-filter-toggle"]') as HTMLElement;
+      fireEvent.click(toggle);
+      expect(container.querySelector('.filter-popup')).not.toBeNull();
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(container.querySelector('.filter-popup')).toBeNull();
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    });
+  });
+
   describe('Board view — normal render', () => {
     it('renders normally when activeView is board', () => {
       mockState.activeView = 'board';

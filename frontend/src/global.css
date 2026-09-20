@@ -1792,23 +1792,7 @@ body {
   color: var(--color-danger);
 }
 
-/* === Filter Bar === */
-.filter-bar {
-  display: flex;
-  align-items: center;
-  padding: 8px 20px;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-  flex-shrink: 0;
-}
-
-.filter-group {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-/* Legacy .filter-bar select removed in #77 — group-by is now chip toggles */
+/* === Filter chips (ControlBar) === */
 
 /* #28: Filter chip groups */
 .filter-chip-group {
@@ -1842,18 +1826,6 @@ body {
   background: color-mix(in srgb, var(--color-border) 30%, transparent);
 }
 
-/* #28 AC4: Active owner chip — filled primary */
-.filter-chip-owner.filter-chip-active {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: white;
-}
-
-.filter-chip-owner.filter-chip-active:hover {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-}
-
 /* #28 AC2: Label chips use label color for border */
 .filter-chip-label {
   border-color: var(--label-color, #999);
@@ -1867,24 +1839,6 @@ body {
 .filter-chip-label.filter-chip-active {
   background: var(--label-color, #999);
   color: white;
-}
-
-/* #77 AC7: Visual separator before group-by section */
-.filter-chip-group-separator {
-  margin-left: 12px;
-}
-
-/* #77 AC8: Group-by chip — outlined active style (distinct from filled filter chips) */
-.filter-chip-group-by.filter-chip-active {
-  border-color: var(--color-text);
-  color: var(--color-text);
-  background: transparent;
-  border-width: 2px;
-  font-weight: 600;
-}
-
-.filter-chip-group-by.filter-chip-active:hover {
-  background: color-mix(in srgb, var(--color-text) 10%, transparent);
 }
 
 /* #28 AC8: Visible focus indicator for keyboard users */
@@ -3911,12 +3865,6 @@ body {
   flex-wrap: wrap;
 }
 
-.filter-popup-body .filter-chip-group-separator {
-  margin-left: 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--color-border);
-}
-
 /* === Sub-task drag-and-drop (#220 follow-up) === */
 /* #237: Grab handle — drag/reorder initiation moved off the row onto this element */
 .subtask-handle {
@@ -4050,13 +3998,7 @@ body {
     min-height: 44px;
   }
 
-  .filter-bar {
-    padding: 8px 16px;
-  }
-
   /* Desktop inline chips hidden on mobile — popup used instead */
-  /* Hide both old FilterBar and ControlBar desktop inline filters on mobile */
-  .filter-group-desktop,
   .control-bar-filter-desktop {
     display: none;
   }
@@ -4081,8 +4023,6 @@ body {
     min-height: 44px;
     font-size: 16px;
   }
-
-  /* Legacy mobile .filter-bar select removed in #77 */
 
   /* #28 AC7: Filter chips meet 44px min touch target on mobile */
   .filter-chip {
