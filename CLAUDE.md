@@ -24,8 +24,6 @@ what a move means.
 ## Apps Script Deployment
 - **Live project: "Hive API"**, script ID `11J1aR_JwYWmobNTj8w1kbFCac3mAKrUt4sRdgcrIhUB5ROCSQn4whU08`.
   `apps-script/.clasp.json` is gitignored, so this line is the only committed record of it
-- **Do not use the "Hive" project** (`1O-Hg6nW…`). Its linked Cloud OAuth client was deleted (`401 deleted_client`),
-  so it cannot authorize, run, or serve a web app. Archive it
 - Access must be **"Anyone" (`ANYONE_ANONYMOUS`)**, executing as the deployer. The MCP server (`mcp-server/`) calls
   with a plain `fetch` and an API key, no Google sign-in; "Anyone with a Google account" 302s it to a login page.
   The `webapp` block in `src/appsscript.json` is what keeps this — `clasp push --force` overwrites the server
