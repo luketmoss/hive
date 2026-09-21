@@ -16,7 +16,21 @@ what a move means.
 - `cd frontend && npx tsc --noEmit` — type check
 - `cd frontend && npm run build` — production build to `frontend/dist/`
 - `cd apps-script && npm test` — Apps Script unit tests (vitest)
-- `cd apps-script && clasp push --force` — push to Google, then cut a new version in the editor UI (a push alone does not move the deployment)
+- `cd apps-script && clasp push --force` — push to Google. A push alone does not move the deployment; follow it with
+  `clasp redeploy AKfycbwR-PP8Mg41pVEoMsLxYDMMMmr3yufaApRlymItvBv37-ZKRmdPm03R_eVzr_G2Lnza --description "..."`,
+  which cuts a new version on the live deployment and keeps its URL. Roll back with `-V <previous version>`.
+  The user's terminal is PowerShell 5.1 — no `&&`; use `;` or separate commands
+
+## Apps Script Deployment
+- **Live project: "Hive API"**, script ID `11J1aR_JwYWmobNTj8w1kbFCac3mAKrUt4sRdgcrIhUB5ROCSQn4whU08`.
+  `apps-script/.clasp.json` is gitignored, so this line is the only committed record of it
+- **Do not use the "Hive" project** (`1O-Hg6nW…`). Its linked Cloud OAuth client was deleted (`401 deleted_client`),
+  so it cannot authorize, run, or serve a web app. Archive it
+- Access must be **"Anyone" (`ANYONE_ANONYMOUS`)**, executing as the deployer. The MCP server (`mcp-server/`) calls
+  with a plain `fetch` and an API key, no Google sign-in; "Anyone with a Google account" 302s it to a login page.
+  The `webapp` block in `src/appsscript.json` is what keeps this — `clasp push --force` overwrites the server
+  manifest with the local one, so it must stay there
+- Consumers of the URL: the MCP server's `HIVE_API_URL` (Claude desktop config), `.claude/settings.local.json`
 
 ## Environment
 - **Windows machine** — `jq` is NOT available. Use `gh`'s built-in `--jq` flag. Never pipe to a standalone `jq`.
