@@ -14,6 +14,24 @@ var STATUS_COL = {
 var STATUS_COLUMN_COUNT = 7;
 
 /**
+ * Maps a raw Statuses row to the API shape. Shared by `getStatuses` and
+ * `getAllStatuses` so the two read paths can't drift.
+ * @param {Array} row - Raw row from the Statuses sheet
+ * @returns {Object} Status object
+ */
+function rowToStatus(row) {
+  return {
+    id: row[STATUS_COL.ID] || '',
+    board_id: row[STATUS_COL.BOARD_ID] || '',
+    name: row[STATUS_COL.NAME] || '',
+    sort_order: row[STATUS_COL.SORT_ORDER] || 0,
+    color: row[STATUS_COL.COLOR] || '',
+    is_terminal: row[STATUS_COL.IS_TERMINAL] === true || row[STATUS_COL.IS_TERMINAL] === 'TRUE',
+    created_at: row[STATUS_COL.CREATED_AT] ? String(row[STATUS_COL.CREATED_AT]) : '',
+  };
+}
+
+/**
  * Gets all statuses for a specific board, sorted by sort_order.
  * @param {string} boardId - Board ID to fetch statuses for
  * @returns {Array<Object>} Array of status objects
@@ -27,17 +45,7 @@ function getStatuses(boardId) {
   if (lastRow < 2) return [];
 
   var rows = sheet.getRange(2, 1, lastRow - 1, STATUS_COLUMN_COUNT).getValues();
-  var statuses = rows.map(function(row) {
-    return {
-      id: row[STATUS_COL.ID] || '',
-      board_id: row[STATUS_COL.BOARD_ID] || '',
-      name: row[STATUS_COL.NAME] || '',
-      sort_order: row[STATUS_COL.SORT_ORDER] || 0,
-      color: row[STATUS_COL.COLOR] || '',
-      is_terminal: row[STATUS_COL.IS_TERMINAL] === true || row[STATUS_COL.IS_TERMINAL] === 'TRUE',
-      created_at: row[STATUS_COL.CREATED_AT] ? String(row[STATUS_COL.CREATED_AT]) : '',
-    };
-  });
+  var statuses = rows.map(rowToStatus);
 
   // Filter by board_id and sort by sort_order
   return statuses
@@ -228,7 +236,12 @@ function migrateExistingBoards() {
 }
 
 /**
- * Gets all statuses across all boards (helper for migration).
+ * Gets every board's statuses in one flat array (#266). Rows are grouped by
+ * `board_id`, in the order each board first appears in the sheet; within a
+ * board they're sorted by `sort_order` ascending, matching the single-board
+ * form. Used both by `migrateExistingBoards` and by `doGet`'s all-boards
+ * `getStatuses` call.
+ * @returns {Array<Object>} Array of status objects across every board
  */
 function getAllStatuses() {
   var ss = getSpreadsheet();
@@ -239,15 +252,17 @@ function getAllStatuses() {
   if (lastRow < 2) return [];
 
   var rows = sheet.getRange(2, 1, lastRow - 1, STATUS_COLUMN_COUNT).getValues();
-  return rows.map(function(row) {
-    return {
-      id: row[STATUS_COL.ID] || '',
-      board_id: row[STATUS_COL.BOARD_ID] || '',
-      name: row[STATUS_COL.NAME] || '',
-      sort_order: row[STATUS_COL.SORT_ORDER] || 0,
-      color: row[STATUS_COL.COLOR] || '',
-      is_terminal: row[STATUS_COL.IS_TERMINAL] === true || row[STATUS_COL.IS_TERMINAL] === 'TRUE',
-      created_at: row[STATUS_COL.CREATED_AT] ? String(row[STATUS_COL.CREATED_AT]) : '',
-    };
+  var statuses = rows.map(rowToStatus);
+
+  // First-appearance order of each board_id in the sheet.
+  var boardOrder = [];
+  statuses.forEach(function(s) {
+    if (boardOrder.indexOf(s.board_id) === -1) boardOrder.push(s.board_id);
+  });
+
+  return statuses.slice().sort(function(a, b) {
+    var boardDiff = boardOrder.indexOf(a.board_id) - boardOrder.indexOf(b.board_id);
+    if (boardDiff !== 0) return boardDiff;
+    return a.sort_order - b.sort_order;
   });
 }

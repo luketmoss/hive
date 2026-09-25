@@ -127,6 +127,26 @@ export function makeUtilities(uuids: string[] = []) {
   };
 }
 
+/**
+ * `SpreadsheetApp` stub for sources that call `getSpreadsheet().getSheetByName(...)`
+ * directly rather than through the `getSheet()` helper (`statuses.js`, whose
+ * `getStatuses`/`getAllStatuses` must return `[]` for a missing sheet rather
+ * than throw, so they can't go through `getSheet()`, which throws).
+ * `sheets` maps a tab name to its fake sheet; an absent entry means
+ * `getSheetByName` returns `null`, mirroring a tab that doesn't exist.
+ */
+export function makeSpreadsheetApp(sheets: Record<string, ReturnType<typeof makeSheet> | undefined>) {
+  return {
+    openById(_id: string) {
+      return {
+        getSheetByName(name: string) {
+          return sheets[name] ?? null;
+        },
+      };
+    },
+  };
+}
+
 /** ContentService stub — captures the text passed to `createTextOutput`. */
 export function makeContentService() {
   return {
@@ -199,6 +219,23 @@ export function loadReadPath(itemRows: CellValue[][], apiKey = 'test-key'): Sand
 }
 
 /**
+ * Load the Statuses read path (`types`, `utils`, `statuses`, `main`) with the
+ * Google globals stubbed. `statusRows` backs the Statuses sheet; pass
+ * `undefined` to model a sheet that doesn't exist at all (AC4).
+ */
+export function loadStatusesPath(statusRows: CellValue[][] | undefined, apiKey = 'test-key'): Sandbox {
+  const sandbox = loadSources(['types.js', 'utils.js', 'statuses.js', 'main.js'], {
+    ContentService: makeContentService(),
+    PropertiesService: makePropertiesService({ API_KEY: apiKey, SPREADSHEET_ID: 'sheet-id' }),
+  });
+
+  const statusesSheet = statusRows === undefined ? undefined : makeSheet(statusRows, sandbox.STATUS_COLUMN_COUNT);
+  sandbox.SpreadsheetApp = makeSpreadsheetApp({ Statuses: statusesSheet });
+
+  return sandbox;
+}
+
+/**
  * #244: Load the write path for deletes — `types`, `utils`, `audit`, `items`,
  * `main` — with the Items and Audit Log tabs backed by writable fake sheets.
  *
@@ -230,6 +267,17 @@ export function loadDeletePath(itemRows: CellValue[][], apiKey = 'test-key') {
 export interface ApiItem {
   id: string;
   [field: string]: CellValue;
+}
+
+/** A Statuses row as `rowToStatus` returns it over the API. */
+export interface ApiStatus {
+  id: string;
+  board_id: string;
+  name: string;
+  sort_order: number;
+  color: string;
+  is_terminal: boolean;
+  created_at: string;
 }
 
 /** An Audit Log row as `rowToAuditEntry` returns it over the API. */
