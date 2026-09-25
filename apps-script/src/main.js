@@ -8,6 +8,8 @@
 //   ?action=getItems&due_after=2026-09-01&due_before=2026-09-30
 //   ?action=getAuditLog&from=2026-09-12&to=2026-09-12
 //   ?action=getAuditLog&from=2026-09-12&to=2026-09-12&audit_action=completed
+//   ?action=getStatuses&board_id=A
+//   ?action=getStatuses   (no board_id: every board's statuses, flat, each row carrying its own board_id)
 //
 // Write examples:
 //   ?action=createItem&payload={"data":{"title":"Test","owner":"Luke"},"actor":"smoke-test"}
@@ -99,8 +101,12 @@ function doGet(e) {
         break;
 
       case 'getStatuses':
-        if (!e.parameter.board_id) {
-          result = { success: false, error: 'board_id parameter required' };
+        if (e.parameter.board_id === undefined) {
+          result = { success: true, data: getAllStatuses() };
+          break;
+        }
+        if (e.parameter.board_id.trim() === '') {
+          result = { success: false, error: 'board_id must not be empty' };
           break;
         }
         result = { success: true, data: getStatuses(e.parameter.board_id) };
