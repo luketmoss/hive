@@ -263,6 +263,39 @@ export function loadDeletePath(itemRows: CellValue[][], apiKey = 'test-key') {
   return { sandbox, itemRows, auditRows };
 }
 
+/**
+ * #265: Load the Audit Log read path (`types`, `utils`, `audit`, `main`) with
+ * both the Audit Log and Items tabs backed by fixtures, and a counter on how
+ * many times the Items sheet was fetched — AC4 asserts on `itemsReadCount`
+ * directly rather than inferring it from behaviour.
+ */
+export function loadAuditPath(
+  auditRows: CellValue[][],
+  itemRows: CellValue[][],
+  apiKey = 'test-key',
+): { sandbox: Sandbox; itemsReadCount: () => number } {
+  const sandbox = loadSources(['types.js', 'utils.js', 'audit.js', 'main.js'], {
+    ContentService: makeContentService(),
+    PropertiesService: makePropertiesService({ API_KEY: apiKey, SPREADSHEET_ID: 'sheet-id' }),
+    Utilities: makeUtilities(),
+    Date: globalThis.Date,
+  });
+
+  const auditSheet = makeSheet(auditRows, sandbox.AUDIT_COLUMN_COUNT);
+  const itemsSheet = makeSheet(itemRows, sandbox.ITEM_COLUMN_COUNT);
+  let itemsReads = 0;
+  sandbox.getSheet = (name: string) => {
+    if (name === 'Audit Log') return auditSheet;
+    if (name === 'Items') {
+      itemsReads++;
+      return itemsSheet;
+    }
+    throw new Error('Sheet "' + name + '" not stubbed');
+  };
+
+  return { sandbox, itemsReadCount: () => itemsReads };
+}
+
 /** An Items row as `rowToItem` returns it over the API. */
 export interface ApiItem {
   id: string;
@@ -280,7 +313,11 @@ export interface ApiStatus {
   created_at: string;
 }
 
-/** An Audit Log row as `rowToAuditEntry` returns it over the API. */
+/**
+ * An Audit Log row as `getAuditLog` returns it over the API — the seven
+ * fields `rowToAuditEntry` reads off the row, plus `title` and `board_id`
+ * (#265), which are resolved afterward and never stored in the log itself.
+ */
 export interface AuditEntry {
   timestamp: string;
   item_id: string;
@@ -289,6 +326,8 @@ export interface AuditEntry {
   old_value: string;
   new_value: string;
   actor: string;
+  title: string;
+  board_id: string;
 }
 
 /**

@@ -71,11 +71,22 @@ function rowToAuditEntry(row) {
  * taking that decision here would bind every future consumer to one reading
  * of "done".
  *
+ * #265: every returned row also carries `title` and `board_id`, resolved
+ * after the fact — not read from the log, which never recorded either. For
+ * an id with a live Items row, both come from that row's *current* values,
+ * the same for every row that id has in the response. For an id with no
+ * Items row (deleted), `title` comes from the item's last `deleted` audit
+ * row — found anywhere in the log, not only inside `from`/`to` — and
+ * `board_id` is `''`, because nothing in the log records a board reliably.
+ * An id with neither gets `''` for both. This decoration is a separate step
+ * over the results `rowToAuditEntry` already built, so "rows come back
+ * exactly as logged" still describes the seven original fields.
+ *
  * @param {Object} [filters]
  * @param {string} [filters.from]   inclusive local start date, 'YYYY-MM-DD'
  * @param {string} [filters.to]     inclusive local end date, 'YYYY-MM-DD'
  * @param {string} [filters.action] exact action to match; omit for all actions
- * @returns {Array<Object>} matching entries, oldest first
+ * @returns {Array<Object>} matching entries, oldest first, each with `title` and `board_id` added
  */
 function getAuditLog(filters) {
   filters = filters || {};
@@ -103,5 +114,55 @@ function getAuditLog(filters) {
     results.push(entry);
   }
 
+  if (results.length > 0) {
+    decorateWithTitleAndBoard(results, rows);
+  }
+
   return results;
+}
+
+/**
+ * #265: add `title` and `board_id` to each entry in `results`, in place.
+ *
+ * Reads the Items sheet exactly once — never, if `results` is empty, since
+ * the caller only invokes this when it isn't. `rows` is the full Audit Log
+ * already in memory, walked here only for `deleted` rows, so this needs no
+ * second sheet read.
+ *
+ * @param {Array<Object>} results   entries from this call, decorated in place
+ * @param {Array<Array>} rows       every raw Audit Log row already read
+ */
+function decorateWithTitleAndBoard(results, rows) {
+  var itemsById = {};
+  var itemRows = getAllRows(getSheet('Items'));
+  for (var i = 0; i < itemRows.length; i++) {
+    var item = rowToItem(itemRows[i]);
+    if (item.id) itemsById[item.id] = item;
+  }
+
+  // Last `deleted` row for an id wins: `rows` is in append order, so a plain
+  // forward walk that overwrites on each match leaves the latest one.
+  var deletedTitleById = {};
+  for (var j = 0; j < rows.length; j++) {
+    if (rows[j][AUDIT_COL.ACTION] !== 'deleted') continue;
+    var deletedId = rows[j][AUDIT_COL.ITEM_ID] || '';
+    if (!deletedId) continue;
+    var oldValue = rows[j][AUDIT_COL.OLD_VALUE];
+    deletedTitleById[deletedId] = (oldValue === undefined || oldValue === null) ? '' : String(oldValue);
+  }
+
+  for (var k = 0; k < results.length; k++) {
+    var id = results[k].item_id;
+    var liveItem = itemsById[id];
+    if (liveItem) {
+      results[k].title = liveItem.title;
+      results[k].board_id = liveItem.board_id;
+    } else if (Object.prototype.hasOwnProperty.call(deletedTitleById, id)) {
+      results[k].title = deletedTitleById[id];
+      results[k].board_id = '';
+    } else {
+      results[k].title = '';
+      results[k].board_id = '';
+    }
+  }
 }
