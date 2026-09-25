@@ -174,10 +174,13 @@ describe('AC2: a token can never write', () => {
   });
 
   it('enumerates every case label in the shared dispatch switch and refuses each one outside the allow-list', () => {
+    // Normalize CRLF to LF before matching: a Windows checkout with
+    // core.autocrlf converts main.js's line endings, and the newline-
+    // anchored regex below would otherwise silently find nothing.
     const mainSrc = readFileSync(
       path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'main.js'),
       'utf8',
-    );
+    ).replace(/\r\n/g, '\n');
     const dispatchBody = mainSrc.match(/function dispatchAction\([\s\S]*?\n\}\n/);
     expect(dispatchBody, 'dispatchAction() not found in main.js').toBeTruthy();
     const labels = Array.from(dispatchBody![0].matchAll(/case '([^']+)':/g)).map((m) => m[1]);
