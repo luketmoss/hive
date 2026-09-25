@@ -18,9 +18,11 @@ const { mockBoardStore } = vi.hoisted(() => {
   const mockBoardStore = {
     showCreateModal: { value: true },
     createModalInitialStatus: { value: null as string | null },
+    createModalInitialDueDate: { value: null as string | null },
     owners: { value: [{ name: 'Test User', google_account: 'test@example.com' }, { name: 'Mom', google_account: 'mom@test.com' }, { name: 'Dad', google_account: 'dad@test.com' }] },
     labels: { value: [{ label: 'Urgent', color: '#ff0000' }] },
     openDetailWithTitleEdit: { value: false },
+    clearCreateItemUrlParams: vi.fn(),
   };
   return { mockBoardStore };
 });
@@ -44,8 +46,10 @@ vi.mock('../../utils/color', () => ({
 beforeEach(() => {
   mockCreateItem.mockClear();
   mockCreateItemWithSubtasks.mockClear();
+  mockBoardStore.clearCreateItemUrlParams.mockClear();
   mockBoardStore.showCreateModal.value = true;
   mockBoardStore.createModalInitialStatus.value = null;
+  mockBoardStore.createModalInitialDueDate.value = null;
 });
 
 // --- Inline Sub-tasks (Issue #55) ---
@@ -524,5 +528,134 @@ describe('CreateItemModal clear date button (Issue #207)', () => {
 
     expect(dateInput.value).toBe('');
     expect(container.querySelector('[aria-label="Clear due date"]')).toBeNull();
+  });
+});
+
+describe('CreateItemModal — deep-link due date pre-fill (Issue #263)', () => {
+  beforeEach(() => {
+    mockCreateItem.mockClear();
+    mockBoardStore.showCreateModal.value = true;
+    mockBoardStore.createModalInitialStatus.value = null;
+    mockBoardStore.createModalInitialDueDate.value = null;
+    mockBoardStore.clearCreateItemUrlParams.mockClear();
+  });
+
+  // AC1: the due date field is pre-filled from createModalInitialDueDate
+  it('AC1: pre-fills the due date field from createModalInitialDueDate', () => {
+    mockBoardStore.createModalInitialDueDate.value = '2026-09-24';
+
+    const { container } = render(<CreateItemModal />);
+    const dateInput = container.querySelector('#due-date') as HTMLInputElement;
+
+    expect(dateInput.value).toBe('2026-09-24');
+  });
+
+  // AC1: the matching quick-date chip shows as active when the pre-filled date matches
+  it('AC1: shows the matching quick-date chip as active for the pre-filled date', () => {
+    // "Today" always resolves to today's date; use it to keep the test stable.
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    mockBoardStore.createModalInitialDueDate.value = todayStr;
+
+    const { container } = render(<CreateItemModal />);
+    const activeChip = container.querySelector('.quick-date-chip-active');
+
+    expect(activeChip?.textContent).toBe('Today');
+  });
+
+  // AC1: title field still gets focus, as with any other modal open
+  it('AC1: title field has focus when opened with a pre-filled due date', () => {
+    mockBoardStore.createModalInitialDueDate.value = '2026-09-24';
+
+    const { container } = render(<CreateItemModal />);
+    const titleInput = container.querySelector('#title') as HTMLInputElement;
+
+    expect(document.activeElement).toBe(titleInput);
+  });
+
+  // AC4: an empty pre-fill (missing/malformed `due`) leaves the field blank, no error
+  it('AC4: an empty createModalInitialDueDate leaves the due date field blank', () => {
+    mockBoardStore.createModalInitialDueDate.value = '';
+
+    const { container } = render(<CreateItemModal />);
+    const dateInput = container.querySelector('#due-date') as HTMLInputElement;
+
+    expect(dateInput.value).toBe('');
+  });
+
+  // AC1: saving creates the item with the pre-filled due date, unchanged
+  it('AC1: saving creates an item with the pre-filled due_date', () => {
+    mockBoardStore.createModalInitialDueDate.value = '2026-09-24';
+
+    const { container } = render(<CreateItemModal />);
+    const titleInput = container.querySelector('#title') as HTMLInputElement;
+    fireEvent.input(titleInput, { target: { value: 'Buy milk' } });
+    const form = container.querySelector('form') as HTMLFormElement;
+    fireEvent.submit(form);
+
+    expect(mockCreateItem.mock.calls[0][0].due_date).toBe('2026-09-24');
+  });
+
+  // AC3: closing the modal (any route) strips the URL params and clears the signal
+  it('AC3: close() strips new/due params and clears createModalInitialDueDate', () => {
+    mockBoardStore.createModalInitialDueDate.value = '2026-09-24';
+
+    const { container } = render(<CreateItemModal />);
+    const closeBtn = container.querySelector('[aria-label="Close"]') as HTMLElement;
+    fireEvent.click(closeBtn);
+
+    expect(mockBoardStore.clearCreateItemUrlParams).toHaveBeenCalledTimes(1);
+    expect(mockBoardStore.createModalInitialDueDate.value).toBeNull();
+  });
+
+  // AC3: submitting (Create) also goes through close(), so params are stripped too
+  it('AC3: submitting also strips new/due params', () => {
+    mockBoardStore.createModalInitialDueDate.value = '2026-09-24';
+
+    const { container } = render(<CreateItemModal />);
+    const titleInput = container.querySelector('#title') as HTMLInputElement;
+    fireEvent.input(titleInput, { target: { value: 'Buy milk' } });
+    const form = container.querySelector('form') as HTMLFormElement;
+    fireEvent.submit(form);
+
+    expect(mockBoardStore.clearCreateItemUrlParams).toHaveBeenCalledTimes(1);
+  });
+
+  // AC3: on close, focus restores to the "+" FAB when nothing was focused on mount
+  it('AC3: restores focus to the "+" FAB button when the modal had no opening trigger', () => {
+    mockBoardStore.createModalInitialDueDate.value = '2026-09-24';
+
+    const fab = document.createElement('button');
+    fab.className = 'fab';
+    fab.setAttribute('aria-label', 'Create new item');
+    document.body.appendChild(fab);
+    // Simulate the cold-deep-link case: nothing has focus (focus sits on body).
+    (document.activeElement as HTMLElement | null)?.blur?.();
+
+    const { container, unmount } = render(<CreateItemModal />);
+    const closeBtn = container.querySelector('[aria-label="Close"]') as HTMLElement;
+    fireEvent.click(closeBtn);
+    unmount();
+
+    expect(document.activeElement).toBe(fab);
+    fab.remove();
+  });
+
+  // AC3: falls back to the main content region when the FAB isn't rendered (Upcoming view)
+  it('AC3: restores focus to .board-main when no FAB is present', () => {
+    mockBoardStore.createModalInitialDueDate.value = '2026-09-24';
+
+    const main = document.createElement('main');
+    main.className = 'board-main';
+    document.body.appendChild(main);
+    (document.activeElement as HTMLElement | null)?.blur?.();
+
+    const { container, unmount } = render(<CreateItemModal />);
+    const closeBtn = container.querySelector('[aria-label="Close"]') as HTMLElement;
+    fireEvent.click(closeBtn);
+    unmount();
+
+    expect(document.activeElement).toBe(main);
+    main.remove();
   });
 });

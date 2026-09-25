@@ -1,5 +1,6 @@
 import { signal, computed } from '@preact/signals';
 import type { ItemWithRow, Owner, Label, ItemStatus, Board, BoardPermission, PermissionRole, BoardStatus } from '../api/types';
+import { isValidDateForm } from '../utils/validate-date';
 
 // --- Core data ---
 export const items = signal<ItemWithRow[]>([]);
@@ -290,6 +291,63 @@ export const openDetailWithTitleEdit = signal(false);
 export const showCreateModal = signal(false);
 /** When set, the Create Item modal will pre-fill this status instead of the board's first column. */
 export const createModalInitialStatus = signal<string | null>(null);
+/**
+ * #263: when the Create Item modal is opened from `?new=1&due=…`, the due date
+ * to pre-fill. `null` means "not opened from the URL"; `''` means opened from
+ * the URL with no usable date (missing or malformed `due`, AC4).
+ */
+export const createModalInitialDueDate = signal<string | null>(null);
+
+/** #263: the message shown when `?board=` names a board that is missing or
+ * inaccessible while opening the deep-linked create-item modal. One string for
+ * both causes, following #240's rule for `ITEM_UNAVAILABLE_MESSAGE`. */
+export const BOARD_UNAVAILABLE_MESSAGE = 'That board is not available';
+
+/**
+ * #263: remove `new` and `due` from the URL with `replaceState`, leaving
+ * `board`, `view` and `demo` untouched (AC3). Called on every close route of a
+ * modal that could have been opened from the URL, and when the `item` deep
+ * link wins over a `new`+`due` pair (AC5).
+ */
+export function clearCreateItemUrlParams() {
+  const url = new URL(window.location.href);
+  url.searchParams.delete('new');
+  url.searchParams.delete('due');
+  window.history.replaceState(null, '', url.toString());
+}
+
+/**
+ * #263: read `new` and `due` from the URL on cold load and open the Create
+ * Item modal pre-filled with the due date.
+ *
+ * Must run *after* `initSelectedItemFromUrl()`: AC5 gives the `item` deep link
+ * priority over `new`+`due` when both are present, so this checks whether an
+ * item selection already won before doing anything.
+ */
+export function initCreateItemFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('new') !== '1') return;
+
+  if (selectedItemId.value) {
+    // AC5: the item deep link already won. Its own resolution (including the
+    // ITEM_UNAVAILABLE_MESSAGE toast) already ran; just drop new/due.
+    clearCreateItemUrlParams();
+    return;
+  }
+
+  // AC4: a missing or malformed `due` still opens the modal, with an empty field.
+  const dueParam = params.get('due');
+  createModalInitialDueDate.value = isValidDateForm(dueParam) ? dueParam : '';
+  showCreateModal.value = true;
+
+  // AC2: a `board` param that doesn't resolve still falls back silently (that's
+  // initActiveBoardFromUrl's job, already run) but gets a toast here — only
+  // because `new=1` asked for it. A plain `?board=<bad>` load stays silent.
+  const boardParam = params.get('board');
+  if (boardParam && !accessibleBoards.value.some(b => b.id === boardParam)) {
+    showToast(BOARD_UNAVAILABLE_MESSAGE, 'error');
+  }
+}
 export const toastMessage = signal<{ text: string; type: 'success' | 'error'; action?: { label: string; fn: () => void }; duration?: number } | null>(null);
 
 // --- Theme ---

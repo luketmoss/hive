@@ -1,4 +1,4 @@
-import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl, initActiveViewFromUrl, initSelectedItemFromUrl, initUpcomingBoardFilter, permissions, currentUserEmail, selectItem, clearSelectedItem, boardItems as boardItemsComputed, statuses, isTerminalStatus, defaultStatusName, boardStatuses } from './board-store';
+import { items, showToast, boards, activeBoardId, initActiveBoardFromUrl, initActiveViewFromUrl, initSelectedItemFromUrl, initCreateItemFromUrl, initUpcomingBoardFilter, permissions, currentUserEmail, selectItem, clearSelectedItem, boardItems as boardItemsComputed, statuses, isTerminalStatus, defaultStatusName, boardStatuses } from './board-store';
 import { applyStatusSideEffects, statusTransitionAuditAction } from './rules';
 import {
   fetchAllItems as sheetsFetchAllItems,
@@ -290,6 +290,9 @@ export async function loadBoard(token: string, user?: UserInfo | null) {
       initActiveViewFromUrl();
       // #240: last — board and view resolution both clear the selection.
       initSelectedItemFromUrl();
+      // #263: after the item deep link, since AC5 gives `item` priority over
+      // `new`+`due` when both are present.
+      initCreateItemFromUrl();
     }
 
     // Allowlist check: the Owners sheet is the source of truth for who can

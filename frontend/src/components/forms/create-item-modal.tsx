@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useMemo } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { showCreateModal, createModalInitialStatus, owners, labels as labelsStore } from '../../state/board-store';
+import { showCreateModal, createModalInitialStatus, createModalInitialDueDate, clearCreateItemUrlParams, owners, labels as labelsStore } from '../../state/board-store';
 import { createItem, createItemWithSubtasks } from '../../state/actions';
 import type { StagedSubtask } from '../../state/actions';
 import { LabelPickerManager } from '../labels/label-picker-manager';
@@ -17,7 +17,7 @@ export function CreateItemModal() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [owner, setOwner] = useState(defaultOwner);
-  const [dueDate, setDueDate] = useState('');
+  const [dueDate, setDueDate] = useState(() => createModalInitialDueDate.value ?? '');
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [subtasks, setSubtasks] = useState<StagedSubtask[]>([]);
   const [subtaskInput, setSubtaskInput] = useState('');
@@ -26,8 +26,23 @@ export function CreateItemModal() {
   const close = useCallback(() => {
     showCreateModal.value = false;
     createModalInitialStatus.value = null;
+    createModalInitialDueDate.value = null;
+    // #263: every close route (Create, Cancel, ✕, Esc, overlay click) goes
+    // through here, so `new`/`due` never survive a close regardless of how the
+    // modal got opened. A no-op when the modal wasn't opened from the URL.
+    clearCreateItemUrlParams();
   }, []);
-  const trapRef = useFocusTrap(close);
+
+  // #263 AC3: opened from a cold deep link, there is no trigger element to
+  // restore focus to — fall back to the "+" FAB, or the main content region in
+  // the Upcoming view where the FAB isn't rendered.
+  const restoreFocusTo = useCallback((): HTMLElement | null => {
+    return (
+      document.querySelector<HTMLElement>('.fab') ??
+      document.querySelector<HTMLElement>('.board-main')
+    );
+  }, []);
+  const trapRef = useFocusTrap(close, { restoreFocusTo });
 
   const handleSubmit = (e: Event) => {
     e.preventDefault();
