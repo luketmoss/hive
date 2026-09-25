@@ -47,10 +47,15 @@ function loadAuditPath(rows: CellValue[][]): Sandbox {
     Date: globalThis.Date,
   });
 
+  // #265: getAuditLog joins Items to add title/board_id. No item rows here —
+  // these tests are about the filter/range behaviour, not the join — so every
+  // id resolves to title: '', board_id: '' (asserted below).
   const sheet = makeSheet(rows, sandbox.AUDIT_COLUMN_COUNT);
+  const itemsSheet = makeSheet([], sandbox.ITEM_COLUMN_COUNT);
   sandbox.getSheet = (name: string) => {
-    if (name !== 'Audit Log') throw new Error('Sheet "' + name + '" not stubbed');
-    return sheet;
+    if (name === 'Audit Log') return sheet;
+    if (name === 'Items') return itemsSheet;
+    throw new Error('Sheet "' + name + '" not stubbed');
   };
 
   return sandbox;
@@ -104,6 +109,8 @@ describe('#239 AC3: getAuditLog returns entries for a Denver-local date range', 
       old_value: 'In Progress',
       new_value: 'Shipped',
       actor: 'luke@example.com',
+      title: '',
+      board_id: '',
     });
   });
 
