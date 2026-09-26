@@ -53,6 +53,23 @@ same way, and the report should not pretend otherwise.
 - Skip the tablet breakpoint unless the feature specifically involves responsive
   layout
 
+### Cloud sessions (no Browser pane)
+
+The `preview_*`/Browser pane tools exist only in the desktop app. Where they
+are missing, use `.hive/look.mjs`, which drives the same demo app with the
+container's Playwright and Chromium. That is demo mode working, not failing, so
+the code-level fallback above does not apply.
+
+- `node .hive/look.mjs --width 375 --theme dark --out <scratchpad>/board.png`
+  starts the dev server if needed (with `VITE_DEMO_MODE`), screenshots the
+  board, and prints console errors. Open the PNG with `Read` to see it.
+- For criteria that need interaction, write a short script that does
+  `import { open } from '<repo>/.hive/look.mjs'` and drives `page`:
+  `getByRole(...).click()`, `fill` (it fires the input events signals need),
+  `page.evaluate` for computed values, `page.screenshot`.
+- Send the key screenshots to the user; GitHub's API takes no image uploads, so
+  the PR report describes the evidence in words.
+
 ## Process
 
 1. **Read issue + PR:** `gh issue view <N>` → `gh pr list --search "Closes #<N>"` → `gh pr diff <PR_N>` → extract ACs

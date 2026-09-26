@@ -35,6 +35,10 @@ node .hive/board.mjs set <issue> --status "UX"
 `preview_start` with the **`frontend`** launch config, then navigate to
 `http://localhost:5173/hive/?demo=true`. Auto-authenticates — no OAuth.
 
+Where the Browser pane tools are missing (cloud sessions),
+`node .hive/look.mjs --width 375 --theme light|dark --out <file>.png` shows the
+same demo board; open the PNG with `Read`. `/qa` covers driving it further.
+
 If demo mode fails twice, fall back to a code-level review — read the JSX and
 CSS, check semantic HTML, verify ARIA attributes, inspect the responsive rules —
 and note the limitation in the report.

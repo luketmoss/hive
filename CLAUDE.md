@@ -55,6 +55,10 @@ Demo mode needs both `VITE_DEMO_MODE=true` (build-time, already in
 It auto-authenticates — no login screen, no OAuth popup. Changes are not
 persisted; reloading restores the original demo set.
 
+Cloud sessions have no Browser pane. `node .hive/look.mjs` drives the same demo
+app with the container's Playwright and Chromium instead, setting
+`VITE_DEMO_MODE` itself; `/qa` says how.
+
 ### Driving the preview
 - Prefer `read_page` or `javascript_tool` over screenshots when checking a specific element or a computed value — a screenshot cannot tell you a contrast ratio
 - `computer` clicks are unreliable on signal-driven components; use `javascript_tool` with `.click()` instead
@@ -118,11 +122,21 @@ stops being re-litigated three issues later.
 **Issue tracker: GitHub only.** Every issue reference means a GitHub issue in
 `luketmoss/hive`; use the `gh` CLI. Never use Atlassian/Jira MCP tools.
 Project #2, `https://github.com/users/luketmoss/projects/2`.
+Cloud Claude Code sessions have no `gh`, and it would not help (their GitHub
+access is repo-scoped REST only). There, every `gh` step in a skill means the
+same operation through the GitHub MCP tools (`mcp__github__*`); the board still
+goes through `board.mjs`.
 
 **All board writes go through `node .hive/board.mjs`** — never hand-write
 GraphQL against the project, and never call `gh project field-list`. IDs live in
 `.hive/board.json`; `board.mjs sync` refreshes them if a column is added or
 renamed.
+
+Cloud Claude Code sessions have no `gh` and cannot reach the project, so there
+`board.mjs` hands the same command to `.github/workflows/board.yml` (a
+`repository_dispatch`) and prints its result, 15–40 s later. That needs the
+`BOARD_TOKEN` repo secret: a classic PAT with `project`, `repo` and `read:org`.
+Nothing changes where `gh` is installed.
 
 ```bash
 node .hive/board.mjs show <issue>
