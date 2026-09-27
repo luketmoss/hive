@@ -4,6 +4,7 @@
 // Chromium; screenshots are files the agent opens with Read.
 //
 //   node .hive/look.mjs [--width 375] [--theme light|dark] [--out shot.png]
+//     Without --out the screenshot goes to <os tmpdir>/hive-look/, never the repo.
 //     Screenshots the board and prints any console errors. There is no router:
 //     dialogs and menus are reached by driving the page, as below.
 //
@@ -16,7 +17,8 @@
 
 import { execSync, spawn } from 'node:child_process';
 import { createHash, X509Certificate } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -98,7 +100,12 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   };
   const width = Number(flag('width', 375));
   const theme = flag('theme', 'light');
-  const out = resolve(flag('out', `look-${width}-${theme}.png`));
+  // Default to a temp dir, never the repo: a screenshot left in the working
+  // tree is an untracked file, and parallel agents must not overwrite each
+  // other's shots, hence the pid.
+  const shots = join(tmpdir(), 'hive-look');
+  mkdirSync(shots, { recursive: true });
+  const out = resolve(flag('out', join(shots, `look-${width}-${theme}-${process.pid}.png`)));
 
   const { page, errors, close } = await open({ width, theme });
   await page.screenshot({ path: out, fullPage: true });
