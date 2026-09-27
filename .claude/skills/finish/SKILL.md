@@ -34,7 +34,7 @@ node .hive/board.mjs show <issue>
 
 1. **`/dev`** — branch, tests, code, draft PR
 2. **`/qa`** — verify against the acceptance criteria, take the PR out of draft
-3. **`/review`** — review the diff, confirm CI
+3. **`/review`** — review the diff, confirm CI, in a fresh-context sub-agent (below)
 4. **`/ship`** — Results, merge, delete the branch, clean up the local branch
 
 Each step is the real skill. Read and follow `.claude/skills/<step>/SKILL.md` at
@@ -64,6 +64,19 @@ attempts.
 If the renegotiation would need the user's judgment rather than yours — a real
 product question, not a wording fix — that is a halt. Say what the criterion
 got wrong and what you would replace it with, and stop.
+
+## The review runs in a fresh context
+
+Step 3 is the one stage that gains from not sharing this session's context: a
+reviewer that did not write the code reads the diff as it is, not as it was
+meant to be. So run `/review` in a **sub-agent on Opus** (the Agent tool,
+`model: opus`), giving it the issue and PR numbers and telling it to read and
+follow `.claude/skills/review/SKILL.md` and report its verdict. Continue from
+that verdict: blocking → the issue is back in In Development and this run
+returns to `/dev`; otherwise on to `/ship` here.
+
+Every other stage runs inline. If sub-agents are unavailable, or the user said
+not to use them, run `/review` inline too, and say so in the report.
 
 ## Halting
 
@@ -99,7 +112,7 @@ When the run merges:
 - issue and PR with URLs, and the commit on `main`
 - what changed, in a few lines
 - which acceptance criteria were verified and how
-- anything `/review` noted that didn't block
+- anything `/review` noted that didn't block, and whether it ran in a sub-agent
 - any deferred issues created
 - any judgment call that could reasonably have gone the other way
 

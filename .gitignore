@@ -43,3 +43,6 @@ hive_projects.json
 
 # board.mjs issue->item id cache (rebuilds on demand)
 .hive/.item-cache.json
+
+# look.mjs screenshots — they belong in the temp dir it defaults to, never here
+look-*.png

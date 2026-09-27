@@ -184,6 +184,13 @@ Outside the runs: `/orchestrator` to take a parent issue's children through the
 runs in a batch, `/devops` for CI/CD and deployment problems, `/ux` on its own
 for a standalone audit, `/retro` at the end of a session that ran a pipeline.
 
+**Sub-agents and models are the skills' call.** One issue runs inline, on the
+session's model. A batch goes to `/orchestrator`, which refines in dependency
+waves with a sub-agent per issue on a model it picks (Opus for issues that set
+contracts or carry design, Sonnet for those that fill them) and checks the
+siblings for conflicts before the design gate. `/finish` runs its `/review` step
+in a fresh Opus sub-agent. The user's word overrides any of it.
+
 ## Halting
 
 A run stops early only for the conditions its skill lists — an open product
