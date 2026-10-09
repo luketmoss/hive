@@ -79,7 +79,6 @@ hive/
 │   │   ├── demo/             # Demo mode (mock data, no auth)
 │   │   └── state/            # Preact signals store + business rules
 │   └── public/
-├── mcp-server/               # MCP server for Claude Desktop integration
 ├── chatgpt-gpt-setup.md      # ChatGPT Custom GPT configuration guide
 └── .github/workflows/        # GitHub Pages deployment
 ```
@@ -178,7 +177,7 @@ Demo mode provides a fake user and sample board data. Changes are not persisted.
 ## Voice & AI Integrations
 
 - **ChatGPT Custom GPT** — Manage the board by voice via the ChatGPT mobile app. See [chatgpt-gpt-setup.md](chatgpt-gpt-setup.md) for setup.
-- **MCP Server (Claude Desktop)** — Natural language board management via Claude Desktop. See [mcp-server/README.md](mcp-server/README.md) for setup.
+- **MCP Server (Claude, phone and desktop)** — Natural language board management through a remote MCP connector (`/hive/mcp`), served by the Worker in Keel (`luketmoss/keel` → `mcp/`). See that project's `CLAUDE.md` for setup.
 
 ## Business Rules
 

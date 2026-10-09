@@ -24,11 +24,11 @@ what a move means.
 ## Apps Script Deployment
 - **Live project: "Hive API"**, script ID `11J1aR_JwYWmobNTj8w1kbFCac3mAKrUt4sRdgcrIhUB5ROCSQn4whU08`.
   `apps-script/.clasp.json` is gitignored, so this line is the only committed record of it
-- Access must be **"Anyone" (`ANYONE_ANONYMOUS`)**, executing as the deployer. The MCP server (`mcp-server/`) calls
+- Access must be **"Anyone" (`ANYONE_ANONYMOUS`)**, executing as the deployer. The MCP server (`luketmoss/keel` → `mcp/`, a Cloudflare Worker; the old local `mcp-server/` was retired in luketmoss/keel#372) calls
   with a plain `fetch` and an API key, no Google sign-in; "Anyone with a Google account" 302s it to a login page.
   The `webapp` block in `src/appsscript.json` is what keeps this — `clasp push --force` overwrites the server
   manifest with the local one, so it must stay there
-- Consumers of the URL: the MCP server's `HIVE_API_URL` (Claude desktop config), `.claude/settings.local.json`
+- Consumers of the URL: the MCP Worker's `HIVE_API_URL` secret (`wrangler secret put`, in `luketmoss/keel` → `mcp/`), `.claude/settings.local.json`
 
 ## Environment
 - **Windows machine** — `jq` is NOT available. Use `gh`'s built-in `--jq` flag. Never pipe to a standalone `jq`.
