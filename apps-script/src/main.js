@@ -37,11 +37,18 @@
 // a terminal. The JSON-body POST path below stays a write-only door for `key`
 // callers — a token there is refused outright.
 
+// #273: two full-access keys. API_KEY is the original; MCP_API_KEY belongs to
+// the remote MCP Worker so it can be rotated or revoked on its own. Same
+// access, separate credentials. API_KEY is checked first and stays mandatory:
+// the second key never stands in for a missing first one, and an unset or
+// empty MCP_API_KEY matches nothing.
 function validateApiKey(key) {
-  var expected = PropertiesService.getScriptProperties().getProperty('API_KEY');
+  var props = PropertiesService.getScriptProperties();
+  var expected = props.getProperty('API_KEY');
   if (!expected) throw new Error('API_KEY not configured in script properties');
-  if (key !== expected) return false;
-  return true;
+  if (key === expected) return true;
+  var mcpKey = props.getProperty('MCP_API_KEY');
+  return !!mcpKey && key === mcpKey;
 }
 
 function jsonOutput(result) {

@@ -12,6 +12,7 @@ You need two values from your Apps Script deployment:
 
 - **Deployment URL** — looks like `https://script.google.com/macros/s/XXXXXXXXX/exec`
 - **API Key** — stored in Apps Script > Project Settings > Script Properties as `API_KEY`
+- **`MCP_API_KEY`** (optional) — a second full-access key in the same place, for the remote MCP server only. It can be rotated or revoked (delete the property) without touching `API_KEY`. Unset or empty, it matches nothing. The GPT uses `API_KEY`.
 
 ### 2. Create the GPT
 
