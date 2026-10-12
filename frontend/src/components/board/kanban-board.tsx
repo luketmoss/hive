@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { columns, showCreateModal, createModalInitialStatus, selectedItem, selectItem, groupBy, rootItems, items, owners, boardLabels as labelsStore, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement, showToast, activeView, switchToUpcoming, switchToBoard, boardStatuses, isTerminalStatus } from '../../state/board-store';
+import { pendingDeleteIds, columns, showCreateModal, createModalInitialStatus, selectedItem, selectItem, groupBy, rootItems, items, owners, boardLabels as labelsStore, allDoneItems, hasArchivedItems, showArchiveDialog, boards, showCreateBoardModal, showShareModal, showDeleteBoardModal, showMoveToBoardModal, boardItems, userBoardRole, accessibleBoards, switchBoard, theme, applyTheme, cycleTheme, columnSortModes, setColumnSortMode, columnAnnouncement, showToast, activeView, switchToUpcoming, switchToBoard, boardStatuses, isTerminalStatus } from '../../state/board-store';
 import type { SortMode } from '../../state/board-store';
 import { moveItem, reorderItem, createItem, deleteItem, copyItem } from '../../state/actions';
 import { useKeyboardShortcuts } from '../../hooks/use-keyboard-shortcuts';
@@ -178,25 +178,33 @@ export function KanbanBoard() {
 
     // Optimistic removal (item + children)
     items.value = items.value.filter(i => i.id !== itemId && i.parent_id !== itemId);
+    // Keep the 30s poll from re-fetching the still-present sheet row during the undo window
+    pendingDeleteIds.add(itemId);
 
     let undone = false;
     showToast('Item deleted', 'success', {
       label: 'Undo',
       fn: () => {
         undone = true;
+        pendingDeleteIds.delete(itemId);
         items.value = oldItems;
       },
     }, 10000);
 
     // Commit deletion after toast expires (if not undone)
-    setTimeout(() => {
+    setTimeout(async () => {
       if (!undone) {
         // Re-insert only the deleted item(s) into current state so deleteItem can find them
+        const present = new Set(items.value.map(i => i.id));
         const deletedItems = oldItems.filter(
-          i => i.id === itemId || i.parent_id === itemId
+          i => (i.id === itemId || i.parent_id === itemId) && !present.has(i.id)
         );
         items.value = [...items.value, ...deletedItems];
-        deleteItem(itemId, user?.name || 'web', token);
+        try {
+          await deleteItem(itemId, user?.name || 'web', token);
+        } finally {
+          pendingDeleteIds.delete(itemId);
+        }
       }
     }, 10100);
   }, [token, user]);
