@@ -66,7 +66,7 @@ import {
 } from '../demo/mock-api';
 import { isDemoMode } from '../demo/is-demo-mode';
 import { ReauthFailedError } from '../auth/reauth';
-import { owners, labels, loading } from './board-store';
+import { owners, labels, loading, pendingDeleteIds } from './board-store';
 import type { Item, ItemStatus, ItemWithRow, UserInfo, BoardStatus } from '../api/types';
 
 /**
@@ -317,7 +317,10 @@ export async function loadBoard(token: string, user?: UserInfo | null) {
 
 export async function refreshItems(token: string) {
   try {
-    items.value = await fetchAllItems(token);
+    const fetched = await fetchAllItems(token);
+    items.value = pendingDeleteIds.size === 0
+      ? fetched
+      : fetched.filter(i => !pendingDeleteIds.has(i.id) && !pendingDeleteIds.has(i.parent_id));
   } catch (err: any) {
     if (isReauthFailure(err)) return; // Auth layer handles this
     if (err.status === 401) throw err; // Let auth layer handle it

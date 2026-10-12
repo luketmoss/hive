@@ -4,6 +4,9 @@ import { isValidDateForm } from '../utils/validate-date';
 
 // --- Core data ---
 export const items = signal<ItemWithRow[]>([]);
+/** Item ids deleted optimistically (undo window) but not yet removed from the sheet.
+ *  refreshItems hides them (and their sub-items) so a poll can't resurrect them. */
+export const pendingDeleteIds = new Set<string>();
 export const owners = signal<Owner[]>([]);
 export const labels = signal<Label[]>([]);
 export const boards = signal<Board[]>([]);
