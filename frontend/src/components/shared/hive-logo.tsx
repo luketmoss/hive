@@ -3,25 +3,17 @@ interface HiveLogoProps {
   class?: string;
 }
 
+// The mark is an <img> of the public asset, not inline SVG: it carries a
+// document-global <filter id>, and public/ already holds it for the favicon.
+// alt="": the sign-in card's <h1> and the board header name it, so this is decorative.
 export function HiveLogo({ size = 24, class: className }: HiveLogoProps) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
+    <img
+      src={`${import.meta.env.BASE_URL}hive-mark.svg`}
       width={size}
       height={size}
+      alt=""
       class={className}
-    >
-      <polygon points="12 2 21 7 21 17 12 22 3 17 3 7" fill="var(--color-accent)" />
-      <path
-        d="M7 12.5l3.2 3.2L17 9.5"
-        fill="none"
-        stroke="white"
-        stroke-width="2.6"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-    </svg>
+    />
   );
 }
