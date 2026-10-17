@@ -883,6 +883,11 @@ body {
 }
 
 .board-main {
+  /* Containing block for absolutely positioned descendants (the per-column
+     sr-only live region). Without it they resolve against <body>, escape this
+     scroller's clip and widen the document — iOS then pans the page sideways
+     when the keyboard opens and leaves it there. */
+  position: relative;
   flex: 1;
   overflow-x: auto;
   overflow-y: hidden;
