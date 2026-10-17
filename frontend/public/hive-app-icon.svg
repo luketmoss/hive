@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+<rect width="1024" height="1024" rx="220" fill="#2a1a0a"/>
+<circle cx="760" cy="260" r="105" fill="#f5b700"/>
+<path d="M150 330l89-52 89 52 89-52 89 52 89-52 89 52 89-52 89 52" fill="none" stroke="#4a3216" stroke-width="45" stroke-linejoin="round" opacity=".75"/>
+<path d="M120 870c170-55 290-50 400-35 130 18 220 5 344-40" fill="none" stroke="#efe3c8" stroke-width="32" stroke-linecap="round"/>
+<g transform="translate(135 115) scale(2.95)">
+<g stroke="#1d1406" stroke-width="7" stroke-linejoin="round">
+    <!-- wax cell -->
+    <polygon fill="#f4efe2" points="178.2,126.5 222.4,152 222.4,203 178.2,228.5 134.1,203 134.1,152"/>
+    <!-- capped honey cell -->
+    <polygon fill="#c98400" points="77.8,126.5 121.9,152 121.9,203 77.8,228.5 33.6,203 33.6,152"/>
+    <!-- the done cell -->
+    <polygon fill="#f5b700" points="128,39.5 172.2,65 172.2,116 128,141.5 83.8,116 83.8,65"/>
+  </g>
+  <path d="M106 91.5l15 15 30-32" fill="none" stroke="#1d1406" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M106 91.5l15 15 30-32" fill="none" stroke="#ffffff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</svg>

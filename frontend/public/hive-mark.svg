@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <filter id="s" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#140d03" flood-opacity="0.35"/></filter>
+  </defs>
+  <g filter="url(#s)">
+  <g stroke="#1d1406" stroke-width="7" stroke-linejoin="round">
+    <!-- wax cell -->
+    <polygon fill="#f4efe2" points="178.2,126.5 222.4,152 222.4,203 178.2,228.5 134.1,203 134.1,152"/>
+    <polygon fill="#ffffff" stroke="none" points="145.1,158.6 178.2,137.5 211.4,158.6 211.4,167 178.2,151.5 145.1,172.6" opacity=".7"/>
+    <!-- capped honey cell -->
+    <polygon fill="#c98400" points="77.8,126.5 121.9,152 121.9,203 77.8,228.5 33.6,203 33.6,152"/>
+    <polygon fill="#e5a21c" stroke="none" points="44.6,158.6 77.8,137.5 110.9,158.6 110.9,167 77.8,151.5 44.6,172.6" opacity=".6"/>
+    <!-- the done cell -->
+    <polygon fill="#f5b700" points="128,39.5 172.2,65 172.2,116 128,141.5 83.8,116 83.8,65"/>
+    <polygon fill="#ffd95a" stroke="none" points="94.8,71.6 128,50.5 161.2,71.6 161.2,80 128,64.5 94.8,85.6" opacity=".6"/>
+  </g>
+  <path d="M106 91.5l15 15 30-32" fill="none" stroke="#1d1406" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M106 91.5l15 15 30-32" fill="none" stroke="#ffffff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
