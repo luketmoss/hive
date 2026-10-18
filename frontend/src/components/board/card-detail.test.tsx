@@ -1763,3 +1763,54 @@ describe('CardDetail quick-add sub-tasks (Issue #208)', () => {
     expect(hint!.textContent).toBe('Enter to add another · Esc to cancel');
   });
 });
+
+describe('CardDetail board scroll position (Issue #284)', () => {
+  beforeEach(() => {
+    mockSelectedItemId = 'detail-test-1';
+    mockChildren = [];
+    mockItems = [];
+    mockItemOverrides = {};
+  });
+
+  /** A `.board-main` whose scrollLeft round-trips (jsdom has no layout). */
+  function mountBoardMain(initialLeft: number): HTMLElement {
+    const main = document.createElement('main');
+    main.className = 'board-main';
+    let left = initialLeft;
+    Object.defineProperty(main, 'scrollLeft', {
+      configurable: true,
+      get: () => left,
+      set: (v: number) => { left = v; },
+    });
+    document.body.appendChild(main);
+    return main;
+  }
+
+  // AC1/AC2: the item moved columns and focus restoration scrolled the board
+  // to it — closing puts the board back on the column it was opened from
+  it('restores .board-main scrollLeft to its value when the detail opened', () => {
+    const main = mountBoardMain(375);
+    const { unmount } = renderCardDetail();
+
+    main.scrollLeft = 750; // board followed the card into Done
+    unmount();
+
+    expect(main.scrollLeft).toBe(375);
+    main.remove();
+  });
+
+  // AC3: nothing moved — the board stays where it was
+  it('leaves scrollLeft unchanged when nothing moved', () => {
+    const main = mountBoardMain(375);
+    const { unmount } = renderCardDetail();
+    unmount();
+
+    expect(main.scrollLeft).toBe(375);
+    main.remove();
+  });
+
+  it('does not throw when there is no .board-main (upcoming view)', () => {
+    const { unmount } = renderCardDetail();
+    expect(() => unmount()).not.toThrow();
+  });
+});

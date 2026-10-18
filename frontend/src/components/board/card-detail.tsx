@@ -104,6 +104,18 @@ export function CardDetail() {
   // Focus trap (AC3) + Escape to close (AC4)
   const panelRef = useFocusTrap(close, { restoreFocusTo });
 
+  // #284: Closing returns the board to the column it was showing when the
+  // detail opened, even if the item has since moved to another column. Runs
+  // once per open — switching to a sub-item keeps the panel mounted.
+  useEffect(() => {
+    const main = document.querySelector<HTMLElement>('.board-main');
+    if (!main) return;
+    const left = main.scrollLeft;
+    return () => {
+      if (main.isConnected) main.scrollLeft = left;
+    };
+  }, []);
+
   const save = async (field: string, value: string): Promise<boolean> => {
     if (!token) return false;
     return updateItem(item.id, { [field]: value }, actor, token);
