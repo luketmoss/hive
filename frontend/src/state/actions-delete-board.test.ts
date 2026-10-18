@@ -14,6 +14,8 @@ const mockPerms = { current: [
 const mockItems = { current: [] as any[] };
 const mockActiveBoardId = { current: 'board-1' };
 const mockToast = { current: null as any };
+const mockStatuses = { current: [] as any[] };
+const mockLabels = { current: [] as any[] };
 
 vi.mock('./board-store', () => ({
   boards: { get value() { return mockBoards.current; }, set value(v: any) { mockBoards.current = v; } },
@@ -23,7 +25,8 @@ vi.mock('./board-store', () => ({
   currentUserEmail: { value: 'owner@test.com' },
   loading: { value: false },
   owners: { value: [] },
-  labels: { value: [] },
+  labels: { get value() { return mockLabels.current; }, set value(v: any) { mockLabels.current = v; } },
+  statuses: { get value() { return mockStatuses.current; }, set value(v: any) { mockStatuses.current = v; } },
   showToast: (text: string, type?: string) => { mockToast.current = { text, type: type || 'success' }; },
   initActiveBoardFromUrl: vi.fn(),
   accessibleBoards: { get value() { return mockBoards.current; } },
@@ -33,6 +36,8 @@ vi.mock('./board-store', () => ({
 // Mock API layer
 const mockDeleteBoardRow = vi.fn().mockResolvedValue(undefined);
 const mockDeleteAllBoardPermissions = vi.fn().mockResolvedValue(undefined);
+const mockDeleteAllBoardStatuses = vi.fn().mockResolvedValue(undefined);
+const mockDeleteAllBoardLabels = vi.fn().mockResolvedValue(undefined);
 const mockDeleteItemRow = vi.fn().mockResolvedValue(undefined);
 const mockUpdateItemBoardId = vi.fn().mockResolvedValue(undefined);
 const mockAppendAuditEntry = vi.fn().mockResolvedValue(undefined);
@@ -65,6 +70,8 @@ vi.mock('../api/sheets', () => ({
   deleteBoardRow: (...args: any[]) => mockDeleteBoardRow(...args),
   setBoardArchivedAt: vi.fn().mockResolvedValue(undefined),
   deleteAllBoardPermissions: (...args: any[]) => mockDeleteAllBoardPermissions(...args),
+  deleteAllBoardStatuses: (...args: any[]) => mockDeleteAllBoardStatuses(...args),
+  deleteAllBoardLabels: (...args: any[]) => mockDeleteAllBoardLabels(...args),
   updateItemBoardId: (...args: any[]) => mockUpdateItemBoardId(...args),
   fetchStatuses: vi.fn().mockResolvedValue([]),
   createStatusRow: vi.fn().mockResolvedValue(undefined),
@@ -100,6 +107,8 @@ vi.mock('../demo/mock-api', () => ({
   deleteBoardRow: vi.fn(),
   setBoardArchivedAt: vi.fn().mockResolvedValue(undefined),
   deleteAllBoardPermissions: vi.fn(),
+  deleteAllBoardStatuses: vi.fn(),
+  deleteAllBoardLabels: vi.fn(),
   updateItemBoardId: vi.fn(),
   fetchStatuses: vi.fn().mockResolvedValue([]),
   createStatusRow: vi.fn().mockResolvedValue(undefined),
@@ -124,6 +133,15 @@ beforeEach(() => {
   mockItems.current = [];
   mockActiveBoardId.current = 'board-1';
   mockToast.current = null;
+  mockStatuses.current = [
+    { id: 's1', board_id: 'board-1', name: 'To Do' },
+    { id: 's2', board_id: 'board-1', name: 'Done' },
+    { id: 's3', board_id: 'board-2', name: 'To Do' },
+  ];
+  mockLabels.current = [
+    { label: 'a', color: '#fff', board_id: 'board-1' },
+    { label: 'b', color: '#fff', board_id: 'board-2' },
+  ];
   mockFetchBoards.mockResolvedValue([{ id: 'board-2', name: 'Work Board' }]);
   mockFetchPermissions.mockResolvedValue([{ board_id: 'board-2', user_email: 'owner@test.com', role: 'owner' }]);
   mockFetchAllItems.mockResolvedValue([]);
@@ -183,6 +201,37 @@ describe('deleteBoard action (Issue #120)', () => {
     await deleteBoard('board-1', 'migrate', 'board-2', 'owner@test.com', 'token');
     expect(mockToast.current.text).toContain('Family Board deleted');
     expect(mockToast.current.text).toContain('1 item moved to Work Board');
+  });
+
+  it.each([
+    ['empty', null, null],
+    ['migrate', 'migrate', 'board-2'],
+    ['discard', 'discard', null],
+  ] as const)('deletes the board\'s columns and labels in %s mode (#292 AC1, AC2, AC4)', async (_n, mode, target) => {
+    mockItems.current = [{ id: 'item-1', board_id: 'board-1', sheetRow: 2, parent_id: '' }];
+    const result = await deleteBoard('board-1', mode as any, target as any, 'owner@test.com', 'token');
+    expect(result).toBe(true);
+    expect(mockDeleteAllBoardStatuses).toHaveBeenCalledWith('board-1', 'token');
+    expect(mockDeleteAllBoardLabels).toHaveBeenCalledWith('board-1', 'token');
+    expect(mockDeleteAllBoardStatuses).not.toHaveBeenCalledWith('board-2', expect.anything());
+  });
+
+  it('optimistically removes only the deleted board\'s columns and labels (#292)', async () => {
+    let seen: any;
+    mockDeleteBoardRow.mockImplementationOnce(async () => {
+      seen = { statuses: [...mockStatuses.current], labels: [...mockLabels.current] };
+    });
+    await deleteBoard('board-1', null, null, 'owner@test.com', 'token');
+    expect(seen.statuses.map((s: any) => s.id)).toEqual(['s3']);
+    expect(seen.labels.map((l: any) => l.label)).toEqual(['b']);
+  });
+
+  it('restores columns and labels on error (#292)', async () => {
+    mockDeleteAllBoardLabels.mockRejectedValueOnce(new Error('boom'));
+    await deleteBoard('board-1', null, null, 'owner@test.com', 'token');
+    expect(mockStatuses.current).toHaveLength(3);
+    expect(mockLabels.current).toHaveLength(2);
+    expect(mockDeleteBoardRow).not.toHaveBeenCalled();
   });
 
   it('rolls back on error', async () => {

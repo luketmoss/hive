@@ -61,6 +61,8 @@ vi.mock('../api/sheets', () => ({
   deleteBoardRow: vi.fn(),
   setBoardArchivedAt: vi.fn().mockResolvedValue(undefined),
   deleteAllBoardPermissions: vi.fn(),
+  deleteAllBoardStatuses: vi.fn().mockResolvedValue(undefined),
+  deleteAllBoardLabels: vi.fn().mockResolvedValue(undefined),
   updateItemBoardId: (...args: any[]) => mockUpdateItemBoardId(...args),
   fetchStatuses: vi.fn().mockResolvedValue([]),
   createStatusRow: vi.fn().mockResolvedValue(undefined),

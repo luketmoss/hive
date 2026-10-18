@@ -25,6 +25,8 @@ import {
   deleteBoardRow as sheetsDeleteBoardRow,
   setBoardArchivedAt as sheetsSetBoardArchivedAt,
   deleteAllBoardPermissions as sheetsDeleteAllBoardPermissions,
+  deleteAllBoardStatuses as sheetsDeleteAllBoardStatuses,
+  deleteAllBoardLabels as sheetsDeleteAllBoardLabels,
   updateItemBoardId as sheetsUpdateItemBoardId,
   fetchStatuses as sheetsFetchStatuses,
   createStatusRow as sheetsCreateStatusRow,
@@ -58,6 +60,8 @@ import {
   deleteBoardRow as mockDeleteBoardRow,
   setBoardArchivedAt as mockSetBoardArchivedAt,
   deleteAllBoardPermissions as mockDeleteAllBoardPermissions,
+  deleteAllBoardStatuses as mockDeleteAllBoardStatuses,
+  deleteAllBoardLabels as mockDeleteAllBoardLabels,
   updateItemBoardId as mockUpdateItemBoardId,
   fetchStatuses as mockFetchStatuses,
   createStatusRow as mockCreateStatusRow,
@@ -110,6 +114,8 @@ function api() {
       deleteBoardRow: mockDeleteBoardRow,
       setBoardArchivedAt: mockSetBoardArchivedAt,
       deleteAllBoardPermissions: mockDeleteAllBoardPermissions,
+      deleteAllBoardStatuses: mockDeleteAllBoardStatuses,
+      deleteAllBoardLabels: mockDeleteAllBoardLabels,
       updateItemBoardId: mockUpdateItemBoardId,
       fetchStatuses: mockFetchStatuses,
       createStatusRow: mockCreateStatusRow,
@@ -144,6 +150,8 @@ function api() {
     deleteBoardRow: sheetsDeleteBoardRow,
     setBoardArchivedAt: sheetsSetBoardArchivedAt,
     deleteAllBoardPermissions: sheetsDeleteAllBoardPermissions,
+    deleteAllBoardStatuses: sheetsDeleteAllBoardStatuses,
+    deleteAllBoardLabels: sheetsDeleteAllBoardLabels,
     updateItemBoardId: sheetsUpdateItemBoardId,
     fetchStatuses: sheetsFetchStatuses,
     createStatusRow: sheetsCreateStatusRow,
@@ -178,6 +186,8 @@ const deletePermissionRowApi = (...args: Parameters<typeof sheetsDeletePermissio
 const deleteBoardRowApi = (...args: Parameters<typeof sheetsDeleteBoardRow>) => api().deleteBoardRow(...args);
 const setBoardArchivedAtApi = (...args: Parameters<typeof sheetsSetBoardArchivedAt>) => api().setBoardArchivedAt(...args);
 const deleteAllBoardPermissionsApi = (...args: Parameters<typeof sheetsDeleteAllBoardPermissions>) => api().deleteAllBoardPermissions(...args);
+const deleteAllBoardStatusesApi = (...args: Parameters<typeof sheetsDeleteAllBoardStatuses>) => api().deleteAllBoardStatuses(...args);
+const deleteAllBoardLabelsApi = (...args: Parameters<typeof sheetsDeleteAllBoardLabels>) => api().deleteAllBoardLabels(...args);
 const updateItemBoardIdApi = (...args: Parameters<typeof sheetsUpdateItemBoardId>) => api().updateItemBoardId(...args);
 const fetchStatusesApi = (...args: Parameters<typeof sheetsFetchStatuses>) => api().fetchStatuses(...args);
 const createStatusRowApi = (...args: Parameters<typeof sheetsCreateStatusRow>) => api().createStatusRow(...args);
@@ -1482,12 +1492,16 @@ export async function deleteBoard(
   const oldBoards = [...boards.value];
   const oldPerms = [...permissions.value];
   const oldItems = [...items.value];
+  const oldStatuses = [...statuses.value];
+  const oldLabels = [...labels.value];
 
   const boardItemsList = items.value.filter(i => i.board_id === boardId);
 
   // Optimistic update
   boards.value = boards.value.filter(b => b.id !== boardId);
   permissions.value = permissions.value.filter(p => p.board_id !== boardId);
+  statuses.value = statuses.value.filter(s => s.board_id !== boardId);
+  labels.value = labels.value.filter(l => l.board_id !== boardId);
 
   if (mode === 'migrate' && targetBoardId) {
     items.value = items.value.map(i =>
@@ -1521,8 +1535,10 @@ export async function deleteBoard(
       await refreshItems(token);
     }
 
-    // Delete all permission rows for this board
+    // Delete all permission, column and label rows for this board
     await deleteAllBoardPermissionsApi(boardId, token);
+    await deleteAllBoardStatusesApi(boardId, token);
+    await deleteAllBoardLabelsApi(boardId, token);
 
     // Delete the board row itself
     await deleteBoardRowApi(boardId, token);
@@ -1531,14 +1547,18 @@ export async function deleteBoard(
     await appendAuditEntry(boardId, 'board_deleted', '', board.name, '', actor, token);
 
     // Refresh state from server
-    const [freshBoards, freshPerms, freshItems] = await Promise.all([
+    const [freshBoards, freshPerms, freshItems, freshStatuses, freshLabels] = await Promise.all([
       fetchBoardsApi(token),
       fetchPermissionsApi(token),
       fetchAllItems(token),
+      fetchStatusesApi(token),
+      fetchLabels(token),
     ]);
     boards.value = freshBoards;
     permissions.value = freshPerms;
     items.value = freshItems;
+    statuses.value = freshStatuses;
+    labels.value = freshLabels;
 
     // Toast
     if (mode === 'migrate' && targetBoardId) {
@@ -1555,6 +1575,8 @@ export async function deleteBoard(
     boards.value = oldBoards;
     permissions.value = oldPerms;
     items.value = oldItems;
+    statuses.value = oldStatuses;
+    labels.value = oldLabels;
     // Restore active board
     switchBoard(boardId);
     if (!isReauthFailure(err)) {
