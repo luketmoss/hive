@@ -1669,6 +1669,31 @@ describe('CardDetail clear date button (Issue #207)', () => {
     expect(mockUpdateItem).toHaveBeenCalledWith('detail-test-1', { due_date: '2026-05-01' }, 'Luke', 'test-token');
   });
 
+  // #281: a11y of the due-date control
+  it('#281: due-date button has an accessible name starting with "Due date"', () => {
+    mockItemOverrides = { due_date: '' };
+    const { container } = renderCardDetail();
+    const btn = container.querySelector('.due-date-btn') as HTMLElement;
+    expect(btn.getAttribute('aria-label')).toBe('Due date: No date');
+  });
+
+  it('#281: main hidden date input is out of the tab order and hidden from AT', () => {
+    const { container } = renderCardDetail();
+    const input = container.querySelector('.due-date-group .due-date-hidden') as HTMLInputElement;
+    expect(input.getAttribute('tabindex')).toBe('-1');
+    expect(input.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('#281: every hidden date input is out of the tab order', () => {
+    const { container } = renderCardDetail();
+    const inputs = container.querySelectorAll('.due-date-hidden');
+    expect(inputs.length).toBeGreaterThan(0);
+    inputs.forEach((i) => {
+      expect(i.getAttribute('tabindex')).toBe('-1');
+      expect(i.getAttribute('aria-hidden')).toBe('true');
+    });
+  });
+
   // AC3: date button and owner circles are in the same owner-date-row
   it('AC3: date button is in the owner-date-row alongside owner circles', () => {
     mockItemOverrides = { due_date: '2026-04-10' };
