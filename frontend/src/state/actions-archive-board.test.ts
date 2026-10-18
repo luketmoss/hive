@@ -18,6 +18,7 @@ import { archiveBoard, unarchiveBoard } from './actions';
 import {
   boards, permissions, items, activeBoardId, currentUserEmail, toastMessage,
   accessibleBoards, archivedBoards, upcomingBuckets, upcomingFilterBoards, activeView,
+  showArchivedBoardsDialog,
 } from './board-store';
 import type { ItemWithRow } from '../api/types';
 
@@ -126,12 +127,15 @@ describe('unarchiveBoard (AC3)', () => {
     expect(upcomingIds()).toEqual(expect.arrayContaining(['g-todo', 'g-doing', 'h-todo']));
   });
 
-  it('toasts "restored" with an Open action that switches to the board', async () => {
+  it('toasts "restored" with an Open action that switches to the board and closes the dialog', async () => {
+    showArchivedBoardsDialog.value = true;
     await unarchiveBoard('garage', ME, 'tok');
     expect(toastMessage.value?.text).toBe('Garage restored');
     expect(activeBoardId.value).toBe('home');
+    expect(showArchivedBoardsDialog.value).toBe(true);
     toastMessage.value!.action!.fn();
     expect(activeBoardId.value).toBe('garage');
+    expect(showArchivedBoardsDialog.value).toBe(false);
   });
 });
 

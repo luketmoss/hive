@@ -1390,10 +1390,14 @@ export async function moveItemToBoard(
 // are untouched, which is what makes it reversible: unarchiving clears the cell
 // and everything is back exactly as it was.
 
-import { activeView, switchToBoard, upcomingFilterBoards } from './board-store';
+import { activeView, switchToBoard, upcomingFilterBoards, showArchivedBoardsDialog } from './board-store';
 
-/** Show a board in board view, from wherever the user is. */
+/** Long enough to reach the toast's button — the same window item deletes give Undo. */
+const ACTION_TOAST_MS = 10000;
+
+/** Show a board in board view, from wherever the user is — including out from under the Archived boards dialog. */
 function openBoard(boardId: string) {
+  showArchivedBoardsDialog.value = false;
   switchBoard(boardId);
   if (activeView.value !== 'board') switchToBoard();
 }
@@ -1443,7 +1447,7 @@ export async function archiveBoard(boardId: string, actor: string, token: string
           showToast(`${name} restored`);
         }
       },
-    });
+    }, ACTION_TOAST_MS);
   }
   return ok;
 }
@@ -1453,7 +1457,7 @@ export async function unarchiveBoard(boardId: string, actor: string, token: stri
   const name = boards.value.find(b => b.id === boardId)?.name || 'Board';
   const ok = await setBoardArchived(boardId, '', actor, token);
   if (ok) {
-    showToast(`${name} restored`, 'success', { label: 'Open', fn: () => openBoard(boardId) });
+    showToast(`${name} restored`, 'success', { label: 'Open', fn: () => openBoard(boardId) }, ACTION_TOAST_MS);
   }
   return ok;
 }
