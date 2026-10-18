@@ -272,7 +272,7 @@ export async function loadBoard(token: string, user?: UserInfo | null) {
 
     // Set current user email for permission filtering
     if (user) {
-      currentUserEmail.value = user.email;
+      currentUserEmail.value = user.email ?? '';
     }
 
     // Migration (AC7): if boards exist but have no permission entries, create
