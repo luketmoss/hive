@@ -2692,11 +2692,11 @@ body {
 .subtask-date-add-inline::after {
   content: '';
   position: absolute;
-  top: 50%;
+  top: -4px; /* stop at the gap above so the title above stays tappable */
   left: 50%;
   width: max(100%, 44px);
   height: 44px;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
 }
 .subtask-date-inline:hover {
   background: rgba(var(--color-primary-rgb), 0.18);
