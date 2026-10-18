@@ -364,6 +364,22 @@ describe('useFocusTrap', () => {
       fallback.remove();
     });
 
+    // #284 AC4 — the card may have moved columns while the dialog was open;
+    // restoring focus to it must not scroll the board over to it
+    it('restores focus without scrolling the target into view', () => {
+      (document.activeElement as HTMLElement | null)?.blur?.();
+      const cardEl = document.createElement('div');
+      document.body.appendChild(cardEl);
+      const focusSpy = vi.spyOn(cardEl, 'focus');
+
+      const { unmount } = render(<FallbackHarness restoreFocusTo={() => cardEl} />);
+      unmount();
+
+      expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true });
+      expect(document.activeElement).toBe(cardEl);
+      cardEl.remove();
+    });
+
     // AC4 — nothing to restore to at all: focus is left alone, not thrown at a stale node
     it('does not throw when the fallback resolves to null', () => {
       (document.activeElement as HTMLElement | null)?.blur?.();

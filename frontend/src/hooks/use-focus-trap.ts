@@ -35,13 +35,17 @@ function focusableIn(container: HTMLElement): HTMLElement[] {
  * A temporary `tabindex="-1"` makes it a programmatic focus target without
  * adding it to the Tab order (making cards real tab stops is #6, out of scope);
  * it is removed again on blur so the markup is not permanently mutated.
+ *
+ * #284: `preventScroll` — the target may have moved while the dialog was open
+ * (a card whose status changed now sits in another column), and a plain
+ * `focus()` would scroll the mobile board's snap container over to it.
  */
 function focusRestoreTarget(el: HTMLElement): void {
   if (!el.hasAttribute('tabindex') && !el.matches(FOCUSABLE_SELECTOR)) {
     el.setAttribute('tabindex', '-1');
     el.addEventListener('blur', () => el.removeAttribute('tabindex'), { once: true });
   }
-  el.focus();
+  el.focus({ preventScroll: true });
 }
 
 export interface FocusTrapOptions {
