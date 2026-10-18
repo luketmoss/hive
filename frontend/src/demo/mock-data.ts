@@ -40,6 +40,8 @@ export const MOCK_LABELS: Label[] = [
 export const MOCK_BOARDS: Board[] = [
   { id: 'board-family', name: 'Family Board', created_at: daysAgo(30), created_by: 'mom@family.com', icon: '👨‍👩‍👧' },
   { id: 'board-work', name: 'Work Projects', created_at: daysAgo(14), created_by: 'dad@family.com', icon: '🏢' },
+  // #288: archived — hidden everywhere until unarchived from "Archived boards".
+  { id: 'board-garage', name: 'Garage Cleanout', created_at: daysAgo(60), created_by: 'demo@hive.local', icon: '🔧', archived_at: daysAgo(5) },
 ];
 
 // --- Permissions ---
@@ -52,6 +54,7 @@ export const MOCK_PERMISSIONS: BoardPermission[] = [
   { board_id: 'board-work', user_email: 'dad@family.com', role: 'owner' },
   { board_id: 'board-work', user_email: 'mom@family.com', role: 'member' },
   { board_id: 'board-work', user_email: 'demo@hive.local', role: 'member' },
+  { board_id: 'board-garage', user_email: 'demo@hive.local', role: 'owner' },
 ];
 
 // --- Statuses (Columns) ---
@@ -66,6 +69,9 @@ export const MOCK_STATUSES: BoardStatus[] = [
   { id: 'status-work-1', board_id: 'board-work', name: 'To Do', sort_order: 1, color: '#e3f2fd', is_terminal: false, created_at: daysAgo(14) },
   { id: 'status-work-2', board_id: 'board-work', name: 'In Progress', sort_order: 2, color: '#fff3e0', is_terminal: false, created_at: daysAgo(14) },
   { id: 'status-work-3', board_id: 'board-work', name: 'Done', sort_order: 3, color: '#e8f5e9', is_terminal: true, created_at: daysAgo(14) },
+  // Garage Cleanout (archived)
+  { id: 'status-garage-1', board_id: 'board-garage', name: 'To Do', sort_order: 1, color: '#e3f2fd', is_terminal: false, created_at: daysAgo(60) },
+  { id: 'status-garage-2', board_id: 'board-garage', name: 'Done', sort_order: 2, color: '#e8f5e9', is_terminal: true, created_at: daysAgo(60) },
 ];
 
 // --- Items ---
@@ -426,5 +432,43 @@ export const MOCK_ITEMS: ItemWithRow[] = [
     created_by: 'dad@family.com',
     board_id: 'board-work',
     sheetRow: 19,
+  },
+  // #288: items on the archived Garage Cleanout board. Due soon on purpose, so
+  // Upcoming would show them if the archive filter failed.
+  {
+    id: 'demo-garage-1',
+    title: 'Sell the old bike',
+    description: '',
+    status: 'To Do',
+    owner: 'Dad',
+    due_date: daysFromNow(2),
+
+    labels: '',
+    parent_id: '',
+    created_at: daysAgo(40),
+    updated_at: daysAgo(6),
+    completed_at: '',
+    sort_order: 1,
+    created_by: 'demo@hive.local',
+    board_id: 'board-garage',
+    sheetRow: 20,
+  },
+  {
+    id: 'demo-garage-2',
+    title: 'Hang the pegboard',
+    description: '',
+    status: 'Done',
+    owner: 'Mom',
+    due_date: daysFromNow(0),
+
+    labels: '',
+    parent_id: '',
+    created_at: daysAgo(40),
+    updated_at: daysAgo(6),
+    completed_at: daysAgo(6),
+    sort_order: 2,
+    created_by: 'demo@hive.local',
+    board_id: 'board-garage',
+    sheetRow: 21,
   },
 ];

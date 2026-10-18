@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'preact/hooks';
 import { useAuth } from '../../auth/auth-context';
-import { showShareModal, activeBoard, activeBoardId, permissions, owners, boards, showDeleteBoardModal, userBoardRole, accessibleBoards } from '../../state/board-store';
+import { showShareModal, activeBoard, activeBoardId, permissions, owners, boards, showDeleteBoardModal, showArchiveBoardModal, userBoardRole, accessibleBoards } from '../../state/board-store';
 import { shareBoard, unshareBoard, updateBoardAppearance, renameBoardName } from '../../state/actions';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
 import { IconPicker } from '../shared/icon-picker';
@@ -365,8 +365,22 @@ export function ShareModal() {
             <div id="settings-panel-danger" role="tabpanel" aria-labelledby="settings-tab-danger">
               <div class="modal-body">
                 <div class="share-danger-zone">
+                  {/* #288: archiving is reversible, so it sits first and isn't danger-styled */}
                   <p class="share-danger-zone-desc">
-                    Deleting a board removes all its items, permissions, and columns. This cannot be undone.
+                    Hide this board and its items. You can restore it any time.
+                  </p>
+                  <button
+                    type="button"
+                    class="btn share-archive-board-btn"
+                    disabled={accessibleBoards.value.length <= 1}
+                    title={accessibleBoards.value.length <= 1 ? 'This is your last board and cannot be archived' : `Archive ${activeBoard.value?.name || 'board'}`}
+                    onClick={() => { showArchiveBoardModal.value = true; }}
+                    data-testid="archive-board-btn"
+                  >
+                    Archive board
+                  </button>
+                  <p class="share-danger-zone-desc">
+                    Deleting a board removes all its items, permissions, and columns. This cannot be undone. To keep them, archive the board instead.
                   </p>
                   <button
                     type="button"

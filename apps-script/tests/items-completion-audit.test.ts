@@ -72,7 +72,7 @@ interface Harness {
 
 function harness(rows: CellValue[][]): Harness {
   const sandbox = loadSources(
-    ['types.js', 'utils.js', 'rules.js', 'audit.js', 'statuses.js', 'items.js'],
+    ['types.js', 'utils.js', 'rules.js', 'boards.js', 'audit.js', 'statuses.js', 'items.js'],
     { Utilities: makeUtilities(), Date: globalThis.Date },
   );
 

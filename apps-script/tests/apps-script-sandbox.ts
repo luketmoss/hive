@@ -257,6 +257,14 @@ export function makePropertiesService(properties: Record<string, string>) {
 }
 
 /**
+ * #288: the Boards tab for a loader. `undefined` models a sheet with no
+ * Boards tab at all, which `getBoards` reads as "no boards, none archived".
+ */
+function boardSheet(boardRows: CellValue[][] | undefined, sandbox: Sandbox) {
+  return boardRows === undefined ? undefined : makeSheet(boardRows, sandbox.BOARD_COLUMN_COUNT);
+}
+
+/**
  * Evaluate the named files from `apps-script/src` into one shared sandbox,
  * in order, with `globals` injected first.
  */
@@ -279,8 +287,8 @@ export function loadSources(files: string[], globals: Sandbox = {}): Sandbox {
  * Load the read path (`types`, `utils`, `items`, `main`) with the Google
  * globals stubbed and the Items sheet backed by `itemRows`.
  */
-export function loadReadPath(itemRows: CellValue[][], apiKey = 'test-key'): Sandbox {
-  const sandbox = loadSources(['types.js', 'utils.js', 'auth.js', 'items.js', 'main.js'], {
+export function loadReadPath(itemRows: CellValue[][], apiKey = 'test-key', boardRows?: CellValue[][]): Sandbox {
+  const sandbox = loadSources(['types.js', 'utils.js', 'auth.js', 'rules.js', 'boards.js', 'items.js', 'main.js'], {
     ContentService: makeContentService(),
     PropertiesService: makePropertiesService({ API_KEY: apiKey, SPREADSHEET_ID: 'sheet-id' }),
   });
@@ -292,6 +300,8 @@ export function loadReadPath(itemRows: CellValue[][], apiKey = 'test-key'): Sand
     if (name !== 'Items') throw new Error('Sheet "' + name + '" not stubbed');
     return itemsSheet;
   };
+  // #288: `getItems` drops archived boards' items, read off the Boards tab.
+  sandbox.SpreadsheetApp = makeSpreadsheetApp({ Boards: boardSheet(boardRows, sandbox) });
 
   return sandbox;
 }
@@ -301,14 +311,18 @@ export function loadReadPath(itemRows: CellValue[][], apiKey = 'test-key'): Sand
  * Google globals stubbed. `statusRows` backs the Statuses sheet; pass
  * `undefined` to model a sheet that doesn't exist at all (AC4).
  */
-export function loadStatusesPath(statusRows: CellValue[][] | undefined, apiKey = 'test-key'): Sandbox {
-  const sandbox = loadSources(['types.js', 'utils.js', 'auth.js', 'statuses.js', 'main.js'], {
+export function loadStatusesPath(
+  statusRows: CellValue[][] | undefined,
+  apiKey = 'test-key',
+  boardRows?: CellValue[][],
+): Sandbox {
+  const sandbox = loadSources(['types.js', 'utils.js', 'auth.js', 'rules.js', 'boards.js', 'statuses.js', 'main.js'], {
     ContentService: makeContentService(),
     PropertiesService: makePropertiesService({ API_KEY: apiKey, SPREADSHEET_ID: 'sheet-id' }),
   });
 
   const statusesSheet = statusRows === undefined ? undefined : makeSheet(statusRows, sandbox.STATUS_COLUMN_COUNT);
-  sandbox.SpreadsheetApp = makeSpreadsheetApp({ Statuses: statusesSheet });
+  sandbox.SpreadsheetApp = makeSpreadsheetApp({ Statuses: statusesSheet, Boards: boardSheet(boardRows, sandbox) });
 
   return sandbox;
 }
@@ -320,8 +334,8 @@ export function loadStatusesPath(statusRows: CellValue[][] | undefined, apiKey =
  * Both backing arrays are returned live, so a test asserts on what the sheet
  * holds afterward rather than on what the code claims it did.
  */
-export function loadDeletePath(itemRows: CellValue[][], apiKey = 'test-key') {
-  const sandbox = loadSources(['types.js', 'utils.js', 'auth.js', 'audit.js', 'items.js', 'main.js'], {
+export function loadDeletePath(itemRows: CellValue[][], apiKey = 'test-key', boardRows?: CellValue[][]) {
+  const sandbox = loadSources(['types.js', 'utils.js', 'auth.js', 'rules.js', 'boards.js', 'audit.js', 'items.js', 'main.js'], {
     ContentService: makeContentService(),
     PropertiesService: makePropertiesService({ API_KEY: apiKey, SPREADSHEET_ID: 'sheet-id' }),
     Utilities: makeUtilities(),
@@ -337,6 +351,7 @@ export function loadDeletePath(itemRows: CellValue[][], apiKey = 'test-key') {
     if (name === 'Audit Log') return audit;
     throw new Error('Sheet "' + name + '" not stubbed');
   };
+  sandbox.SpreadsheetApp = makeSpreadsheetApp({ Boards: boardSheet(boardRows, sandbox) });
 
   return { sandbox, itemRows, auditRows };
 }
@@ -428,7 +443,7 @@ export function loadAuthPath(opts: {
   sandbox.SpreadsheetApp = makeSpreadsheetApp({
     Owners: makeSheet(opts.ownerRows ?? [], 2),
     Labels: makeSheet(opts.labelRows ?? [], 3),
-    Boards: makeSheet(opts.boardRows ?? [], 6),
+    Boards: makeSheet(opts.boardRows ?? [], sandbox.BOARD_COLUMN_COUNT),
     Statuses: opts.statusRows === undefined ? undefined : makeSheet(opts.statusRows, sandbox.STATUS_COLUMN_COUNT),
     Items: itemsSheet,
     'Audit Log': auditSheet,

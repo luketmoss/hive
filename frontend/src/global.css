@@ -1683,6 +1683,58 @@ body {
   align-self: flex-start;
 }
 
+/* #288: archive is reversible — a secondary (outlined) button, not danger-red */
+.share-archive-board-btn {
+  align-self: flex-start;
+  margin-bottom: 8px;
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border-light);
+}
+.share-archive-board-btn:hover:not(:disabled) { background: var(--overlay-md); }
+.share-archive-board-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* === Archived Boards Dialog (#288) === */
+
+.archived-boards-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.archived-boards-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.archived-boards-row:last-child { border-bottom: none; }
+
+.archived-boards-info {
+  flex: 1;
+  min-width: 0; /* lets the name ellipsize instead of widening the row */
+}
+
+.archived-boards-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archived-boards-meta {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.archived-boards-empty {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
 @media (max-width: 600px) {
   .share-delete-board-btn {
     min-height: 44px;

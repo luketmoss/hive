@@ -23,6 +23,7 @@ import {
   createPermissionRow as sheetsCreatePermissionRow,
   deletePermissionRow as sheetsDeletePermissionRow,
   deleteBoardRow as sheetsDeleteBoardRow,
+  setBoardArchivedAt as sheetsSetBoardArchivedAt,
   deleteAllBoardPermissions as sheetsDeleteAllBoardPermissions,
   updateItemBoardId as sheetsUpdateItemBoardId,
   fetchStatuses as sheetsFetchStatuses,
@@ -55,6 +56,7 @@ import {
   createPermissionRow as mockCreatePermissionRow,
   deletePermissionRow as mockDeletePermissionRow,
   deleteBoardRow as mockDeleteBoardRow,
+  setBoardArchivedAt as mockSetBoardArchivedAt,
   deleteAllBoardPermissions as mockDeleteAllBoardPermissions,
   updateItemBoardId as mockUpdateItemBoardId,
   fetchStatuses as mockFetchStatuses,
@@ -106,6 +108,7 @@ function api() {
       createPermissionRow: mockCreatePermissionRow,
       deletePermissionRow: mockDeletePermissionRow,
       deleteBoardRow: mockDeleteBoardRow,
+      setBoardArchivedAt: mockSetBoardArchivedAt,
       deleteAllBoardPermissions: mockDeleteAllBoardPermissions,
       updateItemBoardId: mockUpdateItemBoardId,
       fetchStatuses: mockFetchStatuses,
@@ -139,6 +142,7 @@ function api() {
     createPermissionRow: sheetsCreatePermissionRow,
     deletePermissionRow: sheetsDeletePermissionRow,
     deleteBoardRow: sheetsDeleteBoardRow,
+    setBoardArchivedAt: sheetsSetBoardArchivedAt,
     deleteAllBoardPermissions: sheetsDeleteAllBoardPermissions,
     updateItemBoardId: sheetsUpdateItemBoardId,
     fetchStatuses: sheetsFetchStatuses,
@@ -172,6 +176,7 @@ const fetchPermissionsApi = (...args: Parameters<typeof sheetsFetchPermissions>)
 const createPermissionRowApi = (...args: Parameters<typeof sheetsCreatePermissionRow>) => api().createPermissionRow(...args);
 const deletePermissionRowApi = (...args: Parameters<typeof sheetsDeletePermissionRow>) => api().deletePermissionRow(...args);
 const deleteBoardRowApi = (...args: Parameters<typeof sheetsDeleteBoardRow>) => api().deleteBoardRow(...args);
+const setBoardArchivedAtApi = (...args: Parameters<typeof sheetsSetBoardArchivedAt>) => api().setBoardArchivedAt(...args);
 const deleteAllBoardPermissionsApi = (...args: Parameters<typeof sheetsDeleteAllBoardPermissions>) => api().deleteAllBoardPermissions(...args);
 const updateItemBoardIdApi = (...args: Parameters<typeof sheetsUpdateItemBoardId>) => api().updateItemBoardId(...args);
 const fetchStatusesApi = (...args: Parameters<typeof sheetsFetchStatuses>) => api().fetchStatuses(...args);
@@ -1378,6 +1383,87 @@ export async function moveItemToBoard(
     }
     return false;
   }
+}
+
+// --- Archive / unarchive (#288) ---
+// Archiving writes one cell (Boards!G). Items, columns, labels and permissions
+// are untouched, which is what makes it reversible: unarchiving clears the cell
+// and everything is back exactly as it was.
+
+import { activeView, switchToBoard, upcomingFilterBoards, showArchivedBoardsDialog } from './board-store';
+
+/** Long enough to reach the toast's button — the same window item deletes give Undo. */
+const ACTION_TOAST_MS = 10000;
+
+/** Show a board in board view, from wherever the user is — including out from under the Archived boards dialog. */
+function openBoard(boardId: string) {
+  showArchivedBoardsDialog.value = false;
+  switchBoard(boardId);
+  if (activeView.value !== 'board') switchToBoard();
+}
+
+async function setBoardArchived(boardId: string, archivedAt: string, actor: string, token: string): Promise<boolean> {
+  const board = boards.value.find(b => b.id === boardId);
+  if (!board) return false;
+  const archiving = archivedAt !== '';
+  const oldBoards = [...boards.value];
+  const oldActiveBoardId = activeBoardId.value;
+
+  // Optimistic update
+  boards.value = boards.value.map(b => (b.id === boardId ? { ...b, archived_at: archivedAt } : b));
+  if (archiving && activeBoardId.value === boardId) {
+    const next = accessibleBoards.value[0];
+    if (next) switchBoard(next.id);
+  }
+  // The Upcoming filter is a snapshot of the boards at load. Keep it in step:
+  // an archived board leaves it (or the filter badge miscounts) and a restored one joins it.
+  const oldUpcomingFilter = upcomingFilterBoards.value;
+  const nextUpcomingFilter = new Set(oldUpcomingFilter);
+  if (archiving) nextUpcomingFilter.delete(boardId);
+  else nextUpcomingFilter.add(boardId);
+  upcomingFilterBoards.value = nextUpcomingFilter;
+
+  try {
+    await setBoardArchivedAtApi(boardId, archivedAt, token);
+    await appendAuditEntry(boardId, archiving ? 'board_archived' : 'board_unarchived', 'archived_at', board.archived_at || '', archivedAt, actor, token);
+    return true;
+  } catch (err: any) {
+    boards.value = oldBoards;
+    upcomingFilterBoards.value = oldUpcomingFilter;
+    if (activeBoardId.value !== oldActiveBoardId) switchBoard(oldActiveBoardId);
+    if (!isReauthFailure(err)) {
+      showToast(`Failed to ${archiving ? 'archive' : 'restore'} board: ` + err.message, 'error');
+    }
+    return false;
+  }
+}
+
+/** #288: Archive a board. The toast's Undo restores it and goes back to it. */
+export async function archiveBoard(boardId: string, actor: string, token: string): Promise<boolean> {
+  const name = boards.value.find(b => b.id === boardId)?.name || 'Board';
+  const ok = await setBoardArchived(boardId, new Date().toISOString(), actor, token);
+  if (ok) {
+    showToast(`${name} archived`, 'success', {
+      label: 'Undo',
+      fn: async () => {
+        if (await setBoardArchived(boardId, '', actor, token)) {
+          openBoard(boardId);
+          showToast(`${name} restored`);
+        }
+      },
+    }, ACTION_TOAST_MS);
+  }
+  return ok;
+}
+
+/** #288: Unarchive a board. The toast's Open switches to it. */
+export async function unarchiveBoard(boardId: string, actor: string, token: string): Promise<boolean> {
+  const name = boards.value.find(b => b.id === boardId)?.name || 'Board';
+  const ok = await setBoardArchived(boardId, '', actor, token);
+  if (ok) {
+    showToast(`${name} restored`, 'success', { label: 'Open', fn: () => openBoard(boardId) }, ACTION_TOAST_MS);
+  }
+  return ok;
 }
 
 export type DeleteBoardMode = 'discard' | 'migrate';

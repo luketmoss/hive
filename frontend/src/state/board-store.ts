@@ -1,6 +1,7 @@
 import { signal, computed } from '@preact/signals';
 import type { ItemWithRow, Owner, Label, ItemStatus, Board, BoardPermission, PermissionRole, BoardStatus } from '../api/types';
 import { isValidDateForm } from '../utils/validate-date';
+import { isBoardArchived } from './rules';
 
 // --- Core data ---
 export const items = signal<ItemWithRow[]>([]);
@@ -21,8 +22,8 @@ export const activeBoard = computed(() =>
   boards.value.find(b => b.id === activeBoardId.value) ?? null
 );
 
-/** Boards the current user has access to (via direct permission or wildcard). */
-export const accessibleBoards = computed(() => {
+/** Every board the current user has access to (via direct permission or wildcard), archived or not. */
+const permittedBoards = computed(() => {
   const email = currentUserEmail.value.toLowerCase();
   if (!email) return boards.value; // No user context = show all (fallback)
   return boards.value.filter(b => {
@@ -32,26 +33,36 @@ export const accessibleBoards = computed(() => {
   });
 });
 
-/** The current user's role on the active board. */
-export const userBoardRole = computed((): PermissionRole | null => {
-  const email = currentUserEmail.value.toLowerCase();
-  const bid = activeBoardId.value;
-  if (!email || !bid) return null;
+/**
+ * Boards the current user has access to, minus archived ones (#288). This is
+ * the list every view reads — the switcher, shortcuts, Upcoming, Move to
+ * board, deep links — so an archived board drops out of all of them at once.
+ */
+export const accessibleBoards = computed(() =>
+  permittedBoards.value.filter(b => !isBoardArchived(b))
+);
 
-  // Check for direct permission first (may be 'owner')
+/** #288: Archived boards the current user can access, most recently archived first. */
+export const archivedBoards = computed(() =>
+  permittedBoards.value
+    .filter(b => isBoardArchived(b))
+    .sort((a, b) => (b.archived_at || '').localeCompare(a.archived_at || ''))
+);
+
+/** #288: The current user's role on any board, not just the active one. */
+export function userRoleForBoard(boardId: string): PermissionRole | null {
+  const email = currentUserEmail.value.toLowerCase();
+  if (!email || !boardId) return null;
   const direct = permissions.value.find(
-    p => p.board_id === bid && p.user_email.toLowerCase() === email
+    p => p.board_id === boardId && p.user_email.toLowerCase() === email
   );
   if (direct) return direct.role;
+  const wildcard = permissions.value.find(p => p.board_id === boardId && p.user_email === '*');
+  return wildcard ? 'member' : null;
+}
 
-  // Check for wildcard
-  const wildcard = permissions.value.find(
-    p => p.board_id === bid && p.user_email === '*'
-  );
-  if (wildcard) return 'member'; // Wildcard always grants member
-
-  return null;
-});
+/** The current user's role on the active board. A direct permission (may be 'owner') wins; a wildcard always grants member. */
+export const userBoardRole = computed((): PermissionRole | null => userRoleForBoard(activeBoardId.value));
 
 /** Labels scoped to the active board. */
 export const boardLabels = computed(() => {
@@ -521,6 +532,12 @@ export const showShareModal = signal(false);
 // --- UI state for delete board modal ---
 export const showDeleteBoardModal = signal(false);
 
+// --- UI state for archiving boards (#288) ---
+// Named "archived boards" so it can't be confused with the completed-items
+// archive above (showArchiveDialog).
+export const showArchiveBoardModal = signal(false);
+export const showArchivedBoardsDialog = signal(false);
+
 // --- UI state for move-to-board modal ---
 export const showMoveToBoardModal = signal(false);
 
@@ -552,15 +569,8 @@ export function switchBoard(boardId: string) {
 export function initActiveBoardFromUrl() {
   const params = new URLSearchParams(window.location.search);
   const boardParam = params.get('board');
-  // Filter to boards the current user can access (AC3)
-  const email = currentUserEmail.value.toLowerCase();
-  const available = email
-    ? boards.value.filter(b =>
-        permissions.value.some(p =>
-          p.board_id === b.id && (p.user_email === '*' || p.user_email.toLowerCase() === email)
-        )
-      )
-    : boards.value;
+  // Filter to boards the current user can access (AC3), which excludes archived ones (#288)
+  const available = accessibleBoards.value;
   if (boardParam && available.some(b => b.id === boardParam)) {
     activeBoardId.value = boardParam;
   } else if (available.length > 0) {
@@ -701,10 +711,13 @@ export const upcomingBuckets = computed((): UpcomingBucketData[] => {
   const thisSunday = sundayOfWeek(now);
   const [nextMonday, nextSunday] = nextWeekRange(now);
 
-  // Get all non-terminal items across all accessible boards
+  // Get all non-terminal items across all accessible boards. The filter set
+  // is a snapshot taken at load, so archived boards are dropped here as well:
+  // a board archived since then must not keep its items in Upcoming (#288).
   const selectedBoards = upcomingFilterBoards.value;
+  const archivedIds = new Set(boards.value.filter(isBoardArchived).map(b => b.id));
   const allItems = items.value.filter(i =>
-    !isTerminalStatusForBoard(i.status, i.board_id) && selectedBoards.has(i.board_id)
+    !isTerminalStatusForBoard(i.status, i.board_id) && selectedBoards.has(i.board_id) && !archivedIds.has(i.board_id)
   );
 
   const search = upcomingFilterSearch.value.trim();

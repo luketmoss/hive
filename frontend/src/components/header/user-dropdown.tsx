@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'preact/hooks';
 import { ThemeToggle } from '../board/theme-toggle';
 import { isDemoMode } from '../../demo/is-demo-mode';
+import { showArchivedBoardsDialog } from '../../state/board-store';
 import type { UserInfo } from '../../api/types';
 
 interface UserDropdownProps {
@@ -32,6 +33,12 @@ export function UserDropdown({ user, displayName, onSignOut, onOpenProfile }: Us
     closeDropdown();
     onSignOut();
   }, [closeDropdown, onSignOut]);
+
+  // #288: shown in demo mode too, unlike Edit profile.
+  const handleOpenArchivedBoards = useCallback(() => {
+    closeDropdown();
+    showArchivedBoardsDialog.value = true;
+  }, [closeDropdown]);
 
   const handleOpenProfile = useCallback(() => {
     closeDropdown();
@@ -146,6 +153,15 @@ export function UserDropdown({ user, displayName, onSignOut, onOpenProfile }: Us
               <hr class="user-dropdown-divider" />
             </>
           )}
+          <button
+            class="user-dropdown-edit-profile"
+            role="menuitem"
+            onClick={handleOpenArchivedBoards}
+            data-testid="user-dropdown-archived-boards"
+          >
+            Archived boards
+          </button>
+          <hr class="user-dropdown-divider" />
           <button
             class="user-dropdown-signout"
             role="menuitem"

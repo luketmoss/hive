@@ -173,6 +173,12 @@ export async function deletePermissionRow(boardId: string, userEmail: string, _t
   );
 }
 
+export async function setBoardArchivedAt(boardId: string, archivedAt: string, _token: string): Promise<void> {
+  mockBoardsState.value = mockBoardsState.value.map(b =>
+    b.id === boardId ? { ...b, archived_at: archivedAt } : b
+  );
+}
+
 export async function deleteBoardRow(boardId: string, _token: string): Promise<void> {
   mockBoardsState.value = mockBoardsState.value.filter(b => b.id !== boardId);
 }

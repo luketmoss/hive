@@ -15,6 +15,8 @@
 //   ?action=getAuditLog&from=2026-09-12&to=2026-09-12&audit_action=completed
 //   ?action=getStatuses&board_id=A
 //   ?action=getStatuses   (no board_id: every board's statuses, flat, each row carrying its own board_id)
+//   ?action=getBoards&include_archived=true   (#288: archived boards are hidden otherwise,
+//      and their items, labels and statuses are always hidden; writes to them are refused)
 //
 // Write examples:
 //   ?action=createItem&payload={"data":{"title":"Test","owner":"Luke"},"actor":"smoke-test"}
@@ -66,6 +68,14 @@ function jsonOutput(result) {
  * @param {Object} payload - parsed `params.payload`, `{}` if absent
  * @returns {Object} the envelope to return
  */
+/** #288: drop rows (labels, statuses) that belong to an archived board. */
+function withoutArchivedBoards(rows) {
+  var archived = getArchivedBoards();
+  return rows.filter(function(r) {
+    return !Object.prototype.hasOwnProperty.call(archived, r.board_id);
+  });
+}
+
 function dispatchAction(action, params, payload) {
   var result;
 
@@ -104,12 +114,14 @@ function dispatchAction(action, params, payload) {
       result = { success: true, data: getOwners() };
       break;
 
+    // #288: an archived board's labels and statuses are hidden like its items.
     case 'getLabels':
-      result = { success: true, data: getLabels(params.board_id || '') };
+      result = { success: true, data: withoutArchivedBoards(getLabels(params.board_id || '')) };
       break;
 
+    // #288: archived boards are hidden unless `include_archived=true`.
     case 'getBoards':
-      result = { success: true, data: getBoards() };
+      result = { success: true, data: getBoards(params.include_archived === 'true') };
       break;
 
     // #239: Audit Log reader for cross-app day queries.
@@ -129,14 +141,14 @@ function dispatchAction(action, params, payload) {
 
     case 'getStatuses':
       if (params.board_id === undefined) {
-        result = { success: true, data: getAllStatuses() };
+        result = { success: true, data: withoutArchivedBoards(getAllStatuses()) };
         break;
       }
       if (params.board_id.trim() === '') {
         result = { success: false, error: 'board_id must not be empty' };
         break;
       }
-      result = { success: true, data: getStatuses(params.board_id) };
+      result = { success: true, data: withoutArchivedBoards(getStatuses(params.board_id)) };
       break;
 
     // --- Write operations (data in payload param) ---
