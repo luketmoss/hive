@@ -579,6 +579,36 @@ export async function deleteAllBoardPermissions(boardId: string, token: string):
   });
 }
 
+async function deleteAllRowsForBoard(tab: 'Statuses' | 'Labels', range: string, boardCol: number, boardId: string, token: string): Promise<void> {
+  return withReauth(token, async (t) => {
+    const rows = await sheetsGet(range, t);
+    const indices = rows
+      .map((row, i) => (row[boardCol] === boardId ? i : -1))
+      .filter(i => i >= 0)
+      .sort((a, b) => b - a); // bottom-to-top to avoid row shifting
+
+    if (indices.length === 0) return;
+
+    const url = `${BASE}/${SPREADSHEET_ID}?fields=sheets.properties`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${t}` } });
+    const data = await res.json();
+    const sheet = data.sheets?.find((s: any) => s.properties.title === tab);
+    const sheetId = sheet?.properties?.sheetId ?? 0;
+
+    for (const idx of indices) {
+      await sheetsDeleteRow(sheetId, idx + 2, t); // +2: 1-based + header
+    }
+  });
+}
+
+export async function deleteAllBoardStatuses(boardId: string, token: string): Promise<void> {
+  return deleteAllRowsForBoard('Statuses', 'Statuses!A2:G', 1, boardId, token);
+}
+
+export async function deleteAllBoardLabels(boardId: string, token: string): Promise<void> {
+  return deleteAllRowsForBoard('Labels', 'Labels!A2:C', 2, boardId, token);
+}
+
 export async function updateItemBoardId(sheetRow: number, newBoardId: string, token: string): Promise<void> {
   return withReauth(token, (t) =>
     sheetsUpdate(`Items!N${sheetRow}`, [[newBoardId]], t)

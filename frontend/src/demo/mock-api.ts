@@ -187,6 +187,14 @@ export async function deleteAllBoardPermissions(boardId: string, _token: string)
   mockPermissionsState.value = mockPermissionsState.value.filter(p => p.board_id !== boardId);
 }
 
+export async function deleteAllBoardStatuses(boardId: string, _token: string): Promise<void> {
+  mockStatusesState.value = mockStatusesState.value.filter(s => s.board_id !== boardId);
+}
+
+export async function deleteAllBoardLabels(boardId: string, _token: string): Promise<void> {
+  mockLabelsState.value = mockLabelsState.value.filter(l => l.board_id !== boardId);
+}
+
 export async function updateItemBoardId(sheetRow: number, newBoardId: string, _token: string): Promise<void> {
   mockItemsState.value = mockItemsState.value.map(i =>
     i.sheetRow === sheetRow ? { ...i, board_id: newBoardId } : i
