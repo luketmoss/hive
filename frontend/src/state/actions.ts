@@ -1415,10 +1415,13 @@ async function setBoardArchived(boardId: string, archivedAt: string, actor: stri
     const next = accessibleBoards.value[0];
     if (next) switchBoard(next.id);
   }
-  if (!archiving) {
-    // The Upcoming filter is a snapshot of the boards at load; a restored board joins it.
-    upcomingFilterBoards.value = new Set([...upcomingFilterBoards.value, boardId]);
-  }
+  // The Upcoming filter is a snapshot of the boards at load. Keep it in step:
+  // an archived board leaves it (or the filter badge miscounts) and a restored one joins it.
+  const oldUpcomingFilter = upcomingFilterBoards.value;
+  const nextUpcomingFilter = new Set(oldUpcomingFilter);
+  if (archiving) nextUpcomingFilter.delete(boardId);
+  else nextUpcomingFilter.add(boardId);
+  upcomingFilterBoards.value = nextUpcomingFilter;
 
   try {
     await setBoardArchivedAtApi(boardId, archivedAt, token);
@@ -1426,6 +1429,7 @@ async function setBoardArchived(boardId: string, archivedAt: string, actor: stri
     return true;
   } catch (err: any) {
     boards.value = oldBoards;
+    upcomingFilterBoards.value = oldUpcomingFilter;
     if (activeBoardId.value !== oldActiveBoardId) switchBoard(oldActiveBoardId);
     if (!isReauthFailure(err)) {
       showToast(`Failed to ${archiving ? 'archive' : 'restore'} board: ` + err.message, 'error');

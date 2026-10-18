@@ -89,6 +89,8 @@ describe('archiveBoard (AC1, AC2)', () => {
     expect(accessibleBoards.value.map(b => b.id)).toEqual(['home']);
     expect(archivedBoards.value.map(b => b.id)).toEqual(['garage']);
     expect(upcomingIds()).toEqual(['h-todo']);
+    // Leaves the filter snapshot too, so the filter badge compares like with like.
+    expect([...upcomingFilterBoards.value]).toEqual(['home']);
   });
 
   it('Undo restores the board and goes back to it', async () => {
