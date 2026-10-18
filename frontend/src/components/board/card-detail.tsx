@@ -6,6 +6,7 @@ import { LabelBadge } from '../shared/label-badge';
 import { LabelPickerManager } from '../labels/label-picker-manager';
 import { useFocusTrap } from '../../hooks/use-focus-trap';
 import { getContrastTextColor } from '../../utils/color';
+import { localYmdOf, toLocalYmd, withLocalDate, isFutureLocalDate, isOutsideDoneWindow, completedRelativeLabel } from '../../utils/completed-date';
 // QuickDateChips removed in #220 follow-up — native date picker only
 import type { ItemStatus, ItemWithRow } from '../../api/types';
 
@@ -592,7 +593,7 @@ export function CardDetail() {
             )}
             <small>Created: {new Date(item.created_at).toLocaleString()}</small>
             <small>Updated: {new Date(item.updated_at).toLocaleString()}</small>
-            {item.completed_at && (
+            {item.completed_at && !isTerminalStatus(item.status) && (
               <small>Completed: {new Date(item.completed_at).toLocaleString()}</small>
             )}
           </div>
@@ -639,12 +640,43 @@ function OwnerDateRow({ item, owners: ownersList, save }: {
   owners: Array<{ name: string; google_account: string }>;
   save: (field: string, value: string) => Promise<boolean>;
 }) {
-  const [feedback, setFeedback] = useState<'saved' | 'error' | null>(null);
+  const [feedback, setFeedback] = useState<'saved' | 'error' | 'future' | null>(null);
   const hiddenDateRef = useRef<HTMLInputElement>(null);
+  const completedDateRef = useRef<HTMLInputElement>(null);
 
   const onSaved = (ok: boolean) => {
     setFeedback(ok ? 'saved' : 'error');
     setTimeout(() => setFeedback(null), 2000);
+  };
+
+  // #280: completed date, editable while the item sits in a terminal column
+  const showCompleted = isTerminalStatus(item.status) && !!item.completed_at && !!localYmdOf(item.completed_at);
+  const completedYmd = showCompleted ? localYmdOf(item.completed_at) : '';
+  const completedFull = showCompleted
+    ? new Date(item.completed_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    : '';
+
+  const onCompletedChange = async (e: Event) => {
+    const input = e.target as HTMLInputElement;
+    const picked = input.value;
+    const revert = () => { input.value = completedYmd; };
+    if (!picked) { revert(); return; }
+    if (isFutureLocalDate(picked)) {
+      revert();
+      setFeedback('future');
+      setTimeout(() => setFeedback(null), 3000);
+      return;
+    }
+    if (picked === completedYmd) return;
+    const next = withLocalDate(item.completed_at, picked);
+    if (!next) { revert(); return; }
+    const wasInWindow = !isOutsideDoneWindow(item.completed_at);
+    const ok = await save('completed_at', next);
+    onSaved(ok);
+    if (!ok) { revert(); return; }
+    if (wasInWindow && isOutsideDoneWindow(next)) {
+      showToast(`${item.title} moved to the archive`, 'success');
+    }
   };
 
   const dateVal = item.due_date ? item.due_date.split('T')[0] : '';
@@ -657,6 +689,9 @@ function OwnerDateRow({ item, owners: ownersList, save }: {
       )}
       {feedback === 'error' && (
         <span class="save-indicator save-indicator-error owner-date-feedback" data-testid="save-indicator-error">Error</span>
+      )}
+      {feedback === 'future' && (
+        <span class="save-indicator save-indicator-error owner-date-feedback" data-testid="save-indicator-error" role="alert">Completed date can't be in the future</span>
       )}
       <div class="owner-circles">
         {ownersList.map((o, i) => (
@@ -718,6 +753,35 @@ function OwnerDateRow({ item, owners: ownersList, save }: {
           onChange={async (e) => onSaved(await save('due_date', (e.target as HTMLInputElement).value))}
         />
       </div>
+
+      {showCompleted && (
+        <div class="due-date-group completed-date-group">
+          <button
+            type="button"
+            class="completed-date-btn"
+            data-testid="completed-date-btn"
+            aria-label={`Completed ${completedFull}. Change completed date`}
+            onClick={() => completedDateRef.current?.showPicker()}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>
+            <div class="date-info">
+              <span class="date-text">Completed</span>
+              <span class="date-relative">{formatCompactDate(completedYmd)} · {completedRelativeLabel(completedYmd)}</span>
+            </div>
+          </button>
+          <input
+            ref={completedDateRef}
+            type="date"
+            class="due-date-hidden"
+            tabIndex={-1}
+            aria-hidden="true"
+            data-testid="completed-date-input"
+            value={completedYmd}
+            max={toLocalYmd(new Date())}
+            onChange={onCompletedChange}
+          />
+        </div>
+      )}
     </div>
   );
 }
