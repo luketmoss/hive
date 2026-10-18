@@ -336,7 +336,9 @@ body {
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;
   font-family: inherit;
-  min-height: 32px;
+  min-height: 44px;
+  min-width: 44px;
+  justify-content: center;
 }
 
 .theme-toggle-btn:last-child {
@@ -368,7 +370,6 @@ body {
 @media (max-width: 600px) {
   .theme-toggle-btn {
     padding: 6px 8px;
-    min-height: 44px;
   }
 
   .theme-toggle-label {
