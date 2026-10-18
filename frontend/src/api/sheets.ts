@@ -339,13 +339,16 @@ export async function cascadeOwnerUpdate(
 export async function fetchBoards(token: string): Promise<Board[]> {
   try {
     return await withReauth(token, async (t) => {
-      const rows = await sheetsGet('Boards!A2:F', t);
+      // #288: column G (archived_at) is absent on older sheets — a short row
+      // reads back as active.
+      const rows = await sheetsGet('Boards!A2:G', t);
       return rows.map(row => ({
         id: row[0] || '',
         name: row[1] || '',
         created_at: row[2] || '',
         created_by: row[3] || '',
         icon: row[5] || '',
+        archived_at: row[6] || '',
       }));
     });
   } catch (err) {
@@ -354,6 +357,8 @@ export async function fetchBoards(token: string): Promise<Board[]> {
     throw err;
   }
 }
+
+const BOARDS_ARCHIVED_AT_HEADER = 'Archived At';
 
 /** Create the Boards tab with a header row if it doesn't exist yet. */
 async function ensureBoardsTab(token: string): Promise<void> {
@@ -375,7 +380,7 @@ async function ensureBoardsTab(token: string): Promise<void> {
     throw new SheetsApiError(res.status, text);
   }
   // Add header row
-  await sheetsUpdate('Boards!A1:F1', [['ID', 'Name', 'Created At', 'Created By', 'Color', 'Icon']], token);
+  await sheetsUpdate('Boards!A1:G1', [['ID', 'Name', 'Created At', 'Created By', 'Color', 'Icon', BOARDS_ARCHIVED_AT_HEADER]], token);
 }
 
 export async function createBoardRow(board: Board, token: string): Promise<void> {
@@ -411,6 +416,25 @@ export async function updateBoardRow(boardId: string, color: string, icon: strin
     if (rowIndex < 0) return; // Board not found — no-op
     const sheetRow = rowIndex + 2; // 1-based + header
     await sheetsUpdate(`Boards!E${sheetRow}:F${sheetRow}`, [[color, icon]], t);
+  });
+}
+
+/**
+ * #288: Archive (`archivedAt` = ISO timestamp) or unarchive (`''`) a board.
+ * Writes only column G of its row, plus the G1 header on a sheet that predates
+ * the column. Nothing else about the board is touched.
+ */
+export async function setBoardArchivedAt(boardId: string, archivedAt: string, token: string): Promise<void> {
+  return withReauth(token, async (t) => {
+    const rows = await sheetsGet('Boards!A2:A', t);
+    const rowIndex = rows.findIndex(row => (row[0] || '') === boardId);
+    if (rowIndex < 0) throw new Error(`Board "${boardId}" not found`);
+    const header = await sheetsGet('Boards!G1', t);
+    if ((header[0]?.[0] || '') !== BOARDS_ARCHIVED_AT_HEADER) {
+      await sheetsUpdate('Boards!G1', [[BOARDS_ARCHIVED_AT_HEADER]], t);
+    }
+    const sheetRow = rowIndex + 2; // 1-based + header
+    await sheetsUpdate(`Boards!G${sheetRow}`, [[archivedAt]], t);
   });
 }
 

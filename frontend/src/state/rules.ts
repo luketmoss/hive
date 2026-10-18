@@ -1,5 +1,5 @@
 // Client-side business rule helpers.
-// applyStatusSideEffects and statusTransitionAuditAction are duplicated in
+// applyStatusSideEffects, statusTransitionAuditAction and isBoardArchived are duplicated in
 // apps-script/src/rules.js — keep in sync.
 
 import type { Item, ItemStatus } from '../api/types';
@@ -60,4 +60,14 @@ export function statusTransitionAuditAction(
   if (isTerminal) return 'completed';
   if (item.completed_at) return 'reopened';
   return null;
+}
+
+/**
+ * #288: A board is archived when its `archived_at` cell holds anything.
+ * Duplicated in apps-script/src/rules.js — keep in sync. Everything on an
+ * archived board is hidden from both doors whatever its status, and an empty
+ * or missing cell (older sheets have no column G) means active.
+ */
+export function isBoardArchived(board: { archived_at?: string } | null | undefined): boolean {
+  return !!(board && String(board.archived_at || '').trim());
 }

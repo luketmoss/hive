@@ -126,11 +126,11 @@ describe('UserDropdown (Issue #132 AC1)', () => {
       expect(themeToggle).not.toBeNull();
     });
 
-    it('has dividers separating sections (3 with Edit profile)', () => {
+    it('has dividers separating sections (4 with Edit profile and Archived boards)', () => {
       const { container } = renderDropdown();
       fireEvent.click(container.querySelector('[data-testid="user-dropdown-trigger"]') as HTMLElement);
       const dividers = container.querySelectorAll('.user-dropdown-divider');
-      expect(dividers.length).toBe(3);
+      expect(dividers.length).toBe(4);
     });
 
     it('has sign out button', () => {
@@ -200,9 +200,9 @@ describe('UserDropdown — Edit profile (Issue #136)', () => {
     fireEvent.click(container.querySelector('[data-testid="user-dropdown-trigger"]') as HTMLElement);
     const editProfile = container.querySelector('[data-testid="user-dropdown-edit-profile"]');
     expect(editProfile).toBeNull();
-    // Only 2 dividers when no profile button
+    // 3 dividers when no profile button (#288 added Archived boards)
     const dividers = container.querySelectorAll('.user-dropdown-divider');
-    expect(dividers.length).toBe(2);
+    expect(dividers.length).toBe(3);
   });
 
   // AC8: ARIA menu semantics on the panel
@@ -246,9 +246,28 @@ describe('UserDropdown — demo mode hides Edit profile (Issue #136 AC5)', () =>
     fireEvent.click(container.querySelector('[data-testid="user-dropdown-trigger"]') as HTMLElement);
     const editProfile = container.querySelector('[data-testid="user-dropdown-edit-profile"]');
     expect(editProfile).toBeNull();
-    // Only 2 dividers in demo mode
+    // 3 dividers in demo mode — Archived boards stays (#288), Edit profile goes
     const dividers = container.querySelectorAll('.user-dropdown-divider');
-    expect(dividers.length).toBe(2);
+    expect(dividers.length).toBe(3);
+
+    spy.mockRestore();
+  });
+});
+
+describe('UserDropdown — Archived boards (#288 AC3)', () => {
+  it('is a menuitem in demo mode too, and opens the Archived boards dialog', async () => {
+    const demoModule = await import('../../demo/is-demo-mode');
+    const spy = vi.spyOn(demoModule, 'isDemoMode').mockReturnValue(true);
+    const { showArchivedBoardsDialog } = await import('../../state/board-store');
+    showArchivedBoardsDialog.value = false;
+
+    const { container } = renderDropdown();
+    fireEvent.click(container.querySelector('[data-testid="user-dropdown-trigger"]') as HTMLElement);
+    const item = container.querySelector('[data-testid="user-dropdown-archived-boards"]') as HTMLElement;
+    expect(item.getAttribute('role')).toBe('menuitem');
+    fireEvent.click(item);
+    expect(showArchivedBoardsDialog.value).toBe(true);
+    expect(container.querySelector('[data-testid="user-dropdown-panel"]')).toBeNull();
 
     spy.mockRestore();
   });

@@ -21,6 +21,20 @@ var COL = {
 
 var ITEM_COLUMN_COUNT = 14;
 
+// Column indices for the Boards sheet (0-based). #288 added ARCHIVED_AT (G);
+// older sheets stop at F, and a missing cell means the board is active.
+var BOARD_COL = {
+  ID: 0,
+  NAME: 1,
+  CREATED_AT: 2,
+  CREATED_BY: 3,
+  COLOR: 4,
+  ICON: 5,
+  ARCHIVED_AT: 6,
+};
+
+var BOARD_COLUMN_COUNT = 7;
+
 // Column indices for the Statuses sheet (0-based) — deprecated in favor of dynamic statuses
 // Keeping for backward compat during transition period
 var STATUS_COL = {

@@ -3,6 +3,7 @@ import { loadSources } from './apps-script-sandbox';
 import {
   applyStatusSideEffects as frontendApply,
   statusTransitionAuditAction as frontendAuditAction,
+  isBoardArchived as frontendIsBoardArchived,
 } from '../../frontend/src/state/rules';
 import type { Item } from '../../frontend/src/api/types';
 
@@ -223,5 +224,23 @@ describe('statusTransitionAuditAction parity: apps-script/src/rules.js vs fronte
     // Still entering a terminal column — completed again, not reopened.
     expect(appsScriptAuditAction({ ...stale }, true)).toBe('completed');
     expect(frontendAuditAction({ ...stale }, true)).toBe('completed');
+  });
+});
+
+// #288: both doors must agree on which boards are archived, or the API would
+// show items the app hides (or the reverse).
+describe('isBoardArchived parity', () => {
+  const appsScript = () =>
+    loadAppsScriptRules().isBoardArchived as (board: { archived_at?: unknown } | null | undefined) => boolean;
+
+  it.each([
+    ['archived', { archived_at: '2026-10-18T12:00:00.000Z' }, true],
+    ['empty cell', { archived_at: '' }, false],
+    ['whitespace cell', { archived_at: '   ' }, false],
+    ['no column G', {}, false],
+    ['no board', null, false],
+  ])('%s', (_name, board, expected) => {
+    expect(frontendIsBoardArchived(board as { archived_at?: string } | null)).toBe(expected);
+    expect(appsScript()(board)).toBe(expected);
   });
 });

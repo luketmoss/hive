@@ -2,7 +2,12 @@
 
 function getItems(filters) {
   var rows = getAllRows(getSheet('Items'));
-  var items = rows.map(rowToItem);
+  // #288: an archived board's items are invisible through this API, whatever
+  // their status. Internal callers (sort order, cascades) see the same view.
+  var archived = getArchivedBoards();
+  var items = rows.map(rowToItem).filter(function(i) {
+    return !Object.prototype.hasOwnProperty.call(archived, i.board_id);
+  });
 
   if (filters) {
     if (filters.status) {
@@ -47,7 +52,10 @@ function getItem(id) {
   if (rowNum === -1) return null;
 
   var row = sheet.getRange(rowNum, 1, 1, ITEM_COLUMN_COUNT).getValues()[0];
-  return rowToItem(row);
+  var item = rowToItem(row);
+  // #288: an archived board's item reads as not found, like getItems.
+  if (Object.prototype.hasOwnProperty.call(getArchivedBoards(), item.board_id)) return null;
+  return item;
 }
 
 function createItem(data, actor) {
@@ -56,6 +64,7 @@ function createItem(data, actor) {
   if (!data.title) {
     throw new Error('title is required');
   }
+  assertBoardNotArchived(data.board_id);
 
   var allItems = getItems();
 
@@ -119,6 +128,10 @@ function updateItem(id, changes, actor) {
 
   var row = sheet.getRange(rowNum, 1, 1, ITEM_COLUMN_COUNT).getValues()[0];
   var item = rowToItem(row);
+  // #288: neither the item's board nor a board it is being moved to may be archived.
+  var archived = getArchivedBoards();
+  assertBoardNotArchived(item.board_id, archived);
+  if (changes.board_id !== undefined) assertBoardNotArchived(changes.board_id, archived);
   var allItems = getItems();
   var originalStatus = item.status; // #162: capture before any changes
 
@@ -334,9 +347,12 @@ function deleteItem(id, actor, options) {
   options = options || {};
 
   var sheet = getSheet('Items');
-  if (findRowByItemId(sheet, id) === -1) {
+  var rowNum = findRowByItemId(sheet, id);
+  if (rowNum === -1) {
     throw new Error('Item "' + id + '" not found');
   }
+  // #288: an archived board's items can't be deleted through the API.
+  assertBoardNotArchived(rowToItem(sheet.getRange(rowNum, 1, 1, ITEM_COLUMN_COUNT).getValues()[0]).board_id);
 
   var cascade = collectDeleteCascade(id, getItems());
 

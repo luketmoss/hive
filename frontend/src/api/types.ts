@@ -52,6 +52,8 @@ export interface Board {
   created_at: string;
   created_by: string;
   icon?: string;
+  /** #288: ISO timestamp when archived; empty or absent means active. Boards!G */
+  archived_at?: string;
 }
 
 export type PermissionRole = 'owner' | 'member';

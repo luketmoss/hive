@@ -1,5 +1,5 @@
 // Business rule helpers.
-// applyStatusSideEffects and statusTransitionAuditAction are duplicated in
+// applyStatusSideEffects, statusTransitionAuditAction and isBoardArchived are duplicated in
 // frontend/src/state/rules.ts — keep in sync.
 
 function applyStatusSideEffects(item, newStatus, isTerminal) {
@@ -55,4 +55,14 @@ function checkParentCompletion(item, allItems) {
   var siblings = allItems.filter(function(i) { return i.parent_id === item.parent_id; });
   var allDone = siblings.every(function(i) { return i.status === 'Done'; });
   return allDone ? item.parent_id : null;
+}
+
+/**
+ * #288: A board is archived when its `archived_at` cell holds anything.
+ * Duplicated in frontend/src/state/rules.ts — keep in sync. Everything on an
+ * archived board is hidden from both doors whatever its status, and an empty
+ * or missing cell (older sheets have no column G) means active.
+ */
+function isBoardArchived(board) {
+  return !!(board && String(board.archived_at || '').trim());
 }

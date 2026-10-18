@@ -16,7 +16,7 @@ vi.mock('../auth/reauth', () => ({
   },
 }));
 
-import { fetchBoards, createBoardRow, updateBoardRow, renameBoardRow } from './sheets';
+import { fetchBoards, createBoardRow, updateBoardRow, renameBoardRow, setBoardArchivedAt } from './sheets';
 
 const mockFetch = vi.fn() as Mock;
 globalThis.fetch = mockFetch;
@@ -86,13 +86,13 @@ describe('fetchBoards — icon column', () => {
     expect(boards[0].icon).toBe('');
   });
 
-  it('fetches from Boards!A2:F range', async () => {
+  it('fetches from Boards!A2:G range (#288: G is archived_at)', async () => {
     mockFetch.mockResolvedValueOnce(mockSheetsGetResponse([]));
 
     await fetchBoards('test-token');
 
     const url: string = mockFetch.mock.calls[0][0];
-    expect(url).toContain('Boards!A2%3AF');
+    expect(url).toContain('Boards!A2%3AG');
   });
 });
 
@@ -216,5 +216,57 @@ describe('renameBoardRow (issue #138)', () => {
 
     const [updateUrl] = mockFetch.mock.calls[1];
     expect(updateUrl).toContain('Boards!B2');
+  });
+});
+
+// --- #288: archived_at (column G) ---
+
+describe('fetchBoards — archived_at column', () => {
+  it('maps column G to archived_at, and a short row (pre-#288 sheet) to empty', async () => {
+    mockFetch.mockResolvedValueOnce(
+      mockSheetsGetResponse([
+        ['board-1', 'Home', '', '', '', '🏠'],
+        ['board-2', 'Garage', '', '', '', '🔧', '2026-10-18T12:00:00.000Z'],
+      ])
+    );
+    const boards = await fetchBoards('test-token');
+    expect(boards.map(b => b.archived_at)).toEqual(['', '2026-10-18T12:00:00.000Z']);
+  });
+});
+
+describe('setBoardArchivedAt', () => {
+  it('writes the G1 header on a sheet without one, then only column G of the row (AC5)', async () => {
+    mockFetch.mockResolvedValueOnce(mockSheetsGetResponse([['board-1'], ['board-2']]));
+    mockFetch.mockResolvedValueOnce(mockSheetsGetResponse([])); // G1 empty
+    mockFetch.mockResolvedValueOnce(mockSheetsWriteResponse());
+    mockFetch.mockResolvedValueOnce(mockSheetsWriteResponse());
+
+    await setBoardArchivedAt('board-2', '2026-10-18T12:00:00.000Z', 'test-token');
+
+    expect(mockFetch).toHaveBeenCalledTimes(4);
+    const [headerUrl, headerOpts] = mockFetch.mock.calls[2];
+    expect(headerUrl).toContain('Boards!G1');
+    expect(JSON.parse(headerOpts.body).values).toEqual([['Archived At']]);
+    const [rowUrl, rowOpts] = mockFetch.mock.calls[3];
+    expect(rowUrl).toContain('Boards!G3');
+    expect(JSON.parse(rowOpts.body).values).toEqual([['2026-10-18T12:00:00.000Z']]);
+  });
+
+  it('skips the header write when it is already there, and clears the cell to unarchive', async () => {
+    mockFetch.mockResolvedValueOnce(mockSheetsGetResponse([['board-1']]));
+    mockFetch.mockResolvedValueOnce(mockSheetsGetResponse([['Archived At']]));
+    mockFetch.mockResolvedValueOnce(mockSheetsWriteResponse());
+
+    await setBoardArchivedAt('board-1', '', 'test-token');
+
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+    const [rowUrl, rowOpts] = mockFetch.mock.calls[2];
+    expect(rowUrl).toContain('Boards!G2');
+    expect(JSON.parse(rowOpts.body).values).toEqual([['']]);
+  });
+
+  it('throws when the board is not on the sheet, so the caller rolls back', async () => {
+    mockFetch.mockResolvedValueOnce(mockSheetsGetResponse([['board-1']]));
+    await expect(setBoardArchivedAt('nope', 'x', 'test-token')).rejects.toThrow('Board "nope" not found');
   });
 });
