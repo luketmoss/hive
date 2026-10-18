@@ -140,10 +140,10 @@ export function AuthProvider({ children }: Props) {
           }
 
           const newToken = response.access_token;
-          setToken(newToken);
 
           // Fetch user info (skip if this is a background reauth — use cached user)
           if (reauthResolveRef.current) {
+            setToken(newToken);
             // Silent reauth: resolve the promise with the new token and update cache
             // Re-use the existing cached user info to avoid an extra network call
             const cachedUser = loadCachedAuth()?.user;
@@ -156,7 +156,11 @@ export function AuthProvider({ children }: Props) {
             reauthResolveRef.current = null;
             reauthRejectRef.current = null;
           } else {
-            // Normal login (including silent auto-login on page load): fetch user info
+            // Normal login (including silent auto-login on page load): fetch user info.
+            // #285: the token is set only once the user is known. `isAuthenticated`
+            // is `!!token`, and the board loads the moment it turns true — with a
+            // null user it never learns the email, so owner-only UI (Board
+            // Settings) disappears until a reload.
             try {
               const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
                 headers: { Authorization: `Bearer ${newToken}` },
@@ -174,6 +178,7 @@ export function AuthProvider({ children }: Props) {
             } catch (err) {
               console.error('Failed to fetch user info:', err);
             } finally {
+              setToken(newToken);
               if (silentAutoLoginRef.current) {
                 silentAutoLoginRef.current = false;
                 setIsAuthLoading(false);
