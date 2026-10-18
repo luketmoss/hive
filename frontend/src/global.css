@@ -2246,6 +2246,46 @@ body {
   color: var(--color-overdue);
 }
 
+/* === #280: Completed date button (44px target; .due-date-btn is 40px, see #281) === */
+.completed-date-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+.completed-date-btn:hover {
+  background: var(--overlay-xs);
+}
+.completed-date-btn svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: var(--color-success);
+}
+.completed-date-btn .date-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.completed-date-btn .date-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+.completed-date-btn .date-relative {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
 /* === #220: Label "New" pill + gear icon === */
 .label-new-pill {
   padding: 5px 14px;
