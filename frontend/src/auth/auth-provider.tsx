@@ -165,20 +165,29 @@ export function AuthProvider({ children }: Props) {
               const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
                 headers: { Authorization: `Bearer ${newToken}` },
               });
+              if (!res.ok) throw new Error(`userinfo responded ${res.status}`);
               const info = await res.json();
+              // #289: a response without an email is a failed call, not a user
+              if (!info?.email) throw new Error('userinfo response had no email');
               const userInfo: UserInfo = {
                 email: info.email,
                 name: info.name,
                 picture: info.picture,
               };
               setUser(userInfo);
+              setToken(newToken);
               const expiresIn = response.expires_in || 3600;
               saveCachedAuth(newToken, userInfo, expiresIn);
               scheduleRefresh(expiresIn);
             } catch (err) {
+              // #289: fail the sign-in visibly rather than mount a half-signed-in
+              // app. No token is set, so the login screen stays. A silent
+              // auto-login on page load fails quietly, like its other failures.
               console.error('Failed to fetch user info:', err);
+              if (!silentAutoLoginRef.current) {
+                showToast("Couldn't finish signing in — please try again", 'error');
+              }
             } finally {
-              setToken(newToken);
               if (silentAutoLoginRef.current) {
                 silentAutoLoginRef.current = false;
                 setIsAuthLoading(false);

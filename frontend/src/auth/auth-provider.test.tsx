@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, act, cleanup } from '@testing-library/preact';
 import { AuthProvider } from './auth-provider';
 import { useAuth } from './auth-context';
+import { showToast } from '../state/board-store';
 
 vi.mock('../demo/is-demo-mode', () => ({ isDemoMode: () => false }));
 vi.mock('../state/board-store', () => ({ showToast: vi.fn() }));
@@ -28,7 +29,7 @@ beforeEach(() => {
     },
   };
   vi.stubGlobal('fetch', vi.fn(() => new Promise(resolve => {
-    resolveUserinfo = (info) => resolve({ json: () => Promise.resolve(info) });
+    resolveUserinfo = (info) => resolve({ ok: true, json: () => Promise.resolve(info) });
   })));
 });
 
@@ -77,17 +78,47 @@ describe('AuthProvider sign-in ordering (Issue #285)', () => {
     expect(snapshots.filter(s => s.isAuthenticated && !s.email)).toEqual([]);
   });
 
-  // A failed userinfo call must not strand the user on the login screen
-  it('still signs in when the userinfo request fails', async () => {
-    vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('network'))));
+  // #289 AC1-AC3: every kind of failed userinfo call fails the sign-in visibly
+  const failures: Array<[string, () => any]> = [
+    ['a non-2xx response', () => Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) })],
+    ['a response with no email', () => Promise.resolve({ ok: true, json: () => Promise.resolve({ name: 'Luke' }) })],
+    ['a network error', () => Promise.reject(new Error('network'))],
+  ];
+  for (const [label, impl] of failures) {
+    it(`fails the sign-in with a toast on ${label}`, async () => {
+      vi.stubGlobal('fetch', vi.fn(impl));
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.mocked(showToast).mockClear();
+      const snapshots = renderRecorder();
+
+      await act(async () => {
+        await gisCallback!({ access_token: 'new-token', expires_in: 3600 });
+      });
+
+      expect(snapshots.filter(s => s.token)).toEqual([]);
+      expect(localStorage.getItem('hive_token')).toBeNull();
+      expect(showToast).toHaveBeenCalledWith(expect.stringContaining("Couldn't finish signing in"), 'error');
+      errSpy.mockRestore();
+    });
+  }
+
+  // #289 AC4: silent auto-login ends the spinner without a toast
+  it('fails a silent auto-login quietly when userinfo fails', async () => {
+    localStorage.setItem('hive_prior_user', JSON.stringify({ email: 'luke@example.com', name: 'Luke', picture: '' }));
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: false, status: 401, json: () => Promise.resolve({}) })));
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const snapshots = renderRecorder();
+    vi.mocked(showToast).mockClear();
+    let loading: boolean | undefined;
+    function Probe() { loading = useAuth().isAuthLoading; return null; }
+    render(<AuthProvider><Probe /></AuthProvider>);
+    expect(loading).toBe(true);
 
     await act(async () => {
       await gisCallback!({ access_token: 'new-token', expires_in: 3600 });
     });
 
-    expect(snapshots[snapshots.length - 1].token).toBe('new-token');
+    expect(loading).toBe(false);
+    expect(showToast).not.toHaveBeenCalled();
     errSpy.mockRestore();
   });
 
