@@ -148,6 +148,19 @@ Open http://localhost:5173/hive/ and sign in with Google.
    - `VITE_SPREADSHEET_ID` — your Google Sheet ID
 3. Push to `main` — the workflow builds and deploys automatically
 
+### Daily snapshots (Apps Script)
+
+A time-driven trigger copies the sheet to a dated file in a Drive folder once a day and keeps the newest 60 (older ones go to Drive's trash). Google's own version history only reaches back about 30 days, so a snapshot is what makes a bad write recoverable after that.
+
+1. In the Drive of the account that deploys the Apps Script, create a folder (e.g. "Hive snapshots") and **do not share it**. Each snapshot holds the whole family board, and each counts against that account's storage: check the sheet's size times 60.
+2. In Apps Script > Project Settings > Script Properties, set `SNAPSHOT_FOLDER_ID` to the folder's ID (the last part of its URL).
+3. `clasp push --force`, then in the Apps Script editor run `installSnapshotTrigger` once and accept the new **Drive** permission. Do this **before** `clasp redeploy`: a deployed version using Drive blocks the web app until the permission is granted.
+4. Then `clasp redeploy <deployment ID> --description "..."`.
+
+`installSnapshotTrigger` is safe to run again (it leaves one trigger); `removeSnapshotTrigger` removes it. It fires at about 03:00 America/Denver and writes `Hive snapshot YYYY-MM-DD`; running `takeSnapshot` by hand the same day does nothing. If `SNAPSHOT_FOLDER_ID` is unset or not writable the run fails, and Apps Script emails the failure to the account that ran `installSnapshotTrigger`.
+
+**Restoring a value:** open the snapshot spreadsheet from the folder, find the cell or rows, and copy them back into the live sheet by hand.
+
 ## Running Tests
 
 ```bash
