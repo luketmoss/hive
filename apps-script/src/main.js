@@ -2,7 +2,7 @@
 // Apps Script serves every deployment through a redirect. A plain HTTP POST
 // doesn't follow a redirect and resend its body, so an anonymous POST
 // against the deploy URL loses its payload — that's "POST is broken for
-// anonymous callers". A browser `fetch()` (or almanac's) *does* follow the
+// anonymous callers". A browser `fetch()` *does* follow the
 // redirect and resend the method and body, so a form-encoded POST works
 // fine from a real client; it just can't be smoke-tested with a bare `curl
 // -X POST`. Write operations pass data via a `payload` query param either way.
@@ -27,30 +27,15 @@
 //   ?action=deleteItem&payload={"id":"uuid","actor":"smoke-test"}
 //   ?action=deleteItem&payload={"id":"uuid","confirm":true,"token":"a1b2c3d4","actor":"smoke-test"}
 //
-// #264: a read-only door for callers that can't hold API_KEY (almanac, a
-// public browser bundle). Send a Google access token as `access_token`
-// instead of `key` — it can only run the seven read actions in
-// TOKEN_READ_ACTIONS (auth.js), on either entry point:
-//   ?action=getItems&access_token=ya29...                          (GET)
-//   POST body (form-encoded): action=getItems&access_token=ya29...
-// A form-encoded POST body is what almanac actually sends: `e.parameter` is
-// filled from it exactly as it is from a query string, so a live token never
-// lands in a URL log while a plain `?access_token=...` GET still works from
-// a terminal. The JSON-body POST path below stays a write-only door for `key`
-// callers — a token there is refused outright.
-
-// #273: two full-access keys. API_KEY is the original; MCP_API_KEY belongs to
-// the remote MCP Worker so it can be rotated or revoked on its own. Same
-// access, separate credentials. API_KEY is checked first and stays mandatory:
-// the second key never stands in for a missing first one, and an unset or
-// empty MCP_API_KEY matches nothing.
+// One credential: `key` must equal the MCP_API_KEY script property. That is
+// the MCP Worker's key (luketmoss/keel -> mcp/), the only caller there is.
+// An unset or empty MCP_API_KEY throws rather than refusing, so a
+// misconfigured deployment is loud instead of quietly rejecting everyone, and
+// it never matches an empty `key`.
 function validateApiKey(key) {
-  var props = PropertiesService.getScriptProperties();
-  var expected = props.getProperty('API_KEY');
-  if (!expected) throw new Error('API_KEY not configured in script properties');
-  if (key === expected) return true;
-  var mcpKey = props.getProperty('MCP_API_KEY');
-  return !!mcpKey && key === mcpKey;
+  var expected = PropertiesService.getScriptProperties().getProperty('MCP_API_KEY');
+  if (!expected) throw new Error('MCP_API_KEY not configured in script properties');
+  return key === expected;
 }
 
 function jsonOutput(result) {
@@ -61,7 +46,7 @@ function jsonOutput(result) {
 
 /**
  * Run every read and write action `doGet` supports. Shared by `doGet` and
- * the form-encoded branch of `doPost` (#264, AC6) so the two entry points
+ * the form-encoded branch of `doPost` so the two entry points
  * can't drift on what an action does.
  * @param {string} action
  * @param {Object} params - `e.parameter`-shaped request parameters
@@ -234,9 +219,8 @@ function dispatchAction(action, params, payload) {
 }
 
 /**
- * Shared handler for `doGet` and the form-encoded branch of `doPost` (#264).
- * Resolves which credential the request is making its case with, enforces
- * it, then runs `dispatchAction`.
+ * Shared handler for `doGet` and the form-encoded branch of `doPost`.
+ * Checks the key, then runs `dispatchAction`.
  * @param {Object} params - `e.parameter`-shaped request parameters
  * @returns {GoogleAppsScript.Content.TextOutput}
  */
@@ -244,17 +228,7 @@ function handleRequest(params) {
   var result;
 
   try {
-    var credential = resolveCredential(params);
-
-    if (credential.type === 'token') {
-      var verdict = verifyAccessToken(credential.token);
-      if (verdict !== 'ok') {
-        return jsonOutput(tokenRefusal(verdict));
-      }
-      if (TOKEN_READ_ACTIONS.indexOf(params.action) === -1) {
-        return jsonOutput(readOnlyRefusal(params.action));
-      }
-    } else if (!validateApiKey(credential.key)) {
+    if (!validateApiKey(params.key)) {
       return jsonOutput({ success: false, error: 'Invalid or missing API key' });
     }
 
@@ -279,25 +253,17 @@ function doGet(e) {
 function doPost(e) {
   var params = e.parameter || {};
 
-  // #264, AC6: a form-encoded body fills `e.parameter` exactly like a query
-  // string, so `action` being set there means the same path as GET — same
-  // credential rules, same read allow-list, same envelope.
+  // A form-encoded body fills `e.parameter` exactly like a query string, so
+  // `action` being set there means the same path as GET.
   if (params.action) {
     return handleRequest(params);
   }
 
-  // JSON-body path: today's write-only flow for `key` callers, unchanged.
+  // JSON-body path: the write-only flow, with `key` in the body.
   var result;
 
   try {
     var body = JSON.parse(e.postData.contents);
-
-    // A token caller reaching this path is refused outright — it only
-    // writes, and a token can never write (AC6).
-    var token = params.access_token || body.access_token;
-    if (token) {
-      return jsonOutput(readOnlyRefusal(body.action || ''));
-    }
 
     // Authenticate
     if (!validateApiKey(body.key)) {

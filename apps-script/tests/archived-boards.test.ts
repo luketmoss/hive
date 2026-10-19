@@ -41,7 +41,7 @@ function load(): Sandbox {
       ['Chores', '#fff', 'home'],
       ['Tools', '#000', 'garage'],
     ],
-    properties: { API_KEY },
+    properties: { MCP_API_KEY: API_KEY },
   });
 }
 
@@ -129,7 +129,7 @@ describe('AC5: a Boards tab with no column G', () => {
     const sandbox = loadAuthPath({
       boardRows: [['home', 'Home', '', '', '', '']],
       itemRows: [itemRow('h1', 'home')],
-      properties: { API_KEY },
+      properties: { MCP_API_KEY: API_KEY },
     });
     expect(get<ApiItem[]>(sandbox, { action: 'getItems' }).data.map((i) => i.id)).toEqual(['h1']);
     expect(get<Array<{ id: string }>>(sandbox, { action: 'getBoards' }).data.map((b) => b.id)).toEqual(['home']);
