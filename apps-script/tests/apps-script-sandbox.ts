@@ -16,7 +16,6 @@
 
 import { readFileSync } from 'node:fs';
 import { createContext, runInContext } from 'node:vm';
-import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -125,83 +124,6 @@ export function makeUtilities(uuids: string[] = []) {
         day: '2-digit',
       }).format(date);
     },
-    // #264: the real `computeDigest` returns *signed* bytes (Java `byte[]`
-    // semantics) — auth.js's hex conversion masks with `& 0xff` to recover
-    // the unsigned value, so the stub must hand back signed bytes too, or a
-    // digest test would pass for the wrong reason.
-    computeDigest(_algorithm: string, input: string, _charset?: string) {
-      const bytes = createHash('sha256').update(input, 'utf8').digest();
-      return Array.from(bytes).map((b) => (b > 127 ? b - 256 : b));
-    },
-    DigestAlgorithm: { SHA_256: 'SHA_256' },
-    Charset: { UTF_8: 'UTF_8' },
-  };
-}
-
-/**
- * #264: `UrlFetchApp` stub for the tokeninfo call. `responses` is consumed in
- * order (the last entry repeats once exhausted) so a test can script a
- * sequence — e.g. first call misses the cache and hits the network, second
- * call is served from cache and must not call `fetch` again. `calls` records
- * every URL passed to `fetch`, which AC4's "raw token appears nowhere" test
- * scans alongside everything else this stub records.
- */
-export function makeUrlFetchApp(
-  responses: Array<{ code: number; body: string }>,
-  opts: { throwError?: boolean } = {},
-) {
-  const calls: string[] = [];
-  let index = 0;
-  return {
-    calls,
-    fetch(url: string, _options?: unknown) {
-      calls.push(url);
-      if (opts.throwError) {
-        throw new Error('UrlFetchApp.fetch stub: network unavailable');
-      }
-      const response = responses[Math.min(index, responses.length - 1)];
-      index++;
-      return {
-        getResponseCode() {
-          return response.code;
-        },
-        getContentText() {
-          return response.body;
-        },
-      };
-    },
-  };
-}
-
-/**
- * #264: `CacheService` stub backed by a plain object, with every `get`/`put`
- * recorded so a test can assert on cache keys and values directly (AC4)
- * without depending on `UrlFetchApp` call counts alone. `throwOnGet`/
- * `throwOnPut` model a `CacheService` outage for the "proceeds uncached"
- * requirement.
- */
-export function makeCacheService(opts: { throwOnGet?: boolean; throwOnPut?: boolean } = {}) {
-  const store: Record<string, string> = {};
-  const gets: string[] = [];
-  const puts: Array<{ key: string; value: string; ttl: number }> = [];
-  return {
-    store,
-    gets,
-    puts,
-    getScriptCache() {
-      return {
-        get(key: string) {
-          gets.push(key);
-          if (opts.throwOnGet) throw new Error('CacheService.get stub: cache unavailable');
-          return Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null;
-        },
-        put(key: string, value: string, ttlSeconds: number) {
-          puts.push({ key, value, ttl: ttlSeconds });
-          if (opts.throwOnPut) throw new Error('CacheService.put stub: cache unavailable');
-          store[key] = value;
-        },
-      };
-    },
   };
 }
 
@@ -288,9 +210,9 @@ export function loadSources(files: string[], globals: Sandbox = {}): Sandbox {
  * globals stubbed and the Items sheet backed by `itemRows`.
  */
 export function loadReadPath(itemRows: CellValue[][], apiKey = 'test-key', boardRows?: CellValue[][]): Sandbox {
-  const sandbox = loadSources(['types.js', 'utils.js', 'auth.js', 'rules.js', 'boards.js', 'items.js', 'main.js'], {
+  const sandbox = loadSources(['types.js', 'utils.js', 'rules.js', 'boards.js', 'items.js', 'main.js'], {
     ContentService: makeContentService(),
-    PropertiesService: makePropertiesService({ API_KEY: apiKey, SPREADSHEET_ID: 'sheet-id' }),
+    PropertiesService: makePropertiesService({ MCP_API_KEY: apiKey, SPREADSHEET_ID: 'sheet-id' }),
   });
 
   // Seam for fixture rows: replace the sheet accessor, keep `getAllRows` and
@@ -316,9 +238,9 @@ export function loadStatusesPath(
   apiKey = 'test-key',
   boardRows?: CellValue[][],
 ): Sandbox {
-  const sandbox = loadSources(['types.js', 'utils.js', 'auth.js', 'rules.js', 'boards.js', 'statuses.js', 'main.js'], {
+  const sandbox = loadSources(['types.js', 'utils.js', 'rules.js', 'boards.js', 'statuses.js', 'main.js'], {
     ContentService: makeContentService(),
-    PropertiesService: makePropertiesService({ API_KEY: apiKey, SPREADSHEET_ID: 'sheet-id' }),
+    PropertiesService: makePropertiesService({ MCP_API_KEY: apiKey, SPREADSHEET_ID: 'sheet-id' }),
   });
 
   const statusesSheet = statusRows === undefined ? undefined : makeSheet(statusRows, sandbox.STATUS_COLUMN_COUNT);
@@ -335,9 +257,9 @@ export function loadStatusesPath(
  * holds afterward rather than on what the code claims it did.
  */
 export function loadDeletePath(itemRows: CellValue[][], apiKey = 'test-key', boardRows?: CellValue[][]) {
-  const sandbox = loadSources(['types.js', 'utils.js', 'auth.js', 'rules.js', 'boards.js', 'audit.js', 'items.js', 'main.js'], {
+  const sandbox = loadSources(['types.js', 'utils.js', 'rules.js', 'boards.js', 'audit.js', 'items.js', 'main.js'], {
     ContentService: makeContentService(),
-    PropertiesService: makePropertiesService({ API_KEY: apiKey, SPREADSHEET_ID: 'sheet-id' }),
+    PropertiesService: makePropertiesService({ MCP_API_KEY: apiKey, SPREADSHEET_ID: 'sheet-id' }),
     Utilities: makeUtilities(),
     Date: globalThis.Date,
   });
@@ -367,9 +289,9 @@ export function loadAuditPath(
   itemRows: CellValue[][],
   apiKey = 'test-key',
 ): { sandbox: Sandbox; itemsReadCount: () => number } {
-  const sandbox = loadSources(['types.js', 'utils.js', 'auth.js', 'audit.js', 'main.js'], {
+  const sandbox = loadSources(['types.js', 'utils.js', 'audit.js', 'main.js'], {
     ContentService: makeContentService(),
-    PropertiesService: makePropertiesService({ API_KEY: apiKey, SPREADSHEET_ID: 'sheet-id' }),
+    PropertiesService: makePropertiesService({ MCP_API_KEY: apiKey, SPREADSHEET_ID: 'sheet-id' }),
     Utilities: makeUtilities(),
     Date: globalThis.Date,
   });
@@ -390,17 +312,12 @@ export function loadAuditPath(
 }
 
 /**
- * #264: Load every read-path source plus `auth.js`, so a token caller can
- * exercise all seven allow-listed read actions and a key caller can exercise
- * everything `dispatchAction` knows about. `sheets` backs `Owners`, `Labels`,
- * `Boards`, `Statuses`, `Items` and `Audit Log` in one `SpreadsheetApp` stub —
- * an omitted tab behaves like one that doesn't exist, matching
- * `makeSpreadsheetApp`. `properties` seeds script properties beyond the
- * default `API_KEY`/`SPREADSHEET_ID`, in particular `TOKEN_CLIENT_ID` and
- * `TOKEN_ALLOWED_EMAIL` — omit either to model the "unset" AC3 case.
- * `urlFetchApp`/`cacheService` default to stubs a test can still reach via
- * the returned sandbox (`sandbox.UrlFetchApp`, `sandbox.CacheService`) to
- * assert on calls and cache contents.
+ * Load every read-path source, so a caller can exercise all the read actions
+ * and everything `dispatchAction` knows about. `sheets` backs `Owners`,
+ * `Labels`, `Boards`, `Statuses`, `Items` and `Audit Log` in one
+ * `SpreadsheetApp` stub — an omitted tab behaves like one that doesn't exist,
+ * matching `makeSpreadsheetApp`. `properties` seeds script properties beyond
+ * the default `MCP_API_KEY`/`SPREADSHEET_ID`.
  */
 export function loadAuthPath(opts: {
   itemRows?: CellValue[][];
@@ -410,26 +327,23 @@ export function loadAuthPath(opts: {
   statusRows?: CellValue[][];
   auditRows?: CellValue[][];
   properties?: Record<string, string>;
-  urlFetchApp?: ReturnType<typeof makeUrlFetchApp>;
-  cacheService?: ReturnType<typeof makeCacheService>;
 } = {}): Sandbox {
+  // Passing `properties` replaces the default key, so a test can model an
+  // MCP_API_KEY that is absent altogether.
   const properties = {
-    API_KEY: 'test-key',
     SPREADSHEET_ID: 'sheet-id',
-    ...opts.properties,
+    ...(opts.properties ?? { MCP_API_KEY: 'test-key' }),
   };
 
   // `rules.js` is required transitively: `updateItem`'s status-change path
   // calls into it, and the AC6 JSON-body write test exercises `updateItem`
   // for a key caller.
   const sandbox = loadSources(
-    ['types.js', 'utils.js', 'auth.js', 'rules.js', 'owners.js', 'labels.js', 'boards.js', 'statuses.js', 'audit.js', 'items.js', 'main.js'],
+    ['types.js', 'utils.js', 'rules.js', 'owners.js', 'labels.js', 'boards.js', 'statuses.js', 'audit.js', 'items.js', 'main.js'],
     {
       ContentService: makeContentService(),
       PropertiesService: makePropertiesService(properties),
       Utilities: makeUtilities(),
-      UrlFetchApp: opts.urlFetchApp ?? makeUrlFetchApp([{ code: 200, body: '{}' }]),
-      CacheService: opts.cacheService ?? makeCacheService(),
       Date: globalThis.Date,
     },
   );
@@ -495,8 +409,6 @@ export interface ApiResponse<T = ApiItem[]> {
   success: boolean;
   data: T;
   error?: string;
-  // #264: present only on the four token/read-only refusals.
-  code?: string;
 }
 
 /** Call the sandbox's `doGet` with `params` and return the parsed JSON body. */
@@ -509,8 +421,8 @@ export function callDoGet<T = ApiItem[]>(
 }
 
 /**
- * #264: call the sandbox's `doPost` with a form-encoded body — `params` land
- * in `e.parameter`, exactly as almanac sends them, and `e.postData` is left
+ * Call the sandbox's `doPost` with a form-encoded body — `params` land
+ * in `e.parameter`, and `e.postData` is left
  * unset so a test that reaches the JSON-body branch by mistake fails loudly
  * rather than reading a stale body.
  */

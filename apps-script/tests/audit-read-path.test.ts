@@ -40,9 +40,9 @@ function auditRow(fields: {
 }
 
 function loadAuditPath(rows: CellValue[][]): Sandbox {
-  const sandbox = loadSources(['types.js', 'utils.js', 'auth.js', 'audit.js', 'main.js'], {
+  const sandbox = loadSources(['types.js', 'utils.js', 'audit.js', 'main.js'], {
     ContentService: makeContentService(),
-    PropertiesService: makePropertiesService({ API_KEY, SPREADSHEET_ID: 'sheet-id' }),
+    PropertiesService: makePropertiesService({ MCP_API_KEY: API_KEY, SPREADSHEET_ID: 'sheet-id' }),
     Utilities: makeUtilities(),
     Date: globalThis.Date,
   });

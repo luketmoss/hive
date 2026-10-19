@@ -34,8 +34,8 @@ Open http://localhost:5173/hive/?demo=true — you'll see the board with mock da
 └─────────────────┘     └──────────────────┘     └────────┬────────┘
                                                           │
 ┌─────────────────┐     ┌──────────────────┐              │
-│  Voice / AI     │────▶│ Google Apps Script│──────────────┘
-│  (ChatGPT, MCP) │     │ (REST API)       │
+│  MCP Worker     │────▶│ Google Apps Script│──────────────┘
+│  (Claude)       │     │ (REST API)       │
 └─────────────────┘     └──────────────────┘
 ```
 
@@ -45,7 +45,7 @@ Open http://localhost:5173/hive/?demo=true — you'll see the board with mock da
 | API | Google Apps Script | Google |
 | Frontend | Preact + Vite | GitHub Pages |
 | Auth | Google OAuth 2.0 (GIS) | Google Cloud |
-| Voice / AI | ChatGPT Custom GPT + MCP Server | ChatGPT / Local |
+| AI | MCP Worker (in Keel) | Cloudflare |
 
 ## Features
 
@@ -79,7 +79,6 @@ hive/
 │   │   ├── demo/             # Demo mode (mock data, no auth)
 │   │   └── state/            # Preact signals store + business rules
 │   └── public/
-├── chatgpt-gpt-setup.md      # ChatGPT Custom GPT configuration guide
 └── .github/workflows/        # GitHub Pages deployment
 ```
 
@@ -174,9 +173,8 @@ Both must be true for demo mode to activate. This means:
 
 Demo mode provides a fake user and sample board data. Changes are not persisted.
 
-## Voice & AI Integrations
+## AI Integration
 
-- **ChatGPT Custom GPT** — Manage the board by voice via the ChatGPT mobile app. See [chatgpt-gpt-setup.md](chatgpt-gpt-setup.md) for setup.
 - **MCP Server (Claude, phone and desktop)** — Natural language board management through a remote MCP connector (`/hive/mcp`), served by the Worker in Keel (`luketmoss/keel` → `mcp/`). See that project's `CLAUDE.md` for setup.
 
 ## Business Rules

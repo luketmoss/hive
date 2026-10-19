@@ -3,7 +3,7 @@
 ## Project Overview
 Task management for two people, using a Google Sheet as the data layer.
 - **frontend/**: Preact SPA (Vite) — deployed to GitHub Pages, reads/writes the Sheets REST API directly
-- **apps-script/**: Google Apps Script API (clasp) — a second door into the same sheet, for voice and AI agents that have no browser OAuth token
+- **apps-script/**: Google Apps Script API (clasp) — a second door into the same sheet, for the MCP Worker, which has no browser OAuth token
 
 Business rules live in both places and must agree: `frontend/src/state/rules.ts`
 and `apps-script/src/rules.js`, `frontend/src/api/types.ts` and
