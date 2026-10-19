@@ -725,6 +725,7 @@ function OwnerDateRow({ item, owners: ownersList, save }: {
           type="button"
           class={`due-date-btn${hasDate ? ' has-date' : ''}`}
           title={hasDate ? 'Change date' : 'Set due date'}
+          aria-label={`Due date: ${hasDate ? `${formatCompactDate(dateVal)}${getRelativeDateLabel(dateVal) ? `, ${getRelativeDateLabel(dateVal)}` : ''}` : 'No date'}`}
           onClick={() => hiddenDateRef.current?.showPicker()}
         >
           {hasDate ? (
@@ -749,6 +750,8 @@ function OwnerDateRow({ item, owners: ownersList, save }: {
           ref={hiddenDateRef}
           type="date"
           class="due-date-hidden"
+          tabIndex={-1}
+          aria-hidden="true"
           value={dateVal}
           onChange={async (e) => onSaved(await save('due_date', (e.target as HTMLInputElement).value))}
         />
@@ -979,6 +982,8 @@ function SubtaskDateInline({ child, onSave }: {
         ref={hiddenRef}
         type="date"
         class="due-date-hidden"
+        tabIndex={-1}
+        aria-hidden="true"
         value={dateVal}
         aria-label={`Due date for ${child.title}`}
         onChange={(e) => onSave(child.id, 'due_date', (e.target as HTMLInputElement).value)}

@@ -2177,6 +2177,8 @@ body {
   font-family: inherit;
   transition: all var(--transition-fast);
   text-align: left;
+  min-height: 44px;
+  min-width: 44px;
 }
 .due-date-btn:hover {
   background: var(--overlay-xs);
@@ -2683,6 +2685,18 @@ body {
   align-self: flex-start;
   transition: background var(--transition-fast);
   min-height: 24px;
+  position: relative;
+}
+/* #281: extend the hit area to 44x44 without growing the badge */
+.subtask-date-inline::after,
+.subtask-date-add-inline::after {
+  content: '';
+  position: absolute;
+  top: -4px; /* stop at the gap above so the title above stays tappable */
+  left: 50%;
+  width: max(100%, 44px);
+  height: 44px;
+  transform: translateX(-50%);
 }
 .subtask-date-inline:hover {
   background: rgba(var(--color-primary-rgb), 0.18);
@@ -2717,6 +2731,7 @@ body {
   align-self: flex-start;
   transition: all var(--transition-fast);
   min-height: 24px;
+  position: relative;
 }
 .subtask-date-add-inline:hover {
   border-color: var(--color-text-secondary);
